@@ -42,12 +42,12 @@ public:
     // Inserts a character into the CharMap
     CharMapNode* insert(char c, const Value&& value) noexcept {
         char_map[static_cast<size_t>(c)] = CharMapNode(c, std::move(value));
-        return &char_map.at(static_cast<size_t>(c));
+        return &char_map[static_cast<size_t>(c)];
     }
 
     // Finds a character in the CharMap
     CharMapNode* find(char c) const noexcept {
-        const auto& found = char_map.at(static_cast<size_t>(c));
+        const auto& found = char_map[static_cast<size_t>(c)];
         if(found.empty )
             return nullptr;
         return const_cast<CharMapNode*>(&found);
@@ -55,7 +55,7 @@ public:
 
     // Erases a character from the CharMap
     bool erase(char c) noexcept {
-        auto& found = char_map.at(static_cast<size_t>(c));
+        auto& found = char_map[static_cast<size_t>(c)];
         if(found.empty )
             return false;
         else

@@ -1,9 +1,33 @@
 unoptimised
-map insert time: 692ns
-tree insert time: 278ns
-map find time:  182ns
-tree find time: 158ns
+hash map insert time: 455ns
+map insert time: 644ns
+tree prefix match insert time: 164ns
+tree exact match insert time: 166ns
+splay insert time: 252ns
+
+hash map find time:  136ns
+map find time: 410ns
+tree find time: 112ns
+tree exact match find time: 132ns
+splay find time: 233ns
+Number of runs 1038800
+Testing out redix tree
+Unit tests passed
 Program ended with exit code: 0
 
 03 optimised
+hash map insert time: 45ns
+map insert time: 67ns
+tree prefix match insert time: 26ns
+tree exact match insert time: 25ns
+splay insert time: 32ns
 
+hash map find time:  11ns
+map find time: 36ns
+tree find time: 19ns
+tree exact match find time: 23ns
+splay find time: 40ns
+Number of runs 1038800
+Testing out redix tree
+Unit tests passed
+Program ended with exit code: 0

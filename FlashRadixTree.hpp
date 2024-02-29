@@ -42,7 +42,6 @@ concept StringLike = requires(T a, const T b, const char* s, std::size_t pos, st
     { a == b } -> std::convertible_to<bool>;
     { a != b } -> std::convertible_to<bool>;
     { a[0] } -> std::convertible_to<typename T::value_type>;
-    { a.at(0) } -> std::convertible_to<typename T::value_type>;
     { a.begin() } -> std::forward_iterator;
     { a.end() } -> std::forward_iterator;
     { a.size() } -> std::convertible_to<std::size_t>;
@@ -140,7 +139,7 @@ public:
         Key remaining = key;
         
         while (!remaining.empty()) {
-            const auto it = currentNode->children.find(remaining.at(0));
+            const auto it = currentNode->children.find(remaining[0]);
             
 #if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
             if (it != nullptr) {
@@ -161,7 +160,7 @@ public:
                 size_t commonPrefixLength = 0;
                 bool lineIsWholePrefix = false;
                 while (commonPrefixLength < remaining.size() && commonPrefixLength < edge.size()
-                       && remaining.at(commonPrefixLength) == edge.at(commonPrefixLength)) {
+                       && remaining[commonPrefixLength] == edge[commonPrefixLength]) {
                     ++commonPrefixLength;
                     lineIsWholePrefix = commonPrefixLength == remaining.size();
                 }
@@ -178,17 +177,17 @@ public:
                     // The new node should adopt the existing child node
                     childNode->prefix = suffixEdge;
 #if defined( USE_SPLAY_TREE)  || defined USE_CHAR_MAP
-                    newChild->children.insert(suffixEdge.at(0), std::move(childNode));
+                    newChild->children.insert(suffixEdge[0], std::move(childNode));
 #else
-                    newChild->children.emplace(suffixEdge.at(0), std::move(childNode));
+                    newChild->children.emplace(suffixEdge[0, std::move(childNode));
 #endif
                     currentNode->children.erase(edgeKey);
                     
                     // Insert the new child with the common prefix in the current node's children
 #if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
-                    currentNode = currentNode->children.insert(commonPrefix.at(0), std::move(newChild))->value;
+                    currentNode = currentNode->children.insert(commonPrefix[0], std::move(newChild))->value;
 #else
-                    currentNode = currentNode->children.emplace(commonPrefix.at(0), std::move(newChild)).first->second;
+                    currentNode = currentNode->children.emplace(commonPrefix.[0], std::move(newChild)).first->second;
 #endif
                 } else {
                     // Entire edge is a common prefix, proceed with the child node
@@ -206,9 +205,9 @@ public:
             } else {
                 // No common prefix found, create a new edge for the remaining part of the key
 #if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
-                currentNode = currentNode->children.insert(remaining.at(0), new FlashRadixTreeNode(remaining, std::move(value)))->value;
+                currentNode = currentNode->children.insert(remaining[0], new FlashRadixTreeNode(remaining, std::move(value)))->value;
 #else
-                currentNode = currentNode->children.emplace(remaining.at(0), new FlashRadixTreeNode(remaining, std::move(value))).first->second;
+                currentNode = currentNode->children.emplace(remaining[0], new FlashRadixTreeNode(remaining, std::move(value))).first->second;
 #endif
                 currentNode->isEndOfWord = true;
                 
@@ -247,7 +246,7 @@ public:
         }
         
         const FlashRadixTreeNode* currentNode = _root;
-        char keyPrefix = key.at(0);
+        char keyPrefix = key[0];
         Key remaining = key;
         size_t seen = 0;
         while( currentNode != nullptr)
@@ -282,7 +281,7 @@ public:
                 else if( key.size() > (seen += currentNode->prefix.size()) )
                 {
                     //we look for children below looking at the next possible prefix
-                    keyPrefix = key.at(seen);
+                    keyPrefix = key[seen];
                     remaining = key.substr(seen);
                 }
             }
