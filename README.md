@@ -9,6 +9,7 @@ How does a Radix tree differ from a Trie? A Radix tree is a prefix flavor of a t
 
 Below is an exampe of a Trie containing the words "go" "google" "goggles", "hell", "hellow" "hollow".
 
+```
 (ROOT)
 |
 +-- g
@@ -58,9 +59,11 @@ Below is an exampe of a Trie containing the words "go" "google" "goggles", "hell
                 +-- o
                     |
                     +-- w (end of "hollow")
+```
                     
 Below is an example of a Radix tree containing the same words.
 
+```
 (ROOT)
 |
 +-- go
@@ -80,6 +83,7 @@ Below is an example of a Radix tree containing the same words.
     |   +-- o (end of "hello")
     |
     +-- ollow (end of "hollow")
+```
     
 You can see its more compact and whats more it well structured for cases with common prefixes.
 You'll also notice that each leve of the tree the first letter is unique. We'll come back to this later.
