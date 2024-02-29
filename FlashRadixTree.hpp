@@ -10,7 +10,7 @@
 #ifndef FlashRadixTree_hpp
 #define FlashRadixTree_hpp
 
-#define USE_SPLAY_TREE
+//#define USE_SPLAY_TREE
 //#define USE_CHAR_MAP
 
 #include <iostream>
@@ -179,7 +179,7 @@ public:
 #if defined( USE_SPLAY_TREE)  || defined USE_CHAR_MAP
                     newChild->children.insert(suffixEdge[0], std::move(childNode));
 #else
-                    newChild->children.emplace(suffixEdge[0, std::move(childNode));
+                    newChild->children.emplace(suffixEdge[0], std::move(childNode));
 #endif
                     currentNode->children.erase(edgeKey);
                     
@@ -187,7 +187,7 @@ public:
 #if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
                     currentNode = currentNode->children.insert(commonPrefix[0], std::move(newChild))->value;
 #else
-                    currentNode = currentNode->children.emplace(commonPrefix.[0], std::move(newChild)).first->second;
+                    currentNode = currentNode->children.emplace(commonPrefix[0], std::move(newChild)).first->second;
 #endif
                 } else {
                     // Entire edge is a common prefix, proceed with the child node

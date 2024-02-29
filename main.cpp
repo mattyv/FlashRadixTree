@@ -168,7 +168,7 @@ int main(int argc, const char * argv[]) {
     
     std::cout << "map find time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((mapEnd - mapStart)/(symbols.size() * runNumbers)).count() << "ns" << std::endl;
     
-    std::cout << "tree find time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endTree - startTree)/(symbols.size() * runNumbers)).count() << "ns" << std::endl;
+    std::cout << "tree prefix match find time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endTree - startTree)/(symbols.size() * runNumbers)).count() << "ns" << std::endl;
     
     std::cout << "tree exact match find time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endTreeExactMatch - startTreeExactMatch)/(symbols.size() * runNumbers)).count() << "ns" << std::endl;
     
