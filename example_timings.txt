@@ -1,0 +1,9 @@
+unoptimised
+map insert time: 692ns
+tree insert time: 278ns
+map find time:  182ns
+tree find time: 158ns
+Program ended with exit code: 0
+
+03 optimised
+
