@@ -3,13 +3,15 @@
 //
 //  Created by Matthew Varendorff on 26/2/2024.
 //
+//  GNU GENERAL PUBLIC LICENSE
+//  Version 3, 29 June 2007
+//
 
 #ifndef FlashRadixTree_hpp
 #define FlashRadixTree_hpp
 
-#ifndef USE_SPLAY_TREE
 #define USE_SPLAY_TREE
-#endif
+//#define USE_CHAR_MAP
 
 #include <iostream>
 #include <map>
@@ -18,6 +20,8 @@
 #include <stack>
 #ifdef USE_SPLAY_TREE
 #include "SplayTree.hpp"
+#elif defined USE_CHAR_MAP
+#include "CharMap.hpp"
 #endif
 #include <concepts>
 #include <sstream>
@@ -61,6 +65,8 @@ class FlashRadixTree {
 public:
 #ifdef USE_SPLAY_TREE
     static constexpr size_t max_alignment_value_FlashRadixTreeNode = max_alignment<Key, Value, bool, SplayTree<typename Key::value_type, void*>>();
+#elif defined USE_CHAR_MAP
+    static constexpr size_t max_alignment_value_FlashRadixTreeNode = max_alignment<Key, Value, bool, CharMap<Value>>();
 #else
     static constexpr size_t max_alignment_value_FlashRadixTreeNode = max_alignment<Key, Value, bool, std::unordered_map<typename Key::value_type, void*>>();
 #endif
@@ -68,6 +74,8 @@ public:
     public:
 #ifdef USE_SPLAY_TREE
         using Children = SplayTree<typename Key::value_type, FlashRadixTreeNode*>;
+#elif defined USE_CHAR_MAP
+        using Children = CharMap<FlashRadixTreeNode*>;
 #else
         using Children = std::unordered_map<typename Key::value_type, FlashRadixTreeNode*>;
 #endif
@@ -134,13 +142,13 @@ public:
         while (!remaining.empty()) {
             const auto it = currentNode->children.find(remaining.at(0));
             
-#if defined( USE_SPLAY_TREE)
+#if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
             if (it != nullptr) {
 #else
             if( it != currentNode->children.end()) {
 #endif
                 // Found a common prefix, split the edge if necessary
-#if defined( USE_SPLAY_TREE)
+#if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
                 const typename Key::value_type edgeKey = it->key;
                 FlashRadixTreeNode* childNode = it->value;
 #else
@@ -169,7 +177,7 @@ public:
                     
                     // The new node should adopt the existing child node
                     childNode->prefix = suffixEdge;
-#if defined( USE_SPLAY_TREE)
+#if defined( USE_SPLAY_TREE)  || defined USE_CHAR_MAP
                     newChild->children.insert(suffixEdge.at(0), std::move(childNode));
 #else
                     newChild->children.emplace(suffixEdge.at(0), std::move(childNode));
@@ -177,7 +185,7 @@ public:
                     currentNode->children.erase(edgeKey);
                     
                     // Insert the new child with the common prefix in the current node's children
-#if defined( USE_SPLAY_TREE)
+#if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
                     currentNode = currentNode->children.insert(commonPrefix.at(0), std::move(newChild))->value;
 #else
                     currentNode = currentNode->children.emplace(commonPrefix.at(0), std::move(newChild)).first->second;
@@ -197,7 +205,7 @@ public:
                 remaining = remaining.substr(commonPrefixLength);
             } else {
                 // No common prefix found, create a new edge for the remaining part of the key
-#if defined( USE_SPLAY_TREE)
+#if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
                 currentNode = currentNode->children.insert(remaining.at(0), new FlashRadixTreeNode(remaining, std::move(value)))->value;
 #else
                 currentNode = currentNode->children.emplace(remaining.at(0), new FlashRadixTreeNode(remaining, std::move(value))).first->second;
@@ -245,13 +253,13 @@ public:
         while( currentNode != nullptr)
         {
             auto it = currentNode->children.find(keyPrefix);
-#if defined( USE_SPLAY_TREE)
+#if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
             if(it != nullptr)
 #else
             if(it != currentNode->children.end())
 #endif
             {
-#if defined( USE_SPLAY_TREE)
+#if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
                 currentNode = it->value;
 #else
                 currentNode = it->second;
@@ -310,6 +318,11 @@ private:
             _printRecursively(node->key, node->value, level + 1);
             return true;
         });
+#elif defined( USE_CHAR_MAP)
+        node->children.inOrderAndOp([&](const auto& node)->bool {
+            _printRecursively(node->key, node->value, level + 1);
+            return true;
+        });
 #else
         for (const auto& it : node->children) {
             _printRecursively(it.first, it.second, level + 1);
@@ -340,9 +353,14 @@ private:
             _clearRecursively(node->value);
             return true;
         });
+#elif defined( USE_CHAR_MAP)
+        node->children.inOrderAndOp([&](const auto node)->bool {
+            _clearRecursively(node.value);
+            return true;
+        });
 #else
         for (auto& it : node->children) {
-            clearRecursively(it.second);
+            _clearRecursively(it.second);
         }
 #endif
         
@@ -451,6 +469,15 @@ private:
                     ss << ",";
                 }
                 ss << serializeNode(childPair->value);
+                first = false;
+                return true;
+            });
+#elif defined( USE_CHAR_MAP)
+            node->children.inOrderAndOp([&ss, &first](const auto& childPair) -> bool {
+                if (!first) {
+                    ss << ",";
+                }
+                ss << serializeNode(childPair.value);
                 first = false;
                 return true;
             });

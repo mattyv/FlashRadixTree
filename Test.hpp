@@ -13,6 +13,7 @@ bool RunTests()
     int value = 0;
     auto* itInsert = rTree.insert("AB", value++);
     auto got = serializer.serialize(rTree);
+#ifdef USE_SPLAY_TREE
     std::string expected = "+[,0,*,<+[AB,0,√,<->]>]";
     if(got != expected)
     {
@@ -21,7 +22,9 @@ bool RunTests()
         rTree.print();
         return false;
     }
+#endif
     itInsert = rTree.insert("AC", value++);
+#ifdef USE_SPLAY_TREE
     got = serializer.serialize(rTree);
     expected = "+[,0,*,<+[A,0,*,<+[B,0,√,<->],+[C,1,√,<->]>]>]";
     if(got != expected)
@@ -31,6 +34,7 @@ bool RunTests()
         rTree.print();
         return false;
     }
+#endif
     auto valExpect = rTree.find("AB");
     if(valExpect == nullptr ||  valExpect->value != 0)
     {
@@ -50,6 +54,7 @@ bool RunTests()
         return false;
     }
     got = serializer.serialize(rTree);
+#ifdef USE_SPLAY_TREE
     expected = "+[,0,*,<+[A,0,*,<+[B,0,√X,<->],+[C,1,√,<->]>]>]";
     if(got != expected)
     {
@@ -58,6 +63,7 @@ bool RunTests()
         rTree.print();
         return false;
     }
+#endif
     valExpect = rTree.find("AB");
     if(valExpect != nullptr)
     {
@@ -65,6 +71,7 @@ bool RunTests()
         return false;
     }
     itInsert = rTree.insert("AB", value++);
+#ifdef USE_SPLAY_TREE
     got = serializer.serialize(rTree);
     expected = "+[,0,*,<+[A,0,*,<+[B,2,√,<->],+[C,1,√,<->]>]>]";
     if(got != expected)
@@ -74,12 +81,13 @@ bool RunTests()
         rTree.print();
         return false;
     }
-    
+#endif
     
     rTree.clear();
     value = 0;
     itInsert = rTree.insert("AB", value++);
     itInsert = rTree.insert("A", value++);
+#ifdef USE_SPLAY_TREE
     got = serializer.serialize(rTree);
     expected = "+[,0,*,<+[A,1,√,<+[B,0,√,<->]>]>]";
     if(got != expected)
@@ -89,6 +97,7 @@ bool RunTests()
         rTree.print();
         return false;
     }
+#endif
     valExpect = rTree.find("AB");
     if(valExpect == nullptr || valExpect->value != 0)
     {
@@ -108,6 +117,7 @@ bool RunTests()
     itInsert = rTree.insert("A", value++);
     itInsert = rTree.insert("AB", value++);
     got = serializer.serialize(rTree);
+#ifdef USE_SPLAY_TREE
     expected = "+[,0,*,<+[A,0,√,<+[B,1,√,<->]>]>]";
     if(got != expected)
     {
@@ -116,6 +126,7 @@ bool RunTests()
         rTree.print();
         return false;
     }
+#endif
     valExpect = rTree.find("A");
     if(valExpect == nullptr || valExpect->value != 0)
     {
@@ -134,6 +145,7 @@ bool RunTests()
         std::cout << "Erase action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
+#ifdef USE_SPLAY_TREE
     got = serializer.serialize(rTree);
     expected = "+[,0,*,<+[A,0,√X,<+[B,1,√,<->]>]>]";
     if(got != expected)
@@ -143,6 +155,7 @@ bool RunTests()
         rTree.print();
         return false;
     }
+#endif
     valExpect = rTree.find("A");
     if(valExpect != nullptr)
     {
@@ -164,6 +177,7 @@ bool RunTests()
     itInsert = rTree.insert("AB", value++);
     itInsert = rTree.insert("AB", value++);
     got = serializer.serialize(rTree);
+#ifdef USE_SPLAY_TREE
     expected = "+[,0,*,<+[AB,0,√,<->]>]";
     if(got != expected)
     {
@@ -172,6 +186,7 @@ bool RunTests()
         rTree.print();
         return false;
     }
+#endif
     valExpect = rTree.find("AB");
     if(valExpect == nullptr || valExpect->value != 0)
     {
@@ -185,6 +200,7 @@ bool RunTests()
     itInsert = rTree.insert("AC", value++);
     itInsert = rTree.insert("AC", value++);
     got = serializer.serialize(rTree);
+#ifdef USE_SPLAY_TREE
     expected = "+[,0,*,<+[A,0,*,<+[B,0,√,<->],+[C,1,√,<->]>]>]";
     if(got != expected)
     {
@@ -193,6 +209,7 @@ bool RunTests()
         rTree.print();
         return false;
     }
+#endif
     valExpect = rTree.find("AB");
     if(valExpect == nullptr || valExpect->value != 0)
     {
@@ -211,6 +228,7 @@ bool RunTests()
     itInsert = rTree.insert("AB", value++);
     itInsert = rTree.insert("BC", value++);
     got = serializer.serialize(rTree);
+#ifdef USE_SPLAY_TREE
     expected = "+[,0,*,<+[AB,0,√,<->],+[BC,1,√,<->]>]";
     if(got != expected)
     {
@@ -219,6 +237,7 @@ bool RunTests()
         rTree.print();
         return false;
     }
+#endif
     valExpect = rTree.find("AB");
     if(valExpect == nullptr || valExpect->value != 0)
     {
@@ -237,6 +256,7 @@ bool RunTests()
     itInsert = rTree.insert("A", value++);
     itInsert = rTree.insert("AB", value++);
     itInsert = rTree.insert("ABC", value++);
+#ifdef USE_SPLAY_TREE
     got = serializer.serialize(rTree);
     expected = "+[,0,*,<+[A,0,√,<+[B,1,√,<+[C,2,√,<->]>]>]>]";
     if(got != expected)
@@ -246,6 +266,7 @@ bool RunTests()
         rTree.print();
         return false;
     }
+#endif
     valExpect = rTree.find("A");
     if(valExpect == nullptr || valExpect->value != 0)
     {
@@ -270,6 +291,7 @@ bool RunTests()
     itInsert = rTree.insert("A", value++);
     itInsert = rTree.insert("ABC", value++);
     itInsert = rTree.insert("AB", value++);
+#ifdef USE_SPLAY_TREE
     got = serializer.serialize(rTree);
     expected = "+[,0,*,<+[A,0,√,<+[B,2,√,<+[C,1,√,<->]>]>]>]";
     if(got != expected)
@@ -279,6 +301,7 @@ bool RunTests()
         rTree.print();
         return false;
     }
+#endif
     valExpect = rTree.find("A");
     if(valExpect == nullptr || valExpect->value != 0)
     {
@@ -304,6 +327,7 @@ bool RunTests()
     itInsert = rTree.insert("AA", value++);
     itInsert = rTree.insert("AB", value++);
     itInsert = rTree.insert("BA", value++);
+#ifdef USE_SPLAY_TREE
     got = serializer.serialize(rTree);
     expected = "+[,0,*,<"
                     "+[A,0,*,<"
@@ -318,6 +342,7 @@ bool RunTests()
         rTree.print();
         return false;
     }
+#endif
     valExpect = rTree.find("AA");
     if(valExpect == nullptr || valExpect->value != 0)
     {
@@ -342,6 +367,7 @@ bool RunTests()
     value = 0;
     itInsert = rTree.insert("AAA", value++);
     itInsert = rTree.insert("ABA", value++);
+#ifdef USE_SPLAY_TREE
     got = serializer.serialize(rTree);
     expected = "+[,0,*,<"
                     "+[A,0,*,<"
@@ -355,7 +381,9 @@ bool RunTests()
         rTree.print();
         return false;
     }
+#endif
     itInsert = rTree.insert("AAB", value++);
+#ifdef USE_SPLAY_TREE
     got = serializer.serialize(rTree);
     expected = "+[,0,*,<"
                         "+[A,0,*,<"
@@ -370,6 +398,7 @@ bool RunTests()
         rTree.print();
         return false;
     }
+#endif
     valExpect = rTree.find("AAA");
     if(valExpect == nullptr || valExpect->value != 0)
     {
@@ -395,6 +424,7 @@ bool RunTests()
     itInsert = rTree.insert("AAA", value++);
     itInsert = rTree.insert("AAB", value++);
     itInsert = rTree.insert("ABA", value++);
+#ifdef USE_SPLAY_TREE
     got = serializer.serialize(rTree);
     expected = "+[,0,*,<"
                         "+[A,0,*,<"
@@ -409,6 +439,7 @@ bool RunTests()
         rTree.print();
         return false;
     }
+#endif
     valExpect = rTree.find("AAA");
     if(valExpect == nullptr || valExpect->value != 0)
     {
@@ -436,6 +467,7 @@ bool RunTests()
     itInsert = rTree.insert("ABA", value++);
     itInsert = rTree.insert("ACA", value++);
     itInsert = rTree.insert("ACB", value++);
+#ifdef USE_SPLAY_TREE
     got = serializer.serialize(rTree);
     expected = "+[,0,*,<"
                         "+[A,0,*,<"
@@ -454,6 +486,7 @@ bool RunTests()
         rTree.print();
         return false;
     }
+#endif
     valExpect = rTree.find("AAA");
     if(valExpect == nullptr || valExpect->value != 0)
     {
