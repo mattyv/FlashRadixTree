@@ -366,6 +366,8 @@ private:
         delete node;
     }
 public:
+        
+    //todo: work in progress
     /*bool erase(const Key& key) noexcept {
         if (key.empty()) {
             return false; // Cannot erase an empty key

@@ -1,32 +1,17 @@
-unoptimised
-hash map insert time: 455ns
-map insert time: 644ns
-tree prefix match insert time: 164ns
-tree exact match insert time: 166ns
-splay insert time: 252ns
+size of one line in kilobytes: 1kb
 
-hash map find time:  136ns
-map find time: 410ns
-tree find time: 112ns
-tree exact match find time: 132ns
-splay find time: 233ns
-Number of runs 1038800
-Testing out redix tree
-Unit tests passed
-Program ended with exit code: 0
+hash map insert time: 391ns
+map insert time: 361ns
+tree prefix match insert time: 1787ns
+tree exact match insert time: 1776ns
+splay insert time: 468ns
 
-03 optimised
-hash map insert time: 45ns
-map insert time: 67ns
-tree prefix match insert time: 26ns
-tree exact match insert time: 25ns
-splay insert time: 32ns
+hash map find time:  198ns
+map find time: 264ns
+tree prefix match find time: 162ns
+tree exact match find time: 192ns
+splay find time: 397ns
 
-hash map find time:  11ns
-map find time: 36ns
-tree find time: 19ns
-tree exact match find time: 23ns
-splay find time: 40ns
 Number of runs 1038800
 Testing out redix tree
 Unit tests passed

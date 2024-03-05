@@ -17,6 +17,22 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <memory>
+
+//struct to simulate and market order
+struct Data
+{
+    std::string str;
+    unsigned int data1 = 0;
+    unsigned int data2 = 0;
+    
+    //streaming operator
+    friend std::ostream& operator<<(std::ostream& os, const Data& order)
+    {
+        os << "str: " << order.str << " data1: " << order.data1 << " data2: " << order.data2;
+        return os;
+    }
+};
 
 int main(int argc, const char * argv[]) {
     
@@ -24,71 +40,78 @@ int main(int argc, const char * argv[]) {
     std::ifstream file;
     file.open("/Users/matthew/Documents/Code/CPP/FlashRadixTree/FlashRadixTree/sample_data.txt");
     std::string line;
+    unsigned int n = 300;
     while (std::getline(file, line)) {
-        symbols.push_back(line);
+        //dupliacate each character in the string n times
+        std::string newLine;
+        for (auto &c : line) {
+            for (unsigned int i = 0; i < n; ++i) {
+                newLine.push_back(c);
+            }
+        }
+        symbols.push_back(newLine);
     }
     file.close();
     
-    FlashRadixTree<std::string_view, unsigned int, MatchMode::Prefix> tree;
-    FlashRadixTree<std::string_view, unsigned int, MatchMode::Exact> treeExactMatch;
-    std::unordered_map<std::string_view, unsigned int> hash_map;
-    std::map<std::string_view, unsigned int> map;
-    SplayTree<std::string_view, unsigned int> splay;
+    //print the size of one line in kilobytes
+    std::cout << "size of one line in kilobytes: " << symbols[0].size() / 1024 << "kb" << std::endl;
+    
+    FlashRadixTree<std::string, Data, MatchMode::Prefix> tree;
+    FlashRadixTree<std::string, Data, MatchMode::Exact> treeExactMatch;
+    std::unordered_map<std::string, Data> hash_map;
+    std::map<std::string, Data> map;
+    SplayTree<std::string, Data> splay;
     unsigned int runNumbers = 100;
     
     auto startHashMap = std::chrono::high_resolution_clock::now();
-    unsigned int count = 0;
     for(unsigned int i = 0; i < runNumbers; ++i)
     {
         
         for (auto &symbol : symbols) {
             auto it = hash_map.find(symbol); //typical usage
-            hash_map.emplace_hint(it, symbol, count++);
+            hash_map.emplace_hint(it, symbol, Data());
         }
     }
     auto endHashMap = std::chrono::high_resolution_clock::now();
     
     auto mapStart = std::chrono::high_resolution_clock::now();
-    count = 0;
     for(unsigned int i = 0; i < runNumbers; ++i)
     {
         for (auto &symbol : symbols) {
             auto it = map.find(symbol); //typical usage
-            map.emplace_hint(it, symbol, count++);
+            map.emplace_hint(it, symbol, Data());
         }
     }
     auto mapEnd = std::chrono::high_resolution_clock::now();
     
     auto startTree = std::chrono::high_resolution_clock::now();
-    count = 0;
     for(unsigned int i = 0; i < runNumbers; ++i)
     {
         for (auto &symbol : symbols) {
-            tree.insert(symbol, count++);
+            tree.insert(symbol, Data());
         }
     }
     auto endTree = std::chrono::high_resolution_clock::now();
     
     auto startTreeExactMatch = std::chrono::high_resolution_clock::now();
-    count = 0;
     for(unsigned int i = 0; i < runNumbers; ++i)
     {
         for (auto &symbol : symbols) {
-            treeExactMatch.insert(symbol, count++);
+            treeExactMatch.insert(symbol, Data());
         }
     }
     auto endTreeExactMatch = std::chrono::high_resolution_clock::now();
     
     auto startSplay = std::chrono::high_resolution_clock::now();
-    count = 0;
     for(unsigned int i = 0; i < runNumbers; ++i)
     {
         
         for (auto &symbol : symbols) {
-            splay.insert(symbol, count++);
+            splay.insert(symbol, Data());
         }
     }
     auto endSplay = std::chrono::high_resolution_clock::now();
+    
     
     std::cout << "hash map insert time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endHashMap - startHashMap)/(symbols.size() * runNumbers)).count() << "ns" << std::endl;
     
@@ -174,7 +197,7 @@ int main(int argc, const char * argv[]) {
     
     std::cout << "splay find time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endSplay - startSplay)/(symbols.size() * runNumbers)).count() << "ns" << std::endl;
     
-    std::cout << "Number of runs " << (symbols.size() * runNumbers) << std::endl;
+    std::cout << std::endl << "Number of runs " << (symbols.size() * runNumbers) << std::endl;
     
     RunTests();
     
