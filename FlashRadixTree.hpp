@@ -10,7 +10,7 @@
 #ifndef FlashRadixTree_hpp
 #define FlashRadixTree_hpp
 
-//#define USE_SPLAY_TREE
+#define USE_SPLAY_TREE
 //#define USE_CHAR_MAP
 
 #include <iostream>
