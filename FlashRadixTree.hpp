@@ -76,7 +76,7 @@ public:
 #elif defined USE_CHAR_MAP
         using Children = CharMap<FlashRadixTreeNode*>;
 #else
-        using Children = std::unordered_map<typename Key::value_type, FlashRadixTreeNode*>;
+        using Children = std::map<typename Key::value_type, FlashRadixTreeNode*>;
 #endif
         Children children;
         bool isEndOfWord = false;
