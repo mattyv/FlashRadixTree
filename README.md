@@ -115,7 +115,7 @@ A lot of research has been done into this data structure and to this day it rema
 
 So in the FlashRadixTree i offer two options. To use the use of the Splay tree or the use of the map. The Splay tree or map is used to populate the child nodes of reach level of our radixt tree. As for which is better? It may depend on your key set, and I leave it to you to test which one works better. 
 
-Example Timings (Apple M2 (ARM 64), Somoma 14.3.1 (23D60)) ... will aim to get some Linux test soom.
+Example Timings (Apple M2 (ARM 64), Somoma 14.3.1 (23D60)) ... will aim to get some more real life tests, more details around jitter and Linux test soon.
 
 Large messages FlashRadixTree perform well aginst unordered_map and map for find() in these tests. (again i encourage your own testing)
 ```
