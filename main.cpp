@@ -45,7 +45,7 @@ int main(int argc, const char * argv[]) {
     std::ifstream file;
     file.open("/Users/matthew/Documents/Code/CPP/FlashRadixTree/FlashRadixTree/sample_data.txt");
     std::string line;
-    unsigned int n = 300;
+    unsigned int n = 1;
     while (std::getline(file, line)) {
         //dupliacate each character in the string n times
         std::string newLine;
@@ -73,11 +73,15 @@ int main(int argc, const char * argv[]) {
     SplayTree<std::string, Data> splay;
     unsigned int runNumbers = 100;
     
-    auto startHashMap = std::chrono::high_resolution_clock::now();
+    long long minHashDuration = std::numeric_limits<long long>::max();
     for (auto &symbol : uniqueSymbols) {
-            hash_map.emplace(symbol, Data());
+        const auto startHashMap = std::chrono::steady_clock::now();
+        hash_map.emplace(symbol, Data());
+        const auto endHashMap = std::chrono::steady_clock::now();
+        
+        const auto durationHashMap = std::chrono::duration_cast<std::chrono::nanoseconds>(endHashMap - startHashMap).count();
+        minHashDuration = std::min(minHashDuration, durationHashMap);
     }
-    auto endHashMap = std::chrono::high_resolution_clock::now();
     
     auto mapStart = std::chrono::high_resolution_clock::now();
     for (auto &symbol : uniqueSymbols) {
@@ -85,11 +89,17 @@ int main(int argc, const char * argv[]) {
     }
     auto mapEnd = std::chrono::high_resolution_clock::now();
     
-    auto startTree = std::chrono::high_resolution_clock::now();
+    
+    long long minTreeDuration = std::numeric_limits<long long>::max();
     for (auto &symbol : uniqueSymbols) {
+        const auto startTree = std::chrono::steady_clock::now();
         tree.insert(symbol, Data());
+        const auto endTree = std::chrono::steady_clock::now();
+        
+        const auto durationTree = std::chrono::duration_cast<std::chrono::nanoseconds>(endTree - startTree).count();
+        minTreeDuration = std::min(minTreeDuration, durationTree);
     }
-    auto endTree = std::chrono::high_resolution_clock::now();
+    
     
     auto startTreeExactMatch = std::chrono::high_resolution_clock::now();
    for (auto &symbol : uniqueSymbols) {
@@ -104,11 +114,11 @@ int main(int argc, const char * argv[]) {
     auto endSplay = std::chrono::high_resolution_clock::now();
     
     
-    std::cout << "hash map insert time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endHashMap - startHashMap)/symbols.size()).count() << "ns" << std::endl;
+    std::cout << "hash map insert time: " << minHashDuration << "ns" << std::endl;
     
     std::cout << "map insert time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((mapEnd - mapStart)/symbols.size()).count() << "ns" << std::endl;
     
-    std::cout << "tree prefix match insert time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endTree - startTree)/symbols.size()).count() << "ns" << std::endl;
+    std::cout << "tree prefix match insert time: " << minTreeDuration << "ns" << std::endl;
     
     std::cout << "tree exact match insert time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endTreeExactMatch - startTreeExactMatch)/symbols.size()).count() << "ns" << std::endl;
     
@@ -117,43 +127,57 @@ int main(int argc, const char * argv[]) {
     std::cout << std::endl;
     
     //search for all symbols runNumber times
-    startHashMap = std::chrono::high_resolution_clock::now();
+    minHashDuration = std::numeric_limits<long long>::max();
     for(unsigned int i = 0; i < runNumbers; ++i)
     {
-        
+     
         for (auto &symbol : symbols) {
+            const auto startHashMap = std::chrono::steady_clock::now();
             auto it = hash_map.find(symbol);
+            const auto endHashMap = std::chrono::steady_clock::now();
+            
             if (it == hash_map.end()) {
                 return 1;
             }
+            const auto durationHashMap = std::chrono::duration_cast<std::chrono::nanoseconds>(endHashMap - startHashMap).count();
+            minHashDuration = std::min(minHashDuration, durationHashMap);
         }
     }
-    endHashMap = std::chrono::high_resolution_clock::now();
     
-    mapStart = std::chrono::high_resolution_clock::now();
+    
+    long long minMapDuration = std::numeric_limits<long long>::max();
     for(unsigned int i = 0; i < runNumbers; ++i)
     {
         
         for (auto &symbol : symbols) {
+            const auto mapStart = std::chrono::steady_clock::now();
             auto it = map.find(symbol);
+            const auto mapEnd = std::chrono::steady_clock::now();
             if (it == map.end()) {
                 return 1;
             }
+            
+            const auto durationMap = std::chrono::duration_cast<std::chrono::nanoseconds>(mapEnd - mapStart).count();
+            minMapDuration = std::min(minMapDuration, durationMap);
         }
     }
-    mapEnd = std::chrono::high_resolution_clock::now();
     
-    startTree = std::chrono::high_resolution_clock::now();
     
+    
+    minTreeDuration = std::numeric_limits<long long>::max();
     for(unsigned int i = 0; i < runNumbers; ++i)
     {
         for (auto &symbol : symbols) {
-            if (tree.find(symbol) == nullptr) {
+            const auto startTree = std::chrono::steady_clock::now();
+            const auto found = tree.find(symbol);
+            const auto endTree = std::chrono::steady_clock::now();
+            if (found == nullptr) {
                 return 1;
             }
+            const auto durationTree = std::chrono::duration_cast<std::chrono::nanoseconds>(endTree - startTree).count();
+            minTreeDuration = std::min(minTreeDuration, durationTree);
         }
     }
-    endTree = std::chrono::high_resolution_clock::now();
     
     startTreeExactMatch = std::chrono::high_resolution_clock::now();
     for(unsigned int i = 0; i < runNumbers; ++i)
@@ -178,21 +202,27 @@ int main(int argc, const char * argv[]) {
     }
     endSplay = std::chrono::high_resolution_clock::now();
     
-    std::cout << "hash map find time:  " << std::chrono::duration_cast<std::chrono::nanoseconds>((endHashMap - startHashMap)/ (symbols.size() * runNumbers)).count() << "ns" << std::endl;
+    std::cout << "hash map find time:  " << minHashDuration << "ns" << std::endl;
     
-    std::cout << "map find time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((mapEnd - mapStart)/(symbols.size() * runNumbers)).count() << "ns" << std::endl;
+    std::cout << "map find time: " << minMapDuration << "ns" << std::endl;
     
-    std::cout << "tree prefix match find time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endTree - startTree)/(symbols.size() * runNumbers)).count() << "ns" << std::endl;
+    std::cout << "tree prefix match find time: " << minTreeDuration << "ns" << std::endl;
     
     std::cout << "tree exact match find time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endTreeExactMatch - startTreeExactMatch)/(symbols.size() * runNumbers)).count() << "ns" << std::endl;
     
     std::cout << "splay find time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endSplay - startSplay)/(symbols.size() * runNumbers)).count() << "ns" << std::endl;
     
-    startHashMap = std::chrono::high_resolution_clock::now();
+    
+    minHashDuration = std::numeric_limits<long long>::max();
     for (auto symbol : uniqueSymbols) {
+        const auto startHashMap = std::chrono::steady_clock::now();
         hash_map.erase(symbol);
+        const auto endHashMap = std::chrono::steady_clock::now();
+        
+        const auto durationHashMap = std::chrono::duration_cast<std::chrono::nanoseconds>(endHashMap - startHashMap).count();
+        minHashDuration = std::min(minHashDuration, durationHashMap);
     }
-    endHashMap = std::chrono::high_resolution_clock::now();
+    
     
     mapStart = std::chrono::high_resolution_clock::now();
     for (auto symbol : uniqueSymbols) {
@@ -200,11 +230,16 @@ int main(int argc, const char * argv[]) {
     }
     mapEnd = std::chrono::high_resolution_clock::now();
     
-    startTree = std::chrono::high_resolution_clock::now();
+    minTreeDuration = std::numeric_limits<long long>::max();
     for (auto symbol : uniqueSymbols) {
+        const auto startTree = std::chrono::steady_clock::now();
         tree.erase(symbol);
+        const auto endTree = std::chrono::steady_clock::now();
+        
+        const auto durationTree = std::chrono::duration_cast<std::chrono::nanoseconds>(endTree - startTree).count();
+        minTreeDuration = std::min(minTreeDuration, durationTree);
     }
-    endTree = std::chrono::high_resolution_clock::now();
+    
     
     startTreeExactMatch = std::chrono::high_resolution_clock::now();
     for (auto symbol : uniqueSymbols) {
@@ -212,19 +247,25 @@ int main(int argc, const char * argv[]) {
     }
     endTreeExactMatch = std::chrono::high_resolution_clock::now();
     
-    startSplay = std::chrono::high_resolution_clock::now();
+    
+    auto minSplayDuration = std::numeric_limits<long long>::max();
     for (auto symbol : uniqueSymbols) {
+        const auto startSplay = std::chrono::steady_clock::now();
         splay.erase(symbol);
+        const auto endSplay = std::chrono::steady_clock::now();
+        
+        const auto durationSplay = std::chrono::duration_cast<std::chrono::nanoseconds>(endSplay - startSplay).count();
+        minSplayDuration = std::min(minSplayDuration, durationSplay);
     }
-    endSplay = std::chrono::high_resolution_clock::now();
+    
     
     std::cout << std::endl;
     
-    std::cout << "hash map erase time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endHashMap - startHashMap)/symbols.size()).count() << "ns" << std::endl;
+    std::cout << "hash map erase time: " << minHashDuration << "ns" << std::endl;
     
     std::cout << "map erase time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((mapEnd - mapStart)/symbols.size()).count() << "ns" << std::endl;
     
-    std::cout << "tree erase time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endTree - startTree)/symbols.size()).count() << "ns" << std::endl;
+    std::cout << "tree erase time: " << minTreeDuration << "ns" << std::endl;
     
     std::cout << "tree exact match erase time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endTreeExactMatch - startTreeExactMatch)/symbols.size()).count() << "ns" << std::endl;
     
