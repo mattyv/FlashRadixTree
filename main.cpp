@@ -54,7 +54,10 @@ int main(int argc, const char * argv[]) {
     file.close();
     
     //print the size of one line in kilobytes
-    std::cout << "size of one line in kilobytes: " << symbols[0].size() / 1024 << "kb" << std::endl;
+    if(symbols[0].size() > 1024)
+        std::cout << "size of one line in kilobytes: " << symbols[0].size() / 1024.0 << "kb" << std::endl;
+    else
+        std::cout << "size of one line in bytes: " << symbols[0].size() << "b" << std::endl;
     
     FlashRadixTree<std::string, Data, MatchMode::Prefix> tree;
     FlashRadixTree<std::string, Data, MatchMode::Exact> treeExactMatch;

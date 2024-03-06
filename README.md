@@ -71,7 +71,6 @@ Root
 ```
                     
 Below is an example of a Radix tree containing the same words.
-
 ```
 Root
 |
@@ -115,3 +114,47 @@ It performs basic binary search tree operations such as insertion, look-up and r
 A lot of research has been done into this data structure and to this day it remains a bit of an enigma. But it does seem to work work well in some situatios for non uniform access. Particulaly because of the self adjusting property and the temporal locality of the data.
 
 So in the FlashRadixTree i offer two options. To use the use of the Splay tree or the use of the map. The Splay tree or map is used to populate the child nodes of reach level of our radixt tree. As for which is better? It may depend on your key set, and I leave it to you to test which one works better. 
+
+Example Timings (Apple M2 (ARM 64), Somoma 14.3.1 (23D60)) ... will aim to get some linux test soom.
+
+Large messages FlashRadixTree perform well aginst unordered_map and map for find() in these tests. (again i encourage your own testing)
+```
+size of one line in kilobytes: 1.75781kb
+
+hash map insert time: 408ns
+map insert time: 282ns
+tree prefix match insert time: 1241ns
+tree exact match insert time: 1238ns
+splay insert time: 472ns
+
+hash map find time:  199ns
+map find time: 183ns
+tree prefix match find time: 152ns
+tree exact match find time: 180ns
+splay find time: 404ns
+
+Number of runs 1038800
+Testing out redix tree 
+Unit tests passed
+Program ended with exit code: 0
+```
+Small messages FlashRadixTree performs well aginst map for find().
+```
+size of one line in bytes: 6b
+hash map insert time: 34ns
+map insert time: 59ns
+tree prefix match insert time: 42ns
+tree exact match insert time: 38ns
+splay insert time: 53ns
+
+hash map find time:  13ns
+map find time: 40ns
+tree prefix match find time: 28ns
+tree exact match find time: 30ns
+splay find time: 47ns
+
+Number of runs 1038800
+Testing out redix tree 
+Unit tests passed
+Program ended with exit code: 0
+```
