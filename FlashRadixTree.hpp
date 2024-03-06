@@ -46,6 +46,7 @@ concept StringLike = requires(T a, const T b, const char* s, std::size_t pos, st
     { a.end() } -> std::forward_iterator;
     { a.size() } -> std::convertible_to<std::size_t>;
     { a.substr(pos, len) } -> std::convertible_to<T>;
+    //{ a.append(b) } -> std::convertible_to<T&>;
     T(s);
 };
 // Concept to check if a type supports streaming with '<<'
@@ -82,7 +83,7 @@ public:
         bool isEndOfWord = false;
         Value value;
         Key prefix;
-        //bool deleted = false;
+        bool deleted = false;
         
         FlashRadixTreeNode(const Key& prefix, const Value&& value) noexcept
         : prefix(prefix), value(std::move(value)), isEndOfWord(false)
@@ -101,10 +102,10 @@ public:
             value = other.value;
             prefix = other.prefix;
         }
-        /*constexpr void setDeleted() noexcept
+        void setDeleted() noexcept
         {
             deleted = true;
-        }*/
+        }
     };
     using ValueType = Value;
 private:
@@ -192,12 +193,12 @@ public:
                 } else {
                     // Entire edge is a common prefix, proceed with the child node
                     currentNode = childNode;
-                    /*if(currentNode->isEndOfWord )//&& currentNode->deleted)
+                    if(currentNode->isEndOfWord && currentNode->deleted)
                     {
                         currentNode->value = std::move(value);
-                        //currentNode->deleted = false;
+                        currentNode->deleted = false;
                         inserted = currentNode;
-                    }*/
+                    }
                 }
                 
                 // Update the remaining part of the key to insert
@@ -222,7 +223,7 @@ public:
             return inserted;
     }
         
-    /*bool erase(const Key& key) noexcept
+    bool mark_erase(const Key& key) noexcept
     {
         const auto found = find(key);
         if (found == nullptr) {
@@ -233,7 +234,7 @@ public:
             found->deleted = true;
             return true;
         }
-    }*/
+    }
     
     void print() const noexcept {
         _printRecursively(' ', _root, 0);
@@ -266,16 +267,16 @@ public:
                 if(MatchMode == MatchMode::Prefix && //if we are in prefix mode we can stop if we find the prefix
                    currentNode->isEndOfWord && currentNode->children.empty() )//if there are no children below this key we have our winner
                 {
-                    /*if(currentNode->deleted)
+                    if(currentNode->deleted)
                         return nullptr;
-                    else*/
+                    else
                         return const_cast<FlashRadixTreeNode*>( currentNode);
                 }
                 else if(currentNode->isEndOfWord && remaining == currentNode->prefix) //else we no choice but to check the whole word
                 {
-                    /*if(currentNode->deleted)
+                    if(currentNode->deleted)
                         return nullptr;
-                    else*/
+                    else
                         return const_cast<FlashRadixTreeNode*>( currentNode);
                 }
                 else if( key.size() > (seen += currentNode->prefix.size()) )
@@ -426,8 +427,8 @@ public:
             // If the parent node is now a leaf and is not an end-of-word node, set it as the current node for the next iteration
             if (parentNode->children.empty() && !parentNode->isEndOfWord) {
                 currentNode = parentNode;
-                if (!path.empty()) {
-                    remainingKey = path.top()->prefix;
+                if (parentNode != nullptr) {
+                    remainingKey = parentNode->prefix;
                 }
             }
             else if(currentNode->children.size() == 1 && !currentNode->isEndOfWord)
@@ -477,7 +478,7 @@ private:
         }
 
         std::stringstream ss;
-        ss << "+[" << node->prefix << "," << node->value << "," << (node->isEndOfWord ? "√": "*")  /*<< (node->deleted ? "X" : "")*/ << ",<";
+        ss << "+[" << node->prefix << "," << node->value << "," << (node->isEndOfWord ? "√": "*")  << (node->deleted ? "X" : "") << ",<";
 
         if(node->children.empty())
             ss << "-";

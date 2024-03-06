@@ -12,6 +12,7 @@
 #include "Test.hpp"
 #include "SplayTree.hpp"
 #include <unordered_map>
+#include <unordered_set>
 #include <map>
 #include <iostream>
 #include <fstream>
@@ -57,6 +58,8 @@ int main(int argc, const char * argv[]) {
     }
     file.close();
     
+    std::unordered_set<string> uniqueSymbols(symbols.begin(), symbols.end());
+    
     //print the size of one line in kilobytes
     if(symbols[0].size() > 1024)
         std::cout << "size of one line in kilobytes: " << symbols[0].size() / 1024.0 << "kb" << std::endl;
@@ -71,68 +74,49 @@ int main(int argc, const char * argv[]) {
     unsigned int runNumbers = 100;
     
     auto startHashMap = std::chrono::high_resolution_clock::now();
-    for(unsigned int i = 0; i < runNumbers; ++i)
-    {
-        
-        for (auto &symbol : symbols) {
-            auto it = hash_map.find(symbol); //typical usage
-            hash_map.emplace_hint(it, symbol, Data());
-        }
+    for (auto &symbol : uniqueSymbols) {
+            hash_map.emplace(symbol, Data());
     }
     auto endHashMap = std::chrono::high_resolution_clock::now();
     
     auto mapStart = std::chrono::high_resolution_clock::now();
-    for(unsigned int i = 0; i < runNumbers; ++i)
-    {
-        for (auto &symbol : symbols) {
-            auto it = map.find(symbol); //typical usage
-            map.emplace_hint(it, symbol, Data());
-        }
+    for (auto &symbol : uniqueSymbols) {
+        map.emplace(symbol, Data()); //override
     }
     auto mapEnd = std::chrono::high_resolution_clock::now();
     
     auto startTree = std::chrono::high_resolution_clock::now();
-    for(unsigned int i = 0; i < runNumbers; ++i)
-    {
-        for (auto &symbol : symbols) {
-            tree.insert(symbol, Data());
-        }
+    for (auto &symbol : uniqueSymbols) {
+        tree.insert(symbol, Data());
     }
     auto endTree = std::chrono::high_resolution_clock::now();
     
     auto startTreeExactMatch = std::chrono::high_resolution_clock::now();
-    for(unsigned int i = 0; i < runNumbers; ++i)
-    {
-        for (auto &symbol : symbols) {
-            treeExactMatch.insert(symbol, Data());
-        }
+   for (auto &symbol : uniqueSymbols) {
+        treeExactMatch.insert(symbol, Data());
     }
     auto endTreeExactMatch = std::chrono::high_resolution_clock::now();
     
     auto startSplay = std::chrono::high_resolution_clock::now();
-    for(unsigned int i = 0; i < runNumbers; ++i)
-    {
-        
-        for (auto &symbol : symbols) {
-            splay.insert(symbol, Data());
-        }
+    for (auto &symbol : uniqueSymbols) {
+        splay.insert(symbol, Data());
     }
     auto endSplay = std::chrono::high_resolution_clock::now();
     
     
-    std::cout << "hash map insert time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endHashMap - startHashMap)/(symbols.size() * runNumbers)).count() << "ns" << std::endl;
+    std::cout << "hash map insert time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endHashMap - startHashMap)/symbols.size()).count() << "ns" << std::endl;
     
-    std::cout << "map insert time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((mapEnd - mapStart)/(symbols.size() * runNumbers)).count() << "ns" << std::endl;
+    std::cout << "map insert time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((mapEnd - mapStart)/symbols.size()).count() << "ns" << std::endl;
     
-    std::cout << "tree prefix match insert time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endTree - startTree)/(symbols.size() * runNumbers)).count() << "ns" << std::endl;
+    std::cout << "tree prefix match insert time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endTree - startTree)/symbols.size()).count() << "ns" << std::endl;
     
-    std::cout << "tree exact match insert time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endTreeExactMatch - startTreeExactMatch)/(symbols.size() * runNumbers)).count() << "ns" << std::endl;
+    std::cout << "tree exact match insert time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endTreeExactMatch - startTreeExactMatch)/symbols.size()).count() << "ns" << std::endl;
     
-    std::cout << "splay insert time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endSplay - startSplay)/(symbols.size() * runNumbers)).count() << "ns" << std::endl;
+    std::cout << "splay insert time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endSplay - startSplay)/symbols.size()).count() << "ns" << std::endl;
     
     std::cout << std::endl;
     
-    //search for all symbols
+    //search for all symbols runNumber times
     startHashMap = std::chrono::high_resolution_clock::now();
     for(unsigned int i = 0; i < runNumbers; ++i)
     {
@@ -204,7 +188,51 @@ int main(int argc, const char * argv[]) {
     
     std::cout << "splay find time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endSplay - startSplay)/(symbols.size() * runNumbers)).count() << "ns" << std::endl;
     
-    std::cout << std::endl << "Number of runs " << (symbols.size() * runNumbers) << std::endl;
+    startHashMap = std::chrono::high_resolution_clock::now();
+    for (auto symbol : uniqueSymbols) {
+        hash_map.erase(symbol);
+    }
+    endHashMap = std::chrono::high_resolution_clock::now();
+    
+    mapStart = std::chrono::high_resolution_clock::now();
+    for (auto symbol : uniqueSymbols) {
+        map.erase(symbol);
+    }
+    mapEnd = std::chrono::high_resolution_clock::now();
+    
+    startTree = std::chrono::high_resolution_clock::now();
+    for (auto symbol : uniqueSymbols) {
+        tree.erase(symbol);
+    }
+    endTree = std::chrono::high_resolution_clock::now();
+    
+    startTreeExactMatch = std::chrono::high_resolution_clock::now();
+    for (auto symbol : uniqueSymbols) {
+        treeExactMatch.erase(symbol);
+    }
+    endTreeExactMatch = std::chrono::high_resolution_clock::now();
+    
+    startSplay = std::chrono::high_resolution_clock::now();
+    for (auto symbol : uniqueSymbols) {
+        splay.erase(symbol);
+    }
+    endSplay = std::chrono::high_resolution_clock::now();
+    
+    std::cout << std::endl;
+    
+    std::cout << "hash map erase time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endHashMap - startHashMap)/symbols.size()).count() << "ns" << std::endl;
+    
+    std::cout << "map erase time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((mapEnd - mapStart)/symbols.size()).count() << "ns" << std::endl;
+    
+    std::cout << "tree erase time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endTree - startTree)/symbols.size()).count() << "ns" << std::endl;
+    
+    std::cout << "tree exact match erase time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endTreeExactMatch - startTreeExactMatch)/symbols.size()).count() << "ns" << std::endl;
+    
+    std::cout << "splay erase time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endSplay - startSplay)/symbols.size()).count() << "ns" << std::endl;
+    
+    
+    std::cout << "Number of runs for insert() " << uniqueSymbols.size() << std::endl;
+    std::cout << std::endl << "Number of runs for find() " << (symbols.size() * runNumbers) << std::endl;
     
     //output the count of top 20% of keys used to give an idea of the distribution
     std::unordered_map<std::string, unsigned int> counts;
