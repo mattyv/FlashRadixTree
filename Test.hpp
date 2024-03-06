@@ -47,7 +47,23 @@ bool RunTests()
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
-    auto okErase = rTree.erase("A");
+    auto okErase = rTree.mark_erase("A");
+    if(!okErase)
+    {
+        std::cout << "Erase action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        return false;
+    }
+    got = serializer.serialize(rTree);
+    expected = "+[,0,*,<+[A,0,*,<+[B,0,√,<->],+[C,1,√,<->]>]>]";
+    if(got != expected)
+    {
+        std::cout << "Action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        std::cout << "Got:      " << got << "\nExpected: " << expected << std::endl;
+        rTree.print();
+        return false;
+    }
+    
+    okErase = rTree.erase("A");
     if(okErase)
     {
         std::cout << "Erase action should have failed @ " << __LINE__ << " in " << __FILE__ << std::endl;

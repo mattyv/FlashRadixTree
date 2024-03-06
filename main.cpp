@@ -244,8 +244,8 @@ int main(int argc, const char * argv[]) {
         return a.second > b.second;
     });
     
-    std::cout << "Top 20% count of keys used (not printing keys as they can be long): " << std::endl;
-    for (unsigned int i = 0; i < sorted.size() / 5; ++i) {
+    std::cout << "Top 10% count of keys used (not printing keys as they can be long): " << std::endl;
+    for (unsigned int i = 0; i < sorted.size() / 10; ++i) {
         std::cout << sorted[i].second << std::endl;
     }
     
