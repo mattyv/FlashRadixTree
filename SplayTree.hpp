@@ -51,11 +51,20 @@ public:
     SplayTree(const SplayTree&& other) noexcept
     {
         _root = other._root;
+        _size = other._size;
         other._root = nullptr;
+    }
+    constexpr splay* root() const noexcept
+    {
+        return _root;
     }
     constexpr bool empty() const noexcept
     {
         return _root == nullptr;
+    }
+    constexpr size_t size() const noexcept
+    {
+        return _size;
     }
     splay* insert(KeyType key, ValueType value) noexcept
     {
@@ -106,12 +115,14 @@ public:
         if (this != &other)
         {
             _root = other._root;
+            _size = other._size;
             other._root = nullptr;
         }
         return *this;
     }
 private:
     mutable splay* _root = nullptr;
+    size_t _size = 0;
     
     splay* _insert(KeyType key, ValueType value, splay* root) noexcept
     {
@@ -173,7 +184,7 @@ private:
                 root = _splay(key, root->lchild);
                 root->rchild = temp->rchild;
             }
-            //free(temp);
+            --_size;
             delete temp;
             return root;
         }
@@ -264,6 +275,7 @@ private:
     {
         splay* p_node = new splay(key, value);
         p_node->lchild = p_node->rchild = NULL;
+        ++_size;
         return p_node;
     }
     
@@ -311,12 +323,12 @@ private:
         while (x->lchild != NULL) {
             if (x->lchild->lchild != NULL) {
                 // "Zig-zig" step: make two right rotations
-                x->lchild = RR_Rotate(x->lchild);
+                x->lchild = _RR_Rotate(x->lchild);
                 if (x->lchild != NULL)
-                    x = RR_Rotate(x);
+                    x = _RR_Rotate(x);
             } else {
                 // "Zig" step: a single rotation is enough when there is no left child for the left child of x
-                x = RR_Rotate(x);
+                x = _RR_Rotate(x);
             }
         }
         root = x;
@@ -331,12 +343,12 @@ private:
         while (x->rchild != NULL) {
             if (x->rchild->rchild != NULL) {
                 // "Zag-zag" step: make two left rotations
-                x->rchild = LL_Rotate(x->rchild);
+                x->rchild = _LL_Rotate(x->rchild);
                 if (x->rchild != NULL)
-                    x = LL_Rotate(x);
+                    x = _LL_Rotate(x);
             } else {
                 // "Zag" step: a single rotation is enough when there is no right child for the right child of x
-                x = LL_Rotate(x);
+                x = _LL_Rotate(x);
             }
         }
         root = x;

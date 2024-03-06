@@ -119,42 +119,81 @@ Example Timings (Apple M2 (ARM 64), Somoma 14.3.1 (23D60)) ... will aim to get s
 
 Large messages FlashRadixTree perform well aginst unordered_map and map for find() in these tests. (again i encourage your own testing)
 ```
-size of one line in kilobytes: 1.75781kb
+ssize of one line in kilobytes: 1.75781kb
+hash map insert time: 13ns
+map insert time: 11ns
+tree prefix match insert time: 20ns
+tree exact match insert time: 20ns
+splay insert time: 21ns
 
-hash map insert time: 408ns
-map insert time: 282ns
-tree prefix match insert time: 1241ns
-tree exact match insert time: 1238ns
-splay insert time: 472ns
+hash map find time:  215ns
+map find time: 268ns
+tree prefix match find time: 160ns
+tree exact match find time: 193ns
+splay find time: 418ns
 
-hash map find time:  199ns
-map find time: 183ns
-tree prefix match find time: 152ns
-tree exact match find time: 180ns
-splay find time: 404ns
+hash map erase time: 14ns
+map erase time: 16ns
+tree erase time: 15ns
+tree exact match erase time: 12ns
+splay erase time: 23ns
+Number of runs for insert() 288
 
-Number of runs 1038800
-Testing out redix tree 
-Unit tests passed
-Program ended with exit code: 0
+Number of runs for find() 1038800
 ```
 Small messages FlashRadixTree performs well aginst map for find().
 ```
 size of one line in bytes: 6b
-hash map insert time: 34ns
-map insert time: 59ns
-tree prefix match insert time: 42ns
-tree exact match insert time: 38ns
-splay insert time: 53ns
+hash map insert time: 1ns
+map insert time: 3ns
+tree prefix match insert time: 3ns
+tree exact match insert time: 3ns
+splay insert time: 3ns
 
 hash map find time:  13ns
-map find time: 40ns
-tree prefix match find time: 28ns
-tree exact match find time: 30ns
-splay find time: 47ns
+map find time: 94ns
+tree prefix match find time: 31ns
+tree exact match find time: 34ns
+splay find time: 60ns
 
-Number of runs 1038800
-Testing out redix tree 
-Unit tests passed
-Program ended with exit code: 0
+hash map erase time: 1ns
+map erase time: 4ns
+tree erase time: 3ns
+tree exact match erase time: 3ns
+splay erase time: 5ns
+Number of runs for insert() 288
+
+Number of runs for find() 1038800
+```
+To give and idea of key distribution
+```
+Top 10% count of keys used (not printing keys as they can be long): 
+1965
+1718
+725
+689
+433
+290
+282
+202
+195
+170
+148
+146
+144
+142
+137
+129
+124
+116
+113
+107
+88
+83
+71
+66
+62
+60
+55
+53
 ```
