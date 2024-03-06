@@ -10,6 +10,7 @@ bool RunTests()
     FlashRadixTree<std::string, int, MatchMode::Exact> rTree;
     FlashRadixTreeSerializer<std::string, int, MatchMode::Exact> serializer;
     
+    
     int value = 0;
     auto* itInsert = rTree.insert("AB", value++);
     auto got = serializer.serialize(rTree);
@@ -47,12 +48,6 @@ bool RunTests()
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
-    auto okErase = rTree.mark_erase("A");
-    if(!okErase)
-    {
-        std::cout << "Erase action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
-        return false;
-    }
     got = serializer.serialize(rTree);
     expected = "+[,0,*,<+[A,0,*,<+[B,0,√,<->],+[C,1,√,<->]>]>]";
     if(got != expected)
@@ -63,7 +58,7 @@ bool RunTests()
         return false;
     }
     
-    okErase = rTree.erase("A");
+    auto okErase = rTree.erase("A");
     if(okErase)
     {
         std::cout << "Erase action should have failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
@@ -672,9 +667,53 @@ bool RunTests()
         rTree.print();
         return false;
     }
+    
+    
+    FlashRadixTree<std::string_view, int, MatchMode::Exact> rTreeSV;
+    FlashRadixTreeSerializer<std::string_view, int, MatchMode::Exact> serializerVS;
+    
+    value = 0;
+    std::string key1 = "AAA";
+    auto* itInsertVS = rTreeSV.insert(key1, value++);
+    std::string key2 = "AAB";
+    itInsertVS = rTreeSV.insert(key2, value++);
+    std::string key3 = "ABA";
+    itInsertVS = rTreeSV.insert(key3, value++);
+    std::string key4 = "ACA";
+    itInsertVS = rTreeSV.insert(key4, value++);
+    std::string key5 = "ACB";
+    itInsertVS = rTreeSV.insert(key5, value++);
+    
+    
+    okErase = rTreeSV.erase("AAA");
+    if(!okErase)
+    {
+        std::cout << "Erase action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        return false;
+    }
+    got = serializerVS.serialize(rTreeSV);
+    expected = "+[,0,*,<"
+                        "+[A,0,*,<"
+                                "+[A,0,*,<"
+                                        "+[A,0,√X,<->],+[B,1,√,<->]"
+                                        ">],"
+                                        "+[BA,2,√,<->],+[C,0,*,<"
+                                                            "+[A,3,√,<->],+[B,4,√,<->]"
+                                                            ">]"
+                                ">]"
+                        ">]";
+    if(got != expected)
+    {
+        std::cout << "Action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        std::cout << "Got:      " << got << "\nExpected: " << expected << std::endl;
+        rTree.print();
+        return false;
+    }
+    
 
     
     std::cout << "Unit tests passed" << std::endl;
     return true;
 }
+
 #endif
