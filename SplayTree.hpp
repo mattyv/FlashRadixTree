@@ -53,9 +53,17 @@ public:
         _root = other._root;
         other._root = nullptr;
     }
+    constexpr splay* root() const noexcept
+    {
+        return _root;
+    }
     constexpr bool empty() const noexcept
     {
         return _root == nullptr;
+    }
+    constexpr size_t size() const noexcept
+    {
+        return _size;
     }
     splay* insert(KeyType key, ValueType value) noexcept
     {
@@ -112,6 +120,7 @@ public:
     }
 private:
     mutable splay* _root = nullptr;
+    size_t _size = 0;
     
     splay* _insert(KeyType key, ValueType value, splay* root) noexcept
     {
@@ -173,7 +182,7 @@ private:
                 root = _splay(key, root->lchild);
                 root->rchild = temp->rchild;
             }
-            //free(temp);
+            --_size;
             delete temp;
             return root;
         }
@@ -264,6 +273,7 @@ private:
     {
         splay* p_node = new splay(key, value);
         p_node->lchild = p_node->rchild = NULL;
+        ++_size;
         return p_node;
     }
     

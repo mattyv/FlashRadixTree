@@ -36,6 +36,10 @@ struct Data
 
 int main(int argc, const char * argv[]) {
     
+    if(!RunTests())
+        return 1;
+    
+    
     std::vector<std::string> symbols;
     std::ifstream file;
     file.open("/Users/matthew/Documents/Code/CPP/FlashRadixTree/FlashRadixTree/sample_data.txt");
@@ -202,7 +206,20 @@ int main(int argc, const char * argv[]) {
     
     std::cout << std::endl << "Number of runs " << (symbols.size() * runNumbers) << std::endl;
     
-    RunTests();
+    //output the count of top 20% of keys used to give an idea of the distribution
+    std::unordered_map<std::string, unsigned int> counts;
+    for (auto &symbol : symbols) {
+        ++counts[symbol];
+    }
+    std::vector<std::pair<std::string, unsigned int>> sorted(counts.begin(), counts.end());
+    std::sort(sorted.begin(), sorted.end(), [](const std::pair<std::string, unsigned int> &a, const std::pair<std::string, unsigned int> &b) {
+        return a.second > b.second;
+    });
+    
+    std::cout << "Top 20% count of keys used (not printing keys as they can be long): " << std::endl;
+    for (unsigned int i = 0; i < sorted.size() / 5; ++i) {
+        std::cout << sorted[i].second << std::endl;
+    }
     
     return 0;
 }

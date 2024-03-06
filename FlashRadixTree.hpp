@@ -82,7 +82,7 @@ public:
         bool isEndOfWord = false;
         Value value;
         Key prefix;
-        bool deleted = false;
+        //bool deleted = false;
         
         FlashRadixTreeNode(const Key& prefix, const Value&& value) noexcept
         : prefix(prefix), value(std::move(value)), isEndOfWord(false)
@@ -101,10 +101,10 @@ public:
             value = other.value;
             prefix = other.prefix;
         }
-        constexpr void setDeleted() noexcept
+        /*constexpr void setDeleted() noexcept
         {
             deleted = true;
-        }
+        }*/
     };
     using ValueType = Value;
 private:
@@ -192,12 +192,12 @@ public:
                 } else {
                     // Entire edge is a common prefix, proceed with the child node
                     currentNode = childNode;
-                    if(currentNode->isEndOfWord && currentNode->deleted)
+                    /*if(currentNode->isEndOfWord )//&& currentNode->deleted)
                     {
                         currentNode->value = std::move(value);
-                        currentNode->deleted = false;
+                        //currentNode->deleted = false;
                         inserted = currentNode;
-                    }
+                    }*/
                 }
                 
                 // Update the remaining part of the key to insert
@@ -222,7 +222,7 @@ public:
             return inserted;
     }
         
-    bool erase(const Key& key) noexcept
+    /*bool erase(const Key& key) noexcept
     {
         const auto found = find(key);
         if (found == nullptr) {
@@ -233,7 +233,7 @@ public:
             found->deleted = true;
             return true;
         }
-    }
+    }*/
     
     void print() const noexcept {
         _printRecursively(' ', _root, 0);
@@ -266,16 +266,16 @@ public:
                 if(MatchMode == MatchMode::Prefix && //if we are in prefix mode we can stop if we find the prefix
                    currentNode->isEndOfWord && currentNode->children.empty() )//if there are no children below this key we have our winner
                 {
-                    if(currentNode->deleted)
+                    /*if(currentNode->deleted)
                         return nullptr;
-                    else
+                    else*/
                         return const_cast<FlashRadixTreeNode*>( currentNode);
                 }
                 else if(currentNode->isEndOfWord && remaining == currentNode->prefix) //else we no choice but to check the whole word
                 {
-                    if(currentNode->deleted)
+                    /*if(currentNode->deleted)
                         return nullptr;
-                    else
+                    else*/
                         return const_cast<FlashRadixTreeNode*>( currentNode);
                 }
                 else if( key.size() > (seen += currentNode->prefix.size()) )
@@ -367,19 +367,20 @@ private:
     }
 public:
         
-    //todo: work in progress
-    /*bool erase(const Key& key) noexcept {
+    bool erase(const Key& key) noexcept {
         if (key.empty()) {
             return false; // Cannot erase an empty key
         }
 
         FlashRadixTreeNode* currentNode = _root;
+        FlashRadixTreeNode* parentNode = nullptr;
         Key remainingKey = key;
-        std::stack<FlashRadixTreeNode*> path; // Stack to keep track of the path taken to find the key
+        // don't need this. is also not scalable. std::stack<FlashRadixTreeNode*> path; // Stack to keep track of the path taken to find the key
 
         // Step 1: Find the node
         while (currentNode != nullptr && !remainingKey.empty()) {
-            path.push(currentNode); // Push the current node onto the path
+            //path.push(currentNode); // Push the current node onto the path
+            parentNode = currentNode;
             auto it = currentNode->children.find(remainingKey.at(0));
             
             if (it == nullptr) {
@@ -391,7 +392,8 @@ public:
 
             if (remainingKey.starts_with(nodePrefix)) {
                 // Prefix matches, move to the next node
-                remainingKey.substr(nodePrefix.size());
+                const auto nodePrefixSize = nodePrefix.size();
+                remainingKey = remainingKey.substr(nodePrefixSize);
                 currentNode = childNode;
             } else {
                 // Prefix does not match the remaining key
@@ -407,18 +409,19 @@ public:
         // Step 2: Delete the node or unmark the end of the word
         currentNode->isEndOfWord = false; // Unmark as the end of a word
 
-        // If the current node has children, we are done
-        if (!currentNode->children.empty()) {
+        // If the current node has has more than one child then we're done
+        if (currentNode->children.size() > 1) {
             return true;
         }
 
         // Step 3: Clean up the tree
-        while (!path.empty() && currentNode->children.empty() && !currentNode->isEndOfWord) {
-            FlashRadixTreeNode* parentNode = path.top();
-            path.pop();
+        if (/*!path.empty() */(parentNode != nullptr) && (currentNode->children.size() <= 1) && !currentNode->isEndOfWord) {
+            //FlashRadixTreeNode* parentNode = path.top();
+            //path.pop();
 
             // Remove the leaf node if it does not have any children
-            parentNode->children.erase(remainingKey.substr(0, parentNode->prefix.size()).at(0));
+            if(currentNode->children.empty())
+                parentNode->children.erase(currentNode->prefix.at(0));
 
             // If the parent node is now a leaf and is not an end-of-word node, set it as the current node for the next iteration
             if (parentNode->children.empty() && !parentNode->isEndOfWord) {
@@ -426,14 +429,31 @@ public:
                 if (!path.empty()) {
                     remainingKey = path.top()->prefix;
                 }
-            } else {
-                // If the parent node still has children or it is an end-of-word node, we're done cleaning up
-                break;
+            }
+            else if(currentNode->children.size() == 1 && !currentNode->isEndOfWord)
+            {
+                auto remainingChild = currentNode->children.root()->value;
+                currentNode->prefix.append(remainingChild->prefix);
+                currentNode->value = remainingChild->value;
+                currentNode->isEndOfWord = remainingChild->isEndOfWord;
+                //currentNode->children.erase(remainingChild->prefix.at(0));
+                currentNode->children = std::move(remainingChild->children);
+                delete remainingChild;
+            }
+            //if the parent node has only one child we can compress (unless we're root. that makes no sense)
+            else if(parentNode != _root && parentNode->children.size() == 1 && !parentNode->isEndOfWord)
+            {
+                auto remainingChild = parentNode->children.root()->value;
+                parentNode->prefix.append(remainingChild->prefix);
+                parentNode->value = remainingChild->value;
+                parentNode->isEndOfWord = remainingChild->isEndOfWord;
+                parentNode->children = std::move(remainingChild->children);
+                delete currentNode;
             }
         }
 
         return true;
-    }*/
+    }
         
 
     
@@ -457,7 +477,7 @@ private:
         }
 
         std::stringstream ss;
-        ss << "+[" << node->prefix << "," << node->value << "," << (node->isEndOfWord ? "√": "*")  << (node->deleted ? "X" : "") << ",<";
+        ss << "+[" << node->prefix << "," << node->value << "," << (node->isEndOfWord ? "√": "*")  /*<< (node->deleted ? "X" : "")*/ << ",<";
 
         if(node->children.empty())
             ss << "-";
