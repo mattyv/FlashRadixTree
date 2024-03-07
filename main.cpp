@@ -93,7 +93,7 @@ int main(int argc, const char * argv[]) {
     std::map<std::string, Data> map;
     SplayTree<std::string, Data> splay;
     setup_performance_counters();
-    unsigned int runNumbers = 100;
+    unsigned int runNumbers = 10;
     
     performance_counters agg_min_hash{1e300};
     performance_counters agg_avg_hash{0.0};
@@ -184,7 +184,6 @@ int main(int argc, const char * argv[]) {
     agg_avg_hash = 0.0;
     for(unsigned int i = 0; i < runNumbers; ++i)
     {
-     
         for (auto &symbol : symbols) {
             performance_counters start = get_counters();
             auto it = hash_map.find(symbol);
@@ -218,8 +217,8 @@ int main(int argc, const char * argv[]) {
             agg_min_map = agg_min_map.min(diff);
             agg_avg_map += diff;
         }
-        agg_avg_map /= symbols.size() * runNumbers;
     }
+    agg_avg_map /= symbols.size() * runNumbers;
     
     
     
