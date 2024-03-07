@@ -100,15 +100,16 @@ You'll also notice that each level of the tree the first letter is unique. We'll
 With some data sets you want to optimise for find speed which as mentioned unordered_map does well, all be it the loss of ordered iteration. 
 If you can pre-load the data structure ahead of time, and this may be an advantage you can work with. 
 In the case of our Radix tree this can give us an advantage. 
-If each child of the tree has a unique first character we can assume that if we have a match of the first character and the node in questoin is End-of-word then we have a match, and we can save the comparison on the remaining characters. This may be an avantage, especially in situaotins with very long keys.
-For this reason the FlashRadixTree has two match modes specified on construction. "Partial" and "Exact". Where partial assumes the case above, and Exact matches the entire key.
+How to search fast then using this advantage? 
+The children of the tree will always have a unique first character, so we can assume that if we have a match of the first character and the node in question is End-of-word then we have a match, and we can save the comparison on the remaining characters. Likewise if we find a note which is end of word, and the lenghts of the match we can also save a full comparison as this must be the key we're looking for. This may be an avantage, especially in situaotins with very long keys.
+For this reason the FlashRadixTree has two match modes specified on construction. "Partial" and "Exact". Where partial assumes the case above, and Exact matches the entire key when required.
 Either way knowing the first key is unique makes the stucture simpler in that each child node only needs to be keyed off a single first character. This is the case for the FlashRadixTree.
 
 The non uniform nature of keys is an interesting case which this structure tries to focus on. In many cases you may find that some keys are more active than others. this is probably very true of a lot of other scenarios. Can we optimise for this. Well..? this is a ticky one...
 
 Enter the curios case of the Splay tree. 
 
-What is a Splay tree? Its a self adjusting binary search tree with the additional property that recently accessed elements are quick to access again. Does this by rotating the trough through a series of "Zigs", "Zags", and "Zig Zag" rotaations to bring the accessed node to the root of the tree during the access. This is a very interesting property. A good description of this can be found here: https://en.wikipedia.org/wiki/Splay_tree
+What is a Splay tree? Its a self adjusting binary search tree with the additional property that recently accessed elements are quick to access again. Does this by rotating the trough through a series of "Zigs", "Zags", and "Zig Zag" rotations to bring the accessed node to the root of the tree during the access. This is a very interesting property. A good description of this can be found here: https://en.wikipedia.org/wiki/Splay_tree
 
 It performs basic binary search tree operations such as insertion, look-up and removal in O(log n) amortized time. For many practical purposes, it is the same as the self-balancing binary search tree. It was invented by Daniel Sleator and Robert Tarjan in 1985.
 A lot of research has been done into this data structure and to this day it remains a bit of an enigma as to its performance characteristics and temporal locatity benefits. But it does seem to work work well in some situatios for non uniform access. Particulaly because of the self adjusting property and the temporal locality of the data.
