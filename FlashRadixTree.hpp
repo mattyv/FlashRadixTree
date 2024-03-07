@@ -271,7 +271,9 @@ public:
                 currentNode = it->second;
 #endif
                 if(MatchMode == MatchMode::Prefix && //if we are in prefix mode we can stop if we find the prefix
-                   currentNode->isEndOfWord && currentNode->children.empty() )//if there are no children below this key we have our winner
+                   currentNode->isEndOfWord &&
+                       (currentNode->children.empty() ||//if there are no children below this key we have our winner
+                        currentNode->prefix.size() == remaining.size())) //if the prefix is the same size as the remaining key we can match on that also
                 {
                     if(currentNode->deleted)
                         return nullptr;

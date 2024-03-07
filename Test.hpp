@@ -709,6 +709,36 @@ bool RunTests()
         rTree.print();
         return false;
     }
+   
+    //some tests on prefix version
+    FlashRadixTree<std::string, int, MatchMode::Prefix> rTreePrefix;
+    FlashRadixTreeSerializer<std::string, int, MatchMode::Prefix> serializerPrefix;
+    value = 0;
+    auto itInsertPrefix = rTreePrefix.insert("AA", value++);
+    itInsertPrefix = rTreePrefix.insert("AABB", value++);
+
+    got = serializerPrefix.serialize(rTreePrefix);
+    expected = "+[,0,*,<+[AA,0,√,<+[BB,1,√,<->]>]>]";
+    if(got != expected)
+    {
+        std::cout << "Action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        std::cout << "Got:      " << got << "\nExpected: " << expected << std::endl;
+        rTree.print();
+        return false;
+    }
+
+    auto valExpectPrefix = rTreePrefix.find("AA");
+    if(valExpectPrefix == nullptr || valExpectPrefix->value != 0)
+    {
+        std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        return false;
+    }
+    valExpectPrefix = rTreePrefix.find("AABB");
+    if(valExpectPrefix == nullptr || valExpectPrefix->value != 1)
+    {
+        std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        return false;
+    }
     
 
     
