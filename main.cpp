@@ -66,7 +66,7 @@ int main(int argc, const char * argv[]) {
     std::ifstream file;
     file.open("/Users/matthew/Documents/Code/CPP/FlashRadixTree/FlashRadixTree/sample_data.txt");
     std::string line;
-    unsigned int n = 1;
+    unsigned int n = 300;
     while (std::getline(file, line)) {
         //dupliacate each character in the string n times
         std::string newLine;
@@ -135,17 +135,31 @@ int main(int argc, const char * argv[]) {
     agg_avg_tree /= uniqueSymbols.size() ;
     
     
-    auto startTreeExactMatch = std::chrono::high_resolution_clock::now();
-   for (auto &symbol : uniqueSymbols) {
-        treeExactMatch.insert(symbol, Data());
-    }
-    auto endTreeExactMatch = std::chrono::high_resolution_clock::now();
-    
-    auto startSplay = std::chrono::high_resolution_clock::now();
+    performance_counters agg_min_treeExact{1e300};
+    performance_counters agg_avg_treeExact{0.0};
     for (auto &symbol : uniqueSymbols) {
-        splay.insert(symbol, Data());
+        performance_counters start = get_counters();
+        treeExactMatch.insert(symbol, Data());
+        performance_counters end = get_counters();
+        
+        performance_counters diff = end - start;
+        agg_min_treeExact = agg_min_treeExact.min(diff);
+        agg_avg_treeExact += diff;
     }
-    auto endSplay = std::chrono::high_resolution_clock::now();
+    agg_avg_treeExact /= uniqueSymbols.size() ;
+    
+    performance_counters agg_min_splay{1e300};
+    performance_counters agg_avg_splay{0.0};
+    for (auto &symbol : uniqueSymbols) {
+        performance_counters start = get_counters();
+        splay.insert(symbol, Data());
+        performance_counters end = get_counters();
+        
+        performance_counters diff = end - start;
+        agg_min_splay = agg_min_splay.min(diff);
+        agg_avg_splay += diff;
+    }
+    agg_avg_splay /= uniqueSymbols.size() ;
     
     
     std::cout << "hash map insert time" << std::endl;
@@ -157,9 +171,11 @@ int main(int argc, const char * argv[]) {
     std::cout << "tree insert time" << std::endl;
     printResults("insert()",agg_min_tree, agg_avg_tree);
     
-    std::cout << "tree exact match insert time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endTreeExactMatch - startTreeExactMatch)/symbols.size()).count() << "ns" << std::endl;
+    std::cout << "tree exact match insert time" << std::endl;
+    printResults("insert()",agg_min_treeExact, agg_avg_treeExact);
     
-    std::cout << "splay insert time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endSplay - startSplay)/symbols.size()).count() << "ns" << std::endl;
+    std::cout << "splay insert time" << std::endl;
+    printResults("insert()",agg_min_splay, agg_avg_splay);
     
     std::cout << std::endl;
     
@@ -225,28 +241,42 @@ int main(int argc, const char * argv[]) {
     }
     agg_avg_tree /= symbols.size() * runNumbers;
     
-    startTreeExactMatch = std::chrono::high_resolution_clock::now();
+    agg_min_treeExact = 1e300;
+    agg_avg_treeExact = 0.0;
     for(unsigned int i = 0; i < runNumbers; ++i)
     {
         for (auto &symbol : symbols) {
-            if (treeExactMatch.find(symbol) == nullptr) {
+            performance_counters start = get_counters();
+            auto found = treeExactMatch.find(symbol);
+            performance_counters end = get_counters();
+            if (found == nullptr) {
                 return 1;
             }
+            performance_counters diff = end - start;
+            agg_min_treeExact = agg_min_treeExact.min(diff);
+            agg_avg_treeExact += diff;
         }
     }
-    endTreeExactMatch = std::chrono::high_resolution_clock::now();
+    agg_avg_treeExact /= symbols.size() * runNumbers;
     
-    startSplay = std::chrono::high_resolution_clock::now();
+    agg_min_splay = 1e300;
+    agg_avg_splay = 0.0;
     for(unsigned int i = 0; i < runNumbers; ++i)
     {
         
         for (auto &symbol : symbols) {
-            if (splay.find(symbol) == nullptr) {
+            performance_counters start = get_counters();
+            auto found = splay.find(symbol);
+            performance_counters end = get_counters();
+            if (found == nullptr) {
                 return 1;
             }
+            performance_counters diff = end - start;
+            agg_min_splay = agg_min_splay.min(diff);
+            agg_avg_splay += diff;
         }
     }
-    endSplay = std::chrono::high_resolution_clock::now();
+    agg_avg_splay /= symbols.size() * runNumbers;
     
     std::cout << "hash map find time" << std::endl;
     printResults("find()", agg_min_hash, agg_avg_hash);
@@ -257,9 +287,11 @@ int main(int argc, const char * argv[]) {
     std::cout << "tree prefix match find time" << std::endl;
     printResults("find()", agg_min_tree, agg_avg_tree);
     
-    std::cout << "tree exact match find time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endTreeExactMatch - startTreeExactMatch)/(symbols.size() * runNumbers)).count() << "ns" << std::endl;
+    std::cout << "tree exact match find time" << std::endl;
+    printResults("find()", agg_min_treeExact, agg_avg_treeExact);
     
-    std::cout << "splay find time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endSplay - startSplay)/(symbols.size() * runNumbers)).count() << "ns" << std::endl;
+    std::cout << "splay find time" << std::endl;
+    printResults("find()", agg_min_splay, agg_avg_splay);
     
     agg_min_hash = 1e300;
     agg_avg_hash = 0.0;
@@ -302,22 +334,32 @@ int main(int argc, const char * argv[]) {
     agg_avg_tree /= uniqueSymbols.size() ;
     
     
-    startTreeExactMatch = std::chrono::high_resolution_clock::now();
+    agg_min_treeExact = 1e300;
+    agg_avg_treeExact = 0.0;
     for (auto symbol : uniqueSymbols) {
+        performance_counters start = get_counters();
         treeExactMatch.erase(symbol);
-    }
-    endTreeExactMatch = std::chrono::high_resolution_clock::now();
-    
-    
-    auto minSplayDuration = std::numeric_limits<long long>::max();
-    for (auto symbol : uniqueSymbols) {
-        const auto startSplay = std::chrono::steady_clock::now();
-        splay.erase(symbol);
-        const auto endSplay = std::chrono::steady_clock::now();
+        performance_counters end = get_counters();
         
-        const auto durationSplay = std::chrono::duration_cast<std::chrono::nanoseconds>(endSplay - startSplay).count();
-        minSplayDuration = std::min(minSplayDuration, durationSplay);
+        performance_counters diff = end - start;
+        agg_min_treeExact = agg_min_treeExact.min(diff);
+        agg_avg_treeExact += diff;
     }
+    agg_avg_treeExact /= uniqueSymbols.size() ;
+    
+    
+    agg_min_splay = 1e300;
+    agg_avg_splay = 0.0;
+    for (auto symbol : uniqueSymbols) {
+        performance_counters start = get_counters();
+        splay.erase(symbol);
+        performance_counters end = get_counters();
+        
+        performance_counters diff = end - start;
+        agg_min_splay = agg_min_splay.min(diff);
+        agg_avg_splay += diff;
+    }
+    agg_avg_splay /= uniqueSymbols.size() ;
     
     
     std::cout << std::endl;
@@ -332,9 +374,11 @@ int main(int argc, const char * argv[]) {
     printResults("erase()", agg_min_tree, agg_avg_tree);
     
     
-    std::cout << "tree exact match erase time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endTreeExactMatch - startTreeExactMatch)/symbols.size()).count() << "ns" << std::endl;
+    std::cout << "tree exact match erase time" << std::endl;
+    printResults("erase()", agg_min_treeExact, agg_avg_treeExact);
     
-    std::cout << "splay erase time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((endSplay - startSplay)/symbols.size()).count() << "ns" << std::endl;
+    std::cout << "splay erase time" << std::endl;
+    printResults("erase()", agg_min_splay, agg_avg_splay);
     
     
     std::cout << "Number of runs for insert() " << uniqueSymbols.size() << std::endl;
