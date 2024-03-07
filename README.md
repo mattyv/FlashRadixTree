@@ -218,101 +218,99 @@ Number of runs for insert() 288
 ```
 Small messages FlashRadixTree performs well aginst map for find().
 ```
-Testing out redix tree 
-Unit tests passed
-size of one line in kilobytes: 1.75781kb
+size of one line in bytes: 6b
 hash map insert time
-  2295.00 instructions/insert() (+/- 6.7 %) 
-   674.00 cycles/insert() (+/- 60.1 %) 
-     3.41 instructions/cycle 
-   204.00 branches/insert() (+/- 11.6 %) 
-   2.1597 mis. branches/insert() 
+   387.00 instructions/insert() (+/- 22.5 %) 
+   216.00 cycles/insert() (+/- 186.3 %) 
+     1.79 instructions/cycle 
+    65.00 branches/insert() (+/- 29.7 %) 
+   1.9062 mis. branches/insert() 
 map insert time
-   968.00 instructions/insert() (+/- 120.6 %) 
-   472.00 cycles/insert() (+/- 86.3 %) 
-     2.05 instructions/cycle 
-   170.00 branches/insert() (+/- 166.4 %) 
-   7.2326 mis. branches/insert() 
+   321.00 instructions/insert() (+/- 134.2 %) 
+   289.00 cycles/insert() (+/- 61.6 %) 
+     1.11 instructions/cycle 
+    57.00 branches/insert() (+/- 210.3 %) 
+   5.5833 mis. branches/insert() 
 tree insert time
-  1961.00 instructions/insert() (+/- 302.6 %) 
-   592.00 cycles/insert() (+/- 236.1 %) 
-     3.31 instructions/cycle 
-   350.00 branches/insert() (+/- 435.6 %) 
-  10.0764 mis. branches/insert() 
+   563.00 instructions/insert() (+/- 86.2 %) 
+   284.00 cycles/insert() (+/- 120.8 %) 
+     1.98 instructions/cycle 
+    98.00 branches/insert() (+/- 117.8 %) 
+   7.7500 mis. branches/insert() 
 tree exact match insert time
-  1962.00 instructions/insert() (+/- 303.0 %) 
-   588.00 cycles/insert() (+/- 240.9 %) 
-     3.34 instructions/cycle 
-   350.00 branches/insert() (+/- 436.2 %) 
-  10.4097 mis. branches/insert() 
+   512.00 instructions/insert() (+/- 106.4 %) 
+   269.00 cycles/insert() (+/- 165.4 %) 
+     1.90 instructions/cycle 
+    89.00 branches/insert() (+/- 141.7 %) 
+   8.8438 mis. branches/insert() 
 splay insert time
-  5484.00 instructions/insert() (+/- 47.7 %) 
-  1200.00 cycles/insert() (+/- 69.8 %) 
-     4.57 instructions/cycle 
-   953.00 branches/insert() (+/- 60.1 %) 
-   8.3299 mis. branches/insert() 
+   583.00 instructions/insert() (+/- 97.8 %) 
+   222.00 cycles/insert() (+/- 116.5 %) 
+     2.63 instructions/cycle 
+   109.00 branches/insert() (+/- 139.9 %) 
+   5.0729 mis. branches/insert() 
 
 hash map find time
-  2459.00 instructions/find() (+/- 0.2 %) 
-   714.00 cycles/find() (+/- 14.6 %) 
-     3.44 instructions/cycle 
-   298.00 branches/find() (+/- 0.6 %) 
-   1.2591 mis. branches/find() 
+   276.00 instructions/find() (+/- 1.2 %) 
+   162.00 cycles/find() (+/- 11.6 %) 
+     1.70 instructions/cycle 
+    53.00 branches/find() (+/- 2.4 %) 
+   0.2507 mis. branches/find() 
 map find time
-  2329.00 instructions/find() (+/- 22.3 %) 
-   554.00 cycles/find() (+/- 28.9 %) 
-     4.20 instructions/cycle 
-   570.00 branches/find() (+/- 22.4 %) 
-   4.1265 mis. branches/find() 
+   443.00 instructions/find() (+/- 22.3 %) 
+   212.00 cycles/find() (+/- 30.8 %) 
+     2.09 instructions/cycle 
+   117.00 branches/find() (+/- 24.3 %) 
+   1.4974 mis. branches/find() 
 tree prefix match find time
-   951.00 instructions/find() (+/- 186.7 %) 
-   362.00 cycles/find() (+/- 96.0 %) 
-     2.63 instructions/cycle 
-   174.00 branches/find() (+/- 181.8 %) 
-   3.2353 mis. branches/find() 
+   202.00 instructions/find() (+/- 89.1 %) 
+   152.00 cycles/find() (+/- 56.9 %) 
+     1.33 instructions/cycle 
+    36.00 branches/find() (+/- 147.3 %) 
+   2.5232 mis. branches/find() 
 tree exact match find time
-  1890.00 instructions/find() (+/- 81.0 %) 
-   546.00 cycles/find() (+/- 46.9 %) 
-     3.46 instructions/cycle 
-   407.00 branches/find() (+/- 62.7 %) 
-   3.2459 mis. branches/find() 
+   272.00 instructions/find() (+/- 61.5 %) 
+   154.00 cycles/find() (+/- 59.0 %) 
+     1.77 instructions/cycle 
+    51.00 branches/find() (+/- 97.7 %) 
+   2.4607 mis. branches/find() 
 splay find time
-  6418.00 instructions/find() (+/- 13.1 %) 
-  1188.00 cycles/find() (+/- 29.4 %) 
-     5.40 instructions/cycle 
-  1320.00 branches/find() (+/- 15.5 %) 
-   6.4271 mis. branches/find() 
+   400.00 instructions/find() (+/- 52.6 %) 
+   177.00 cycles/find() (+/- 69.2 %) 
+     2.26 instructions/cycle 
+    87.00 branches/find() (+/- 66.4 %) 
+   2.1256 mis. branches/find() 
 
 hash map erase time
-  2899.00 instructions/erase() (+/- 0.8 %) 
-   800.00 cycles/erase() (+/- 11.0 %) 
-     3.62 instructions/cycle 
-   388.00 branches/erase() (+/- 2.0 %) 
-   1.7812 mis. branches/erase() 
+   498.00 instructions/erase() (+/- 5.4 %) 
+   203.00 cycles/erase() (+/- 34.9 %) 
+     2.45 instructions/cycle 
+   103.00 branches/erase() (+/- 6.4 %) 
+   0.6701 mis. branches/erase() 
 map erase time
-  2488.00 instructions/erase() (+/- 27.3 %) 
-   648.00 cycles/erase() (+/- 57.5 %) 
-     3.84 instructions/cycle 
-   594.00 branches/erase() (+/- 28.0 %) 
-  11.3750 mis. branches/erase() 
+   500.00 instructions/erase() (+/- 54.6 %) 
+   283.00 cycles/erase() (+/- 61.8 %) 
+     1.77 instructions/cycle 
+   120.00 branches/erase() (+/- 63.5 %) 
+   6.8681 mis. branches/erase() 
 tree erase time
-  2529.00 instructions/erase() (+/- 80.7 %) 
-   623.00 cycles/erase() (+/- 119.9 %) 
-     4.06 instructions/cycle 
-   538.00 branches/erase() (+/- 69.3 %) 
-   9.4722 mis. branches/erase() 
+   542.00 instructions/erase() (+/- 62.3 %) 
+   244.00 cycles/erase() (+/- 94.6 %) 
+     2.22 instructions/cycle 
+   128.00 branches/erase() (+/- 72.6 %) 
+   6.4097 mis. branches/erase() 
 tree exact match erase time
-  2489.00 instructions/erase() (+/- 81.0 %) 
-   583.00 cycles/erase() (+/- 106.2 %) 
-     4.27 instructions/cycle 
-   532.00 branches/erase() (+/- 69.4 %) 
-  10.3021 mis. branches/erase() 
+   542.00 instructions/erase() (+/- 61.6 %) 
+   279.00 cycles/erase() (+/- 211.6 %) 
+     1.94 instructions/cycle 
+   128.00 branches/erase() (+/- 72.1 %) 
+   6.7778 mis. branches/erase() 
 splay erase time
-  7811.00 instructions/erase() (+/- 35.9 %) 
-  1478.00 cycles/erase() (+/- 50.7 %) 
-     5.28 instructions/cycle 
-  1578.00 branches/erase() (+/- 39.9 %) 
-  11.7118 mis. branches/erase() 
+   590.00 instructions/erase() (+/- 111.6 %) 
+   284.00 cycles/erase() (+/- 70.2 %) 
+     2.08 instructions/cycle 
+   129.00 branches/erase() (+/- 132.8 %) 
+   4.7326 mis. branches/erase() 
 Number of runs for insert() 288
 ```
 To give and idea of key distribution
