@@ -101,7 +101,7 @@ With some data sets you want to optimise for find speed which as mentioned unord
 If you can pre-load the data structure ahead of time, and this may be an advantage you can work with. 
 In the case of our Radix tree this can give us an advantage. 
 How to search fast then using this advantage? 
-The children of the tree will always have a unique first character, so we can assume that if we have a match of the first character and the node in question is End-of-word then we have a match, and we can save the comparison on the remaining characters. Likewise if we find a note which is end of word, and the lenghts of the match we can also save a full comparison as this must be the key we're looking for. This may be an avantage, especially in situations with very long keys.
+The children of the tree will always have a unique first character, so we can assume that if we have a match of the first character and the node in question is End-of-word then we have a match, and we can save the comparison on the remaining characters. Likewise if we find a node which is end of word, and the lenghts of the match we can also save a full comparison as this must be the key we're looking for. This may be an avantage, especially in situations with very long keys.
 For this reason the FlashRadixTree has two match modes specified on construction. "Partial" and "Exact". Where partial assumes the case above, and Exact matches the entire key when required.
 Either way knowing the first key is unique makes the stucture simpler in that each child node only needs to be keyed off a single first character. This is the case for the FlashRadixTree.
 
