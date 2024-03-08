@@ -118,199 +118,265 @@ So in the FlashRadixTree i offer two options. To use the use of the Splay tree o
 
 Example Timings (Apple M2 (ARM 64), Somoma 14.3.1 (23D60)) ... will aim to get some linux test soon. Sorry for now we timings can only be done on apple silicon. Will add intel soon hopefully.
 
-Large messages FlashRadixTree perform well aginst unordered_map and map for find() in these tests. (again i encourage your own testing)
+Large messages FlashRadixTree perform well aginst unordered_map and map for find() in these tests. (again i encourage your own testing).
+I also focus on the top 10% of keys used to find as typiclly you may wan them to be perfomant.
 ```
 size of one line in kilobytes: 1.75781kb
 hash map insert time
-  2295.00 instructions/insert() (+/- 6.7 %) 
-   674.00 cycles/insert() (+/- 60.1 %) 
-     3.41 instructions/cycle 
-   204.00 branches/insert() (+/- 11.6 %) 
-   2.1597 mis. branches/insert() 
+  2295.00 instructions/insert() min,  2450.13 avg,  8404.00 max 
+   714.00 cycles/insert() min,  1023.88 avg,  6267.00 max 
+     3.21 instructions/cycle 
+   204.00 branches/insert() min,   227.83 avg,  1509.00 max 
+   2.2500 mis. branches/insert() 
 map insert time
-   968.00 instructions/insert() (+/- 120.6 %) 
-   472.00 cycles/insert() (+/- 86.3 %) 
-     2.05 instructions/cycle 
-   170.00 branches/insert() (+/- 166.4 %) 
-   7.2326 mis. branches/insert() 
+   970.00 instructions/insert() min,  2136.51 avg,  3794.00 max 
+   497.00 cycles/insert() min,   869.30 avg,  1445.00 max 
+     1.95 instructions/cycle 
+   170.00 branches/insert() min,   453.01 avg,   862.00 max 
+   7.4826 mis. branches/insert() 
 tree insert time
-  1961.00 instructions/insert() (+/- 302.6 %) 
-   592.00 cycles/insert() (+/- 236.1 %) 
-     3.31 instructions/cycle 
-   350.00 branches/insert() (+/- 435.6 %) 
-  10.0764 mis. branches/insert() 
+  2037.00 instructions/insert() min,  8122.93 avg, 20335.00 max 
+   669.00 cycles/insert() min,  2061.91 avg,  5011.00 max 
+     3.04 instructions/cycle 
+   358.00 branches/insert() min,  1896.69 avg,  5020.00 max 
+   9.0486 mis. branches/insert() 
 tree exact match insert time
-  1962.00 instructions/insert() (+/- 303.0 %) 
-   588.00 cycles/insert() (+/- 240.9 %) 
-     3.34 instructions/cycle 
-   350.00 branches/insert() (+/- 436.2 %) 
-  10.4097 mis. branches/insert() 
+  2039.00 instructions/insert() min,  8130.41 avg, 20346.00 max 
+   605.00 cycles/insert() min,  2054.74 avg,  4954.00 max 
+     3.37 instructions/cycle 
+   358.00 branches/insert() min,  1898.00 avg,  5020.00 max 
+   8.8264 mis. branches/insert() 
 splay insert time
-  5484.00 instructions/insert() (+/- 47.7 %) 
-  1200.00 cycles/insert() (+/- 69.8 %) 
-     4.57 instructions/cycle 
-   953.00 branches/insert() (+/- 60.1 %) 
-   8.3299 mis. branches/insert() 
+  5520.00 instructions/insert() min,  9029.56 avg, 14926.00 max 
+  1305.00 cycles/insert() min,  2173.40 avg,  4169.00 max 
+     4.23 instructions/cycle 
+   965.00 branches/insert() min,  1743.02 avg,  3165.00 max 
+   8.7882 mis. branches/insert() 
 
 hash map find time
-  2459.00 instructions/find() (+/- 0.2 %) 
-   714.00 cycles/find() (+/- 14.6 %) 
-     3.44 instructions/cycle 
-   298.00 branches/find() (+/- 0.6 %) 
-   1.2591 mis. branches/find() 
-map find time
-  2329.00 instructions/find() (+/- 22.3 %) 
-   554.00 cycles/find() (+/- 28.9 %) 
-     4.20 instructions/cycle 
-   570.00 branches/find() (+/- 22.4 %) 
-   4.1265 mis. branches/find() 
-tree prefix match find time
-   951.00 instructions/find() (+/- 186.7 %) 
-   362.00 cycles/find() (+/- 96.0 %) 
-     2.63 instructions/cycle 
-   174.00 branches/find() (+/- 181.8 %) 
-   3.2353 mis. branches/find() 
-tree exact match find time
-  1890.00 instructions/find() (+/- 81.0 %) 
-   546.00 cycles/find() (+/- 46.9 %) 
+  2460.00 instructions/find() min,  2464.83 avg,  2499.00 max 
+   711.00 cycles/find() min,   824.49 avg, 13226.00 max 
      3.46 instructions/cycle 
-   407.00 branches/find() (+/- 62.7 %) 
-   3.2459 mis. branches/find() 
+   298.00 branches/find() min,   299.86 avg,   313.00 max 
+   1.2616 mis. branches/find() 
+hash map top 10% find time
+  2460.00 instructions/find() min,  2465.62 avg,  2486.00 max 
+   782.00 cycles/find() min,  1062.76 avg,  1970.00 max 
+     3.15 instructions/cycle 
+   298.00 branches/find() min,   300.16 avg,   308.00 max 
+   1.4136 mis. branches/find() 
+map find time
+  2330.00 instructions/find() min,  2849.16 avg,  3583.00 max 
+   548.00 cycles/find() min,   714.92 avg, 15022.00 max 
+     4.25 instructions/cycle 
+   570.00 branches/find() min,   697.47 avg,   879.00 max 
+   4.1208 mis. branches/find() 
+map top 10% find time
+  2514.00 instructions/find() min,  2867.41 avg,  3440.00 max 
+   630.00 cycles/find() min,  1039.65 avg,  3191.00 max 
+     3.99 instructions/cycle 
+   612.00 branches/find() min,   702.55 avg,   844.00 max 
+   7.5932 mis. branches/find() 
+tree prefix match find time
+   979.00 instructions/find() min,  2881.42 avg,  4788.00 max 
+   355.00 cycles/find() min,   753.93 avg, 38146.00 max 
+     2.76 instructions/cycle 
+   178.00 branches/find() min,   506.92 avg,   809.00 max 
+   3.4475 mis. branches/find() 
+tree top 10% prefix match find time
+  2098.00 instructions/find() min,  2783.34 avg,  3507.00 max 
+   475.00 cycles/find() min,   818.88 avg,  3122.00 max 
+     4.42 instructions/cycle 
+   373.00 branches/find() min,   486.71 avg,   610.00 max 
+   5.4795 mis. branches/find() 
+tree exact match find time
+  1918.00 instructions/find() min,  3576.10 avg,  5154.00 max 
+   540.00 cycles/find() min,   839.12 avg,  3871.00 max 
+     3.55 instructions/cycle 
+   411.00 branches/find() min,   678.85 avg,   930.00 max 
+   3.8322 mis. branches/find() 
+tree exact match top 10% find time
+  2885.00 instructions/find() min,  3501.25 avg,  4142.00 max 
+   607.00 cycles/find() min,   957.91 avg,  2153.00 max 
+     4.75 instructions/cycle 
+   568.00 branches/find() min,   664.44 avg,   767.00 max 
+   5.9000 mis. branches/find() 
 splay find time
-  6418.00 instructions/find() (+/- 13.1 %) 
-  1188.00 cycles/find() (+/- 29.4 %) 
-     5.40 instructions/cycle 
-  1320.00 branches/find() (+/- 15.5 %) 
-   6.4271 mis. branches/find() 
+  6437.00 instructions/find() min,  7904.54 avg, 15229.00 max 
+  1201.00 cycles/find() min,  1637.45 avg, 33462.00 max 
+     5.36 instructions/cycle 
+  1325.00 branches/find() min,  1680.33 avg,  3461.00 max 
+   6.9067 mis. branches/find() 
+splay top 10% find time
+  7097.00 instructions/find() min,  9712.68 avg, 12420.00 max 
+  1354.00 cycles/find() min,  2240.98 avg,  3170.00 max 
+     5.24 instructions/cycle 
+  1476.00 branches/find() min,  2109.98 avg,  2778.00 max 
+  12.5841 mis. branches/find() 
 
 hash map erase time
-  2899.00 instructions/erase() (+/- 0.8 %) 
-   800.00 cycles/erase() (+/- 11.0 %) 
-     3.62 instructions/cycle 
-   388.00 branches/erase() (+/- 2.0 %) 
-   1.7812 mis. branches/erase() 
+  3086.00 instructions/erase() min,  3267.94 avg,  3393.00 max 
+   838.00 cycles/erase() min,   946.31 avg,  5549.00 max 
+     3.68 instructions/cycle 
+   420.00 branches/erase() min,   451.76 avg,   470.00 max 
+   1.9792 mis. branches/erase() 
 map erase time
-  2488.00 instructions/erase() (+/- 27.3 %) 
-   648.00 cycles/erase() (+/- 57.5 %) 
-     3.84 instructions/cycle 
-   594.00 branches/erase() (+/- 28.0 %) 
-  11.3750 mis. branches/erase() 
+  2860.00 instructions/erase() min,  3540.08 avg,  4424.00 max 
+   668.00 cycles/erase() min,  1360.00 avg,  7387.00 max 
+     4.28 instructions/cycle 
+   656.00 branches/erase() min,   822.37 avg,  1040.00 max 
+  11.2396 mis. branches/erase() 
 tree erase time
-  2529.00 instructions/erase() (+/- 80.7 %) 
-   623.00 cycles/erase() (+/- 119.9 %) 
-     4.06 instructions/cycle 
-   538.00 branches/erase() (+/- 69.3 %) 
-   9.4722 mis. branches/erase() 
+  2353.00 instructions/erase() min,  4653.68 avg,  7835.00 max 
+   643.00 cycles/erase() min,  1610.23 avg,  9943.00 max 
+     3.66 instructions/cycle 
+   504.00 branches/erase() min,   902.82 avg,  1464.00 max 
+   8.5903 mis. branches/erase() 
 tree exact match erase time
-  2489.00 instructions/erase() (+/- 81.0 %) 
-   583.00 cycles/erase() (+/- 106.2 %) 
-     4.27 instructions/cycle 
-   532.00 branches/erase() (+/- 69.4 %) 
-  10.3021 mis. branches/erase() 
+  2353.00 instructions/erase() min,  4621.75 avg,  7840.00 max 
+   612.00 cycles/erase() min,  1462.19 avg,  6306.00 max 
+     3.84 instructions/cycle 
+   504.00 branches/erase() min,   899.31 avg,  1464.00 max 
+   8.6250 mis. branches/erase() 
 splay erase time
-  7811.00 instructions/erase() (+/- 35.9 %) 
-  1478.00 cycles/erase() (+/- 50.7 %) 
-     5.28 instructions/cycle 
-  1578.00 branches/erase() (+/- 39.9 %) 
-  11.7118 mis. branches/erase() 
+  7237.00 instructions/erase() min, 11309.68 avg, 15303.00 max 
+  1373.00 cycles/erase() min,  2397.78 avg,  7119.00 max 
+     5.27 instructions/cycle 
+  1472.00 branches/erase() min,  2401.01 avg,  3368.00 max 
+  12.0347 mis. branches/erase() 
 Number of runs for insert() 288
+
+Number of runs for find() 103880
 ```
 Small messages FlashRadixTree performs well aginst map for find().
 ```
+Unit tests passed
 size of one line in bytes: 6b
 hash map insert time
-   387.00 instructions/insert() (+/- 22.5 %) 
-   216.00 cycles/insert() (+/- 186.3 %) 
-     1.79 instructions/cycle 
-    65.00 branches/insert() (+/- 29.7 %) 
-   1.9062 mis. branches/insert() 
+   387.00 instructions/insert() min,   476.30 avg,  6414.00 max 
+   181.00 cycles/insert() min,   355.66 avg, 13375.00 max 
+     2.14 instructions/cycle 
+    65.00 branches/insert() min,    84.72 avg,  1363.00 max 
+   2.0590 mis. branches/insert() 
 map insert time
-   321.00 instructions/insert() (+/- 134.2 %) 
-   289.00 cycles/insert() (+/- 61.6 %) 
-     1.11 instructions/cycle 
-    57.00 branches/insert() (+/- 210.3 %) 
-   5.5833 mis. branches/insert() 
+   320.00 instructions/insert() min,   752.78 avg,  1447.00 max 
+   282.00 cycles/insert() min,   410.04 avg,   937.00 max 
+     1.13 instructions/cycle 
+    55.00 branches/insert() min,   176.87 avg,   356.00 max 
+   5.5035 mis. branches/insert() 
 tree insert time
-   563.00 instructions/insert() (+/- 86.2 %) 
-   284.00 cycles/insert() (+/- 120.8 %) 
-     1.98 instructions/cycle 
-    98.00 branches/insert() (+/- 117.8 %) 
-   7.7500 mis. branches/insert() 
+   632.00 instructions/insert() min,  1246.94 avg,  2617.00 max 
+   237.00 cycles/insert() min,   563.09 avg, 14052.00 max 
+     2.67 instructions/cycle 
+   104.00 branches/insert() min,   225.89 avg,   550.00 max 
+   6.0000 mis. branches/insert() 
 tree exact match insert time
-   512.00 instructions/insert() (+/- 106.4 %) 
-   269.00 cycles/insert() (+/- 165.4 %) 
-     1.90 instructions/cycle 
-    89.00 branches/insert() (+/- 141.7 %) 
-   8.8438 mis. branches/insert() 
+   521.00 instructions/insert() min,  1254.32 avg,  2222.00 max 
+   241.00 cycles/insert() min,   619.40 avg, 13870.00 max 
+     2.16 instructions/cycle 
+    91.00 branches/insert() min,   227.16 avg,   412.00 max 
+   6.3264 mis. branches/insert() 
 splay insert time
-   583.00 instructions/insert() (+/- 97.8 %) 
-   222.00 cycles/insert() (+/- 116.5 %) 
-     2.63 instructions/cycle 
-   109.00 branches/insert() (+/- 139.9 %) 
-   5.0729 mis. branches/insert() 
+   436.00 instructions/insert() min,  1381.85 avg,  2806.00 max 
+   231.00 cycles/insert() min,   561.34 avg,  4222.00 max 
+     1.89 instructions/cycle 
+    77.00 branches/insert() min,   303.84 avg,   656.00 max 
+   7.1840 mis. branches/insert() 
 
 hash map find time
-   276.00 instructions/find() (+/- 1.2 %) 
-   162.00 cycles/find() (+/- 11.6 %) 
-     1.70 instructions/cycle 
-    53.00 branches/find() (+/- 2.4 %) 
-   0.2507 mis. branches/find() 
+   277.00 instructions/find() min,   280.26 avg,   329.00 max 
+   156.00 cycles/find() min,   173.40 avg, 21561.00 max 
+     1.78 instructions/cycle 
+    53.00 branches/find() min,    54.25 avg,    73.00 max 
+   0.2476 mis. branches/find() 
+hash map top 10% find time
+   277.00 instructions/find() min,   280.55 avg,   290.00 max 
+   157.00 cycles/find() min,   189.05 avg,  1868.00 max 
+     1.76 instructions/cycle 
+    53.00 branches/find() min,    54.36 avg,    58.00 max 
+   0.2955 mis. branches/find() 
 map find time
-   443.00 instructions/find() (+/- 22.3 %) 
-   212.00 cycles/find() (+/- 30.8 %) 
-     2.09 instructions/cycle 
-   117.00 branches/find() (+/- 24.3 %) 
+   444.00 instructions/find() min,   543.00 avg,   608.00 max 
+   221.00 cycles/find() min,   305.85 avg, 50012.00 max 
+     2.01 instructions/cycle 
+   117.00 branches/find() min,   145.41 avg,   165.00 max 
    1.4974 mis. branches/find() 
+map top 10% find time
+   483.00 instructions/find() min,   528.75 avg,   608.00 max 
+   251.00 cycles/find() min,   337.23 avg,   532.00 max 
+     1.92 instructions/cycle 
+   127.00 branches/find() min,   141.77 avg,   165.00 max 
+   3.6091 mis. branches/find() 
 tree prefix match find time
-   202.00 instructions/find() (+/- 89.1 %) 
-   152.00 cycles/find() (+/- 56.9 %) 
-     1.33 instructions/cycle 
-    36.00 branches/find() (+/- 147.3 %) 
-   2.5232 mis. branches/find() 
+   229.00 instructions/find() min,   489.16 avg,   844.00 max 
+   165.00 cycles/find() min,   257.14 avg, 11174.00 max 
+     1.39 instructions/cycle 
+    39.00 branches/find() min,    97.86 avg,   165.00 max 
+   2.2724 mis. branches/find() 
+tree top 10% prefix match find time
+   389.00 instructions/find() min,   554.02 avg,   736.00 max 
+   185.00 cycles/find() min,   325.61 avg,  1012.00 max 
+     2.10 instructions/cycle 
+    75.00 branches/find() min,   105.68 avg,   136.00 max 
+   4.2636 mis. branches/find() 
 tree exact match find time
-   272.00 instructions/find() (+/- 61.5 %) 
-   154.00 cycles/find() (+/- 59.0 %) 
-     1.77 instructions/cycle 
-    51.00 branches/find() (+/- 97.7 %) 
-   2.4607 mis. branches/find() 
+   299.00 instructions/find() min,   546.31 avg,   890.00 max 
+   170.00 cycles/find() min,   266.10 avg, 75590.00 max 
+     1.76 instructions/cycle 
+    54.00 branches/find() min,   109.65 avg,   174.00 max 
+   2.2679 mis. branches/find() 
+tree exact match top 10% find time
+   451.00 instructions/find() min,   611.65 avg,   790.00 max 
+   198.00 cycles/find() min,   336.45 avg,   585.00 max 
+     2.28 instructions/cycle 
+    88.00 branches/find() min,   117.59 avg,   147.00 max 
+   4.2568 mis. branches/find() 
 splay find time
-   400.00 instructions/find() (+/- 52.6 %) 
-   177.00 cycles/find() (+/- 69.2 %) 
-     2.26 instructions/cycle 
-    87.00 branches/find() (+/- 66.4 %) 
-   2.1256 mis. branches/find() 
+   434.00 instructions/find() min,   723.75 avg,  2672.00 max 
+   173.00 cycles/find() min,   331.04 avg,  8834.00 max 
+     2.51 instructions/cycle 
+    91.00 branches/find() min,   166.34 avg,   651.00 max 
+   2.4522 mis. branches/find() 
+splay top 10% find time
+   434.00 instructions/find() min,  1109.65 avg,  1899.00 max 
+   241.00 cycles/find() min,   477.39 avg,   916.00 max 
+     1.80 instructions/cycle 
+    91.00 branches/find() min,   261.88 avg,   468.00 max 
+   5.3182 mis. branches/find() 
 
 hash map erase time
-   498.00 instructions/erase() (+/- 5.4 %) 
-   203.00 cycles/erase() (+/- 34.9 %) 
-     2.45 instructions/cycle 
-   103.00 branches/erase() (+/- 6.4 %) 
-   0.6701 mis. branches/erase() 
+   501.00 instructions/erase() min,   526.14 avg,   680.00 max 
+   201.00 cycles/erase() min,   282.58 avg,  3666.00 max 
+     2.49 instructions/cycle 
+   102.00 branches/erase() min,   109.88 avg,   135.00 max 
+   0.6215 mis. branches/erase() 
 map erase time
-   500.00 instructions/erase() (+/- 54.6 %) 
-   283.00 cycles/erase() (+/- 61.8 %) 
-     1.77 instructions/cycle 
-   120.00 branches/erase() (+/- 63.5 %) 
-   6.8681 mis. branches/erase() 
+   500.00 instructions/erase() min,   773.65 avg,   936.00 max 
+   317.00 cycles/erase() min,   500.17 avg,  6644.00 max 
+     1.58 instructions/cycle 
+   120.00 branches/erase() min,   196.26 avg,   242.00 max 
+   6.8472 mis. branches/erase() 
 tree erase time
-   542.00 instructions/erase() (+/- 62.3 %) 
-   244.00 cycles/erase() (+/- 94.6 %) 
-     2.22 instructions/cycle 
-   128.00 branches/erase() (+/- 72.6 %) 
-   6.4097 mis. branches/erase() 
-tree exact match erase time
-   542.00 instructions/erase() (+/- 61.6 %) 
-   279.00 cycles/erase() (+/- 211.6 %) 
-     1.94 instructions/cycle 
-   128.00 branches/erase() (+/- 72.1 %) 
-   6.7778 mis. branches/erase() 
-splay erase time
-   590.00 instructions/erase() (+/- 111.6 %) 
-   284.00 cycles/erase() (+/- 70.2 %) 
+   602.00 instructions/erase() min,  1075.25 avg,  1701.00 max 
+   290.00 cycles/erase() min,   546.26 avg,  8181.00 max 
      2.08 instructions/cycle 
-   129.00 branches/erase() (+/- 132.8 %) 
-   4.7326 mis. branches/erase() 
+   135.00 branches/erase() min,   237.13 avg,   385.00 max 
+   5.5000 mis. branches/erase() 
+tree exact match erase time
+   602.00 instructions/erase() min,  1072.15 avg,  1696.00 max 
+   299.00 cycles/erase() min,   506.65 avg,  3293.00 max 
+     2.01 instructions/cycle 
+   135.00 branches/erase() min,   236.51 avg,   384.00 max 
+   5.5000 mis. branches/erase() 
+splay erase time
+   622.00 instructions/erase() min,  1498.39 avg,  4071.00 max 
+   264.00 cycles/erase() min,   615.36 avg,  5268.00 max 
+     2.36 instructions/cycle 
+   133.00 branches/erase() min,   346.36 avg,   972.00 max 
+   6.4861 mis. branches/erase() 
 Number of runs for insert() 288
+
+Number of runs for find() 103880
 ```
 To give and idea of key distribution
 ```

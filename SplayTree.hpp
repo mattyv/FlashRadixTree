@@ -23,20 +23,20 @@ constexpr size_t max_alignment() {
 template <typename KeyType, typename ValueType>
 class SplayTree
 {
-    static constexpr size_t max_alignment_value = max_alignment<KeyType, ValueType, SplayTree<KeyType, ValueType>*>();
-
+    static constexpr size_t max_alignment_value = max_alignment<KeyType, ValueType, void*[2]>();
+    
 public:
     struct alignas(max_alignment_value) splay
     {
         splay() noexcept = default;
-        splay(KeyType key, ValueType value) noexcept: key(key), value(value), lchild(nullptr), rchild(nullptr)  {}
+        splay(KeyType key, ValueType value) noexcept: key(key), value(value), children{nullptr, nullptr}  {}
         
         KeyType key;
         ValueType value;
-        splay* lchild;
-        splay* rchild;
+        splay* children[2] = {nullptr, nullptr};
     };
-
+    enum Child { LEFT = 0, RIGHT };
+    
     SplayTree() noexcept = default;
     ~SplayTree() noexcept
     {
@@ -74,10 +74,10 @@ public:
     
     splay* find(KeyType key) const noexcept
     {
-      _root = _find(key, _root);
-      if(_root && _root->key != key)
-        return nullptr;
-      return _root;
+        _root = _find(key, _root);
+        if(_root && _root->key != key)
+            return nullptr;
+        return _root;
     }
     
     splay* erase(KeyType key) noexcept
@@ -138,134 +138,118 @@ private:
             return root;
         }
         root = _splay(key, root);
-        /* This is BST that, all keys <= root->key is in root->lchild, all keys >
-        root->key is in root->rchild. */
-        if (key < root->key)
+        /* This is BST that, all keys <= root->key is in root->children[LEFT], all keys >
+         root->key is in root->children[RIGHT]. */
+        
+        // Calculate direction: 0 for LEFT, 1 for RIGHT
+        const Child dir = static_cast<Child>(key > root->key);
+        const Child other_dir = static_cast<Child>(1 - dir);
+
+        
+        if (key != root->key)
         {
-            p_node->lchild = root->lchild;
-            p_node->rchild = root;
-            root->lchild = NULL;
+            p_node->children[dir] = root->children[dir];
+            p_node->children[other_dir] = root;
+            root->children[dir] = NULL;
             root = p_node;
         }
-        else if (key > root->key)
-        {
-            p_node->rchild = root->rchild;
-            p_node->lchild = root;
-            root->rchild = NULL;
-            root = p_node;
-        }
-        else
-            return root;
         p_node = NULL;
         return root;
     }
     
     splay* _erase(KeyType key, splay* root) noexcept
     {
-        splay* temp;
         if (!root)
             return NULL;
         root = _splay(key, root);
         if (key != root->key)
             return root;
+        
+        splay* temp = root;
+        if (!root->children[LEFT])
+            root = root->children[RIGHT];
         else
         {
-            if (!root->lchild)
-            {
-                temp = root;
-                root = root->rchild;
-            }
-            else
-            {
-                temp = root;
-                /*Note: Since key == root->key,
-                so after Splay(key, root->lchild),
-                the tree we get will have no right child tree.*/
-                root = _splay(key, root->lchild);
-                root->rchild = temp->rchild;
-            }
-            --_size;
-            delete temp;
-            return root;
+            /*Note: Since key == root->key,
+             so after Splay(key, root->children[LEFT]),
+             the tree we get will have no right child tree.*/
+            root = _splay(key, root->children[LEFT]);
+            root->children[RIGHT] = temp->children[RIGHT];
         }
+        --_size;
+        delete temp;
+        return root;
     }
     splay* _find(KeyType key, splay* root) const noexcept
     {
-      return _splay(key, root);
+        return _splay(key, root);
     }
     // RR(Y rotates to the right)
     splay* _RR_Rotate(splay* k2) const noexcept
     {
-        splay* k1 = k2->lchild;
-        k2->lchild = k1->rchild;
-        k1->rchild = k2;
+        splay* k1 = k2->children[LEFT];
+        k2->children[LEFT] = k1->children[RIGHT];
+        k1->children[RIGHT] = k2;
         return k1;
     }
-
+    
     // LL(Y rotates to the left)
     splay* _LL_Rotate(splay* k2) const noexcept
     {
-        splay* k1 = k2->rchild;
-        k2->rchild = k1->lchild;
-        k1->lchild = k2;
+        splay* k1 = k2->children[RIGHT];
+        k2->children[RIGHT] = k1->children[LEFT];
+        k1->children[LEFT] = k2;
         return k1;
     }
-
+    
     // An implementation of top-down splay tree
     splay* _splay(KeyType key, splay* root) const noexcept
     {
         if (!root)
-            return NULL;
+            return nullptr;
         splay header;
-        /* header.rchild points to L tree;
-        header.lchild points to R Tree */
-        header.lchild = header.rchild = NULL;
-        splay* LeftTreeMax = &header;
-        splay* RightTreeMin = &header;
-        while (1)
-        {
-            if (key < root->key)
-            {
-                if (!root->lchild)
-                    break;
-                if (key < root->lchild->key)
-                {
-                    root = _RR_Rotate(root);
-                    // only zig-zig mode need to rotate once,
-                    if (!root->lchild)
-                        break;
-                }
-                /* Link to R Tree */
-                RightTreeMin->lchild = root;
-                RightTreeMin = RightTreeMin->lchild;
-                root = root->lchild;
-                RightTreeMin->lchild = NULL;
-            }
-            else if (key > root->key)
-            {
-                if (!root->rchild)
-                    break;
-                if (key > root->rchild->key)
-                {
-                    root = _LL_Rotate(root);
-                    // only zag-zag mode need to rotate once,
-                    if (!root->rchild)
-                        break;
-                }
-                /* Link to L Tree */
-                LeftTreeMax->rchild = root;
-                LeftTreeMax = LeftTreeMax->rchild;
-                root = root->rchild;
-                LeftTreeMax->rchild = NULL;
-            }
-            else
+        /* header.children[RIGHT] points to L tree;
+         header.children[LEFT] points to R Tree */
+        //header.children[LEFT] = header.children[RIGHT] = nullptr;
+        splay* treesMinOrMax[2] = { &header, &header };
+        
+        while (true) {
+            // Calculate direction: 0 for LEFT, 1 for RIGHT
+            const Child dir = static_cast<Child>(key > root->key);
+            const Child other_dir = static_cast<Child>(1 - dir);
+            if (key == root->key) {
                 break;
+            }
+            
+            if(!root->children[dir] ) {
+                break;
+            }
+            typedef splay* (SplayTree::*RotationFunc)(splay*) const;
+            const RotationFunc rotate[2] = { &SplayTree::_RR_Rotate, &SplayTree::_LL_Rotate };
+            // Check for zig-zig or zag-zag case
+            if ((key < root->children[dir]->key && dir == LEFT) ||
+                (key > root->children[dir]->key && dir == RIGHT))
+            {
+                root = (this->*rotate[dir])(root);
+                if (!root->children[dir]) {
+                    break;
+                }
+            }
+            
+            // Link the current root to the opposite tree
+            treesMinOrMax[other_dir]->children[dir] = root;
+            treesMinOrMax[other_dir] = treesMinOrMax[other_dir]->children[dir];
+            treesMinOrMax[other_dir] = root;
+            root = root->children[dir];
+            treesMinOrMax[other_dir]->children[dir] = nullptr;
         }
-        /* assemble L Tree, Middle Tree and R tree */
-        LeftTreeMax->rchild = root->lchild;
-        RightTreeMin->lchild = root->rchild;
-        root->lchild = header.rchild;
-        root->rchild = header.lchild;
+        
+        // Assemble left and right trees with the new root
+        treesMinOrMax[LEFT]->children[RIGHT] = root->children[LEFT];
+        treesMinOrMax[RIGHT]->children[LEFT] = root->children[RIGHT];
+        root->children[LEFT] = header.children[RIGHT];
+        root->children[RIGHT] = header.children[LEFT];
+        
         return root;
     }
     
@@ -274,7 +258,7 @@ private:
     splay* _New_Node(KeyType key, ValueType value) noexcept
     {
         splay* p_node = new splay(key, value);
-        p_node->lchild = p_node->rchild = NULL;
+        p_node->children[LEFT] = p_node->children[RIGHT] = NULL;
         ++_size;
         return p_node;
     }
@@ -284,34 +268,34 @@ private:
     {
         if (root)
         {
-            InOrder(root->lchild);
+            InOrder(root->children[LEFT]);
             cout<< "key: " <<root->key;
-            if(root->lchild)
-                cout<< " | left child: "<< root->lchild->key;
-            if(root->rchild)
-                cout << " | right child: " << root->rchild->key;
+            if(root->children[LEFT])
+                cout<< " | left child: "<< root->children[LEFT]->key;
+            if(root->children[RIGHT])
+                cout << " | right child: " << root->children[RIGHT]->key;
             cout<< "\n";
-            InOrder(root->rchild);
+            InOrder(root->children[RIGHT]);
         }
     }
     
     void _inOrderAndOp(splay* root, std::function<bool( splay*)> op) const noexcept{
         if (root)
         {
-            _inOrderAndOp(root->lchild, op);
+            _inOrderAndOp(root->children[LEFT], op);
             if(!op(root))
                 return;
-            _inOrderAndOp(root->rchild, op);
+            _inOrderAndOp(root->children[RIGHT], op);
         }
     }
     
     void _rinOrderAndOp(splay* root, std::function<bool( splay*)> op) const  noexcept{
         if (root)
         {
-            _rinOrderAndOp(root->rchild, op);
+            _rinOrderAndOp(root->children[RIGHT], op);
             if(!op(root))
                 return;
-            _rinOrderAndOp(root->lchild, op);
+            _rinOrderAndOp(root->children[LEFT], op);
         }
     }
     
@@ -320,11 +304,11 @@ private:
         if(root == NULL) return NULL;
         
         splay* x = root;
-        while (x->lchild != NULL) {
-            if (x->lchild->lchild != NULL) {
+        while (x->children[LEFT] != NULL) {
+            if (x->children[LEFT]->children[LEFT] != NULL) {
                 // "Zig-zig" step: make two right rotations
-                x->lchild = _RR_Rotate(x->lchild);
-                if (x->lchild != NULL)
+                x->children[LEFT] = _RR_Rotate(x->children[LEFT]);
+                if (x->children[LEFT] != NULL)
                     x = _RR_Rotate(x);
             } else {
                 // "Zig" step: a single rotation is enough when there is no left child for the left child of x
@@ -340,11 +324,11 @@ private:
         if(root == NULL) return NULL;
         
         splay* x = root;
-        while (x->rchild != NULL) {
-            if (x->rchild->rchild != NULL) {
+        while (x->children[RIGHT] != NULL) {
+            if (x->children[RIGHT]->children[RIGHT] != NULL) {
                 // "Zag-zag" step: make two left rotations
-                x->rchild = _LL_Rotate(x->rchild);
-                if (x->rchild != NULL)
+                x->children[RIGHT] = _LL_Rotate(x->children[RIGHT]);
+                if (x->children[RIGHT] != NULL)
                     x = _LL_Rotate(x);
             } else {
                 // "Zag" step: a single rotation is enough when there is no right child for the right child of x
