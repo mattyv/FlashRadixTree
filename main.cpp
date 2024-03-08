@@ -19,7 +19,7 @@
 #include <string>
 #include <memory>
 
-//struct to simulate and market order
+//struct to simulate a payload
 struct Data
 {
     std::string str;

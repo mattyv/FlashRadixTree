@@ -67,7 +67,7 @@ public:
 #elif defined USE_CHAR_MAP
     static constexpr size_t max_alignment_value_FlashRadixTreeNode = max_alignment<Key, Value, bool, CharMap<Value>>();
 #else
-    static constexpr size_t max_alignment_value_FlashRadixTreeNode = max_alignment<Key, Value, bool, std::unordered_map<typename Key::value_type, void*>>();
+    static constexpr size_t max_alignment_value_FlashRadixTreeNode = max_alignment<Key, Value, bool, std::map<typename Key::value_type, void*>>();
 #endif
     class alignas(max_alignment_value_FlashRadixTreeNode) FlashRadixTreeNode {
     public:
