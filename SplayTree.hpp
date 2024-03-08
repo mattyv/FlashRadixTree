@@ -141,13 +141,16 @@ private:
         /* This is BST that, all keys <= root->key is in root->children[LEFT], all keys >
          root->key is in root->children[RIGHT]. */
         
-        int cmp = key > root->key;// dir is 0 if key is less than root->key, 1 otherwise
+        // Calculate direction: 0 for LEFT, 1 for RIGHT
+        const Child dir = static_cast<Child>(key > root->key);
+        const Child other_dir = static_cast<Child>(1 - dir);
+
         
         if (key != root->key)
         {
-            p_node->children[cmp] = root->children[cmp];
-            p_node->children[!cmp] = root;
-            root->children[cmp] = NULL;
+            p_node->children[dir] = root->children[dir];
+            p_node->children[other_dir] = root;
+            root->children[dir] = NULL;
             root = p_node;
         }
         p_node = NULL;
