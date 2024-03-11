@@ -35,24 +35,25 @@ public:
         ValueType value;
         splay* children[2] = {nullptr, nullptr};
     };
-    enum Child { LEFT = 0, RIGHT };
+    enum Child { LEFT = 0, RIGHT = 1};
     
     SplayTree() noexcept = default;
     ~SplayTree() noexcept
     {
         //iterate and delete
-        inOrderAndOp([this]( splay* node)noexcept->bool{delete node;return true;});
+        inOrderAndOp([this]( splay* node) noexcept -> bool {delete node;return true;});
     }
     
     SplayTree(const SplayTree& ) = delete;
     SplayTree& operator=(const SplayTree& ) = delete;
     
     //move constructor
-    SplayTree(const SplayTree&& other) noexcept
+    SplayTree( SplayTree&& other) noexcept
     {
         _root = other._root;
         _size = other._size;
         other._root = nullptr;
+        other._size = 0;
     }
     constexpr splay* root() const noexcept
     {
@@ -110,13 +111,14 @@ public:
         _rinOrderAndOp(_root, op);
     }
     //move assignment
-    SplayTree& operator=(const SplayTree&& other) noexcept
+    SplayTree& operator=( SplayTree&& other) noexcept
     {
         if (this != &other)
         {
             _root = other._root;
             _size = other._size;
             other._root = nullptr;
+            other._size = 0;
         }
         return *this;
     }
@@ -126,7 +128,7 @@ private:
     
     splay* _insert(KeyType key, ValueType value, splay* root) noexcept
     {
-        static splay* p_node = NULL; //TODO: maybe get rid of this static variable
+        static splay* p_node = nullptr; //TODO: maybe get rid of this static variable
         if (!p_node)
             p_node = _New_Node(key, value);
         else
@@ -134,7 +136,7 @@ private:
         if (!root)
         {
             root = p_node;
-            p_node = NULL;
+            p_node = nullptr;
             return root;
         }
         root = _splay(key, root);
@@ -146,22 +148,23 @@ private:
         const Child other_dir = static_cast<Child>(1 - dir);
 
         
-        if (key != root->key)
+        if (root != nullptr && key != root->key)
         {
             p_node->children[dir] = root->children[dir];
             p_node->children[other_dir] = root;
-            root->children[dir] = NULL;
+            root->children[dir] = nullptr;
             root = p_node;
         }
-        p_node = NULL;
+        p_node = nullptr;
         return root;
     }
     
     splay* _erase(KeyType key, splay* root) noexcept
     {
         if (!root)
-            return NULL;
-        root = _splay(key, root);
+            return nullptr;
+        if(!(root = _splay(key, root)))
+            return nullptr;
         if (key != root->key)
             return root;
         
@@ -258,7 +261,7 @@ private:
     splay* _New_Node(KeyType key, ValueType value) noexcept
     {
         splay* p_node = new splay(key, value);
-        p_node->children[LEFT] = p_node->children[RIGHT] = NULL;
+        p_node->children[LEFT] = p_node->children[RIGHT] = nullptr;
         ++_size;
         return p_node;
     }
@@ -268,14 +271,14 @@ private:
     {
         if (root)
         {
-            InOrder(root->children[LEFT]);
+            _printInOrder(root->children[LEFT]);
             cout<< "key: " <<root->key;
             if(root->children[LEFT])
                 cout<< " | left child: "<< root->children[LEFT]->key;
             if(root->children[RIGHT])
                 cout << " | right child: " << root->children[RIGHT]->key;
             cout<< "\n";
-            InOrder(root->children[RIGHT]);
+            _printInOrder(root->children[RIGHT]);
         }
     }
     
@@ -301,14 +304,14 @@ private:
     
     splay* _getMinimumAndSplay(splay* root) const  noexcept{
         //perfom zig-zig or zig to move the left most node to the root
-        if(root == NULL) return NULL;
+        if(root == nullptr) return nullptr;
         
         splay* x = root;
-        while (x->children[LEFT] != NULL) {
-            if (x->children[LEFT]->children[LEFT] != NULL) {
+        while (x->children[LEFT] != nullptr) {
+            if (x->children[LEFT]->children[LEFT] != nullptr) {
                 // "Zig-zig" step: make two right rotations
                 x->children[LEFT] = _RR_Rotate(x->children[LEFT]);
-                if (x->children[LEFT] != NULL)
+                if (x->children[LEFT] != nullptr)
                     x = _RR_Rotate(x);
             } else {
                 // "Zig" step: a single rotation is enough when there is no left child for the left child of x
@@ -321,14 +324,14 @@ private:
     
     splay* _getMaximumAndSplay(splay* root) const  noexcept{
         //perfom zag-zag or zag to move the right most node to the root
-        if(root == NULL) return NULL;
+        if(root == nullptr) return nullptr;
         
         splay* x = root;
-        while (x->children[RIGHT] != NULL) {
-            if (x->children[RIGHT]->children[RIGHT] != NULL) {
+        while (x->children[RIGHT] != nullptr) {
+            if (x->children[RIGHT]->children[RIGHT] != nullptr) {
                 // "Zag-zag" step: make two left rotations
                 x->children[RIGHT] = _LL_Rotate(x->children[RIGHT]);
-                if (x->children[RIGHT] != NULL)
+                if (x->children[RIGHT] != nullptr)
                     x = _LL_Rotate(x);
             } else {
                 // "Zag" step: a single rotation is enough when there is no right child for the right child of x

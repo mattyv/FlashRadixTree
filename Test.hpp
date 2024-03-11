@@ -6,7 +6,7 @@
 
 bool RunTests()
 {
-    std::cout << "Testing out redix tree \n";
+    std::cout << "Testing out radix tree \n";
     FlashRadixTree<std::string, int, MatchMode::Exact> rTree;
     FlashRadixTreeSerializer<std::string, int, MatchMode::Exact> serializer;
     
