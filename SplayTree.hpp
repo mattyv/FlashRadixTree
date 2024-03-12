@@ -45,6 +45,20 @@ public:
         splay* children[2] = {nullptr, nullptr};
         Sentinal sentinal = Sentinal::NONE;
         
+        //operator ==
+        constexpr bool operator==(const splay& rhs) const noexcept
+        {
+            return key == rhs.key
+            && value == rhs.value
+            && children[LEFT] == rhs.children[LEFT]
+            && children[RIGHT] == rhs.children[RIGHT]
+            && sentinal == rhs.sentinal;
+        }
+        //operator !=
+        constexpr bool operator!=(const splay& rhs) const noexcept
+        {
+            return !(*this == rhs);
+        }
     private:
         splay(Sentinal sentinal) noexcept : sentinal(sentinal) {}
         friend SplayTree;
@@ -69,13 +83,13 @@ private:
     public:
         Xiterator& operator++() noexcept
         {
-            if(_node == nullptr || _tree == nullptr || _parent == nullptr)
+            if(_node == nullptr || _tree == nullptr )//|| _parent == nullptr)
                 return *this;
             
             //splay tree to traverse
             if constexpr (direction == IteratorDirection::FORWARD)
             {
-                if(_node->children[RIGHT] == nullptr &&  _parent->key < _node->key)
+                if(_node->children[RIGHT] == nullptr && (_parent == nullptr || _parent->key < _node->key))
                     return const_cast<Xiterator&>(_tree->end());
                 
                 const KeyType& key = (_node->children[RIGHT] != nullptr ? _node->children[RIGHT]->key : _parent->key);
@@ -83,7 +97,7 @@ private:
             }
             else
             {
-                if(_node->children[LEFT] == nullptr &&  _parent->key > _node->key)
+                if(_node->children[LEFT] == nullptr &&  (_parent == nullptr || _parent->key > _node->key))
                     return const_cast<Xiterator&>(_tree->rend());
                 
                 const KeyType& key = (_node->children[LEFT] != nullptr ? _node->children[LEFT]->key : _parent->key);
@@ -94,13 +108,13 @@ private:
         }
         Xiterator& operator--() noexcept
         {
-            if(_node == nullptr || _tree == nullptr || _parent == nullptr)
+            if(_node == nullptr || _tree == nullptr )//|| _parent == nullptr)
                 return *this;
             
             //splay tree to traverse
             if constexpr (direction == IteratorDirection::FORWARD)
             {
-                if(_node->children[LEFT] == nullptr &&  _parent->key > _node->key)
+                if(_node->children[LEFT] == nullptr && (_parent == nullptr || _parent->key > _node->key))
                     return _tree->end();
                 
                 const KeyType& key = (_node->children[LEFT] != nullptr ? _node->children[LEFT]->key : _parent->key);
@@ -108,7 +122,7 @@ private:
             }
             else
             {
-                if(_node->children[RIGHT] == nullptr &&  _parent->key < _node->key)
+                if(_node->children[RIGHT] == nullptr && (_parent == nullptr || _parent->key < _node->key))
                     return _tree->rend();
                 
                 const KeyType& key = (_node->children[RIGHT] != nullptr ? _node->children[RIGHT]->key : _parent->key);
