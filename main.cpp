@@ -61,7 +61,7 @@ int main(int argc, const char * argv[]) {
     std::ifstream file;
     file.open("/Users/matthew/Documents/Code/CPP/FlashRadixTree/FlashRadixTree/sample_data.txt");
     std::string line;
-    unsigned int n = 300; //defines message size. Each character in the string is duplicated n times
+    unsigned int n = 1; //defines message size. Each character in the string is duplicated n times
     while (std::getline(file, line)) {
         //dupliacate each character in the string n times
         std::string newLine;
@@ -85,9 +85,10 @@ int main(int argc, const char * argv[]) {
     });
     
     //erase lower 90% of the keys
-    for (unsigned int i = 0; i < sorted.size() * 9 / 10; ++i) {
+    for (unsigned int i = 0; i < sorted.size() * (9.0 / 10.0); ++i) {
         counts.erase(sorted[i].first);
     }
+
     
     //create a set of top 10% of keys
     std::unordered_set<std::string> topKeys;
@@ -95,7 +96,7 @@ int main(int argc, const char * argv[]) {
         topKeys.insert(pair.first);
     }
     
-    std::unordered_set<string> uniqueSymbols(symbols.begin(), symbols.end());
+    std::unordered_set<std::string> uniqueSymbols(symbols.begin(), symbols.end());
     
     //print the size of one line in kilobytes
     if(symbols[0].size() > 1024)

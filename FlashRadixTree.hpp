@@ -48,6 +48,7 @@ concept StringLike = requires(T a, const T b, const char* s, std::size_t pos, st
     { a.end() } -> std::forward_iterator;
     { a.size() } -> std::convertible_to<std::size_t>;
     { a.substr(pos, len) } -> std::convertible_to<T>;
+    { a.length() } -> std::convertible_to<size_t>;
     T(s);
 };
 // Concept to check if a type supports streaming with '<<'
@@ -69,6 +70,10 @@ enum class MatchMode {
 
 template <StringLike Key, Streaming Value, MatchMode MatchMode = MatchMode::Exact>
 class FlashRadixTree {
+    
+    static_assert(StringLike<Key>, "Key type must satisfy StringLike concept");
+    static_assert(Streaming<Value>, "Value type must satisfy Streaming concept");
+    
 public:
 #ifdef USE_SPLAY_TREE
     static constexpr size_t max_alignment_value_FlashRadixTreeNode = max_alignment<Key, Value, bool, SplayTree<typename Key::value_type, void*>>();
@@ -101,13 +106,30 @@ public:
         {};
         
         FlashRadixTreeNode() = default;
+        ~FlashRadixTreeNode() = default;
         FlashRadixTreeNode(const FlashRadixTreeNode& ) = delete;
-        FlashRadixTreeNode(const FlashRadixTreeNode&& other) noexcept
+        FlashRadixTreeNode( FlashRadixTreeNode&& other) noexcept
         {
             children = std::move(other.children);
             isEndOfWord = other.isEndOfWord;
-            value = other.value;
-            prefix = other.prefix;
+            value = std::move(other.value);
+            prefix = std::move(other.prefix);
+            deleted = other.deleted;
+        }
+        
+        //operators
+        FlashRadixTreeNode& operator=(const FlashRadixTreeNode& ) = delete;
+        FlashRadixTreeNode& operator=(FlashRadixTreeNode&& other) noexcept
+        {
+            if(this != &other)
+            {
+                children = std::move(other.children);
+                isEndOfWord = other.isEndOfWord;
+                value = std::move(other.value);
+                prefix = std::move(other.prefix);
+                deleted = other.deleted;
+            }
+            return *this;
         }
         void setDeleted() noexcept
         {
@@ -136,7 +158,7 @@ public:
         return _root;
     }
     
-    FlashRadixTreeNode* insert(const Key& key, const Value&& value) noexcept
+    FlashRadixTreeNode* insert(const Key& key, Value&& value) noexcept
     {
         if (_root == nullptr) {
             // If the root doesn't exist, create it.
@@ -476,6 +498,8 @@ private:
 
 template <Streaming Key, Streaming Value, MatchMode FindMode = MatchMode::Exact>
 class FlashRadixTreeSerializer {
+    static_assert(StringLike<Key>, "Key type must satisfy StringLike concept");
+    static_assert(Streaming<Value>, "Value type must satisfy Streaming concept");
 public:
     static std::string serialize(const FlashRadixTree<Key, Value, FindMode>& tree) {
         return serializeNode(tree.getRoot());
