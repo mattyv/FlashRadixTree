@@ -1,4 +1,27 @@
 # FlashRadixTree
+Fast key value pair data structure with ordered traversal. For use with keys with common prefixes and asymetric key distribution.
+
+## Performance Overview
+### 1.7KB key Apple M2 (ARM 64), Somoma 14.3.1 (23D60) CPU Cycles Comparison
+```
+FlashRadixTree::find() (using partial key match)
+355.00 cycles/find() min,753.93 avg, 38,146.00 max 
+map::find()
+548.00 cycles/find() min, 714.92 avg, 15,022.00 max 
+unordered_map::find()
+711.00 cycles/find() min, 824.49 avg, 13,226.00 max
+```
+### 6byte key 
+```
+FlashRadixTree::find() (using partial key match)
+165.00 cycles/find() min, 257.14 avg, 1,1174.00 max
+map::find()
+221.00 cycles/find() min,   305.85 avg, 5,0012.00 max  
+unordered_map::find()
+156.00 cycles/find() min,   173.40 avg, 2,1561.00 max
+```
+
+## Overview
 It's hard to beat STL's' unordered_map for raw speed. Especially lookup speed.
 But if you need ordered traversal then you lose the abilty to hash and the penalty can be high. Typically the AVL tree implementation tries to balance, but its trying to optimised against the average case. In the case of calling find() over a key set with non uniform distribution your average AVL tree is not optimised for this. 
 
