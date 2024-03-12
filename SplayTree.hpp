@@ -19,7 +19,6 @@ constexpr size_t max_alignment() {
 }
 #endif
 
-//concept for Key type which must have < and > and == operators
 template <typename T>
 concept ComparableKeyType = requires(T a, T b)
 {
@@ -28,7 +27,7 @@ concept ComparableKeyType = requires(T a, T b)
     {a == b} -> std::convertible_to<bool>;
 };
 
-//key, value and compare function
+
 template <ComparableKeyType KeyType, typename ValueType>
 class SplayTree
 {
@@ -38,7 +37,9 @@ public:
     struct alignas(max_alignment_value) splay
     {
         splay() noexcept = default;
-        splay(KeyType key, ValueType value) noexcept: key(key), value(value), children{nullptr, nullptr}  {}
+        splay(KeyType key, ValueType value) noexcept
+        : key(key), value(value), children{nullptr, nullptr}, sentinal(Sentinal::NONE)
+        {}
         ~splay() = default;
         
         KeyType key;
@@ -46,7 +47,6 @@ public:
         splay* children[2] = {nullptr, nullptr};
         Sentinal sentinal = Sentinal::NONE;
         
-        //operator ==
         constexpr bool operator==(const splay& rhs) const noexcept
         {
             return key == rhs.key
@@ -55,7 +55,7 @@ public:
             && children[RIGHT] == rhs.children[RIGHT]
             && sentinal == rhs.sentinal;
         }
-        //operator !=
+        
         constexpr bool operator!=(const splay& rhs) const noexcept
         {
             return !(*this == rhs);
@@ -83,7 +83,7 @@ private:
     public:
         Xiterator& operator++() noexcept
         {
-            if(_node == nullptr || _tree == nullptr )
+            if(_node == nullptr || _tree == nullptr || *_node == _tree->_end || *_node == _tree->_rend)
                 return *this;
             
             //splay tree to traverse
@@ -104,14 +104,14 @@ private:
                 else
                 {
                     const KeyType& key = _node->children[LEFT]->key;
-                    _node = _tree->find(key, _tree->_root);
+                    _node = _tree->find(key);
                 }
             }
             return *this;
         }
         Xiterator& operator--() noexcept
         {
-            if(_node == nullptr || _tree == nullptr )
+            if(_node == nullptr || _tree == nullptr || *_node == _tree->_end || *_node == _tree->_rend)
                 return *this;
             
             //splay tree to traverse
@@ -122,7 +122,7 @@ private:
                 else
                 {
                     const KeyType& key = _node->children[LEFT]->key;
-                    _node = _tree->find(key, _tree->_root);
+                    _node = _tree->find(key);
                 }
             }
             else
@@ -132,7 +132,7 @@ private:
                 else
                 {
                     const KeyType& key = _node->children[RIGHT]->key;
-                    _node = _tree->find(key, _tree->_root);
+                    _node = _tree->find(key);
                 }
             }
             return *this;
@@ -140,14 +140,14 @@ private:
         //pre-increment
         Xiterator operator++(int) noexcept
         {
-            iterator tmp = *this;
+            Xiterator tmp = *this;
             ++(*this);
             return tmp;
         }
         //pre-decrement
         Xiterator operator--(int) noexcept
         {
-            iterator tmp = *this;
+            Xiterator tmp = *this;
             --(*this);
             return tmp;
         }

@@ -530,6 +530,32 @@ public:
     std::string serialize(const FlashRadixTree<Key, Value, FindMode>& tree) {
         return serializeNode(tree.getRoot());
     }
+    
+    std::string format(const std::string& serialized) {
+        //iterate though string and insert new lines and tabs to format according to grammar
+        std::string formatted;
+        int indent = 0;
+        for (auto c : serialized) {
+            if (c == '[') {
+                formatted += c;
+                formatted += '\n';
+                indent++;
+                for (int i = 0; i < indent; i++) {
+                    formatted += '\t';
+                }
+            } else if (c == ']') {
+                formatted += '\n';
+                indent--;
+                for (int i = 0; i < indent; i++) {
+                    formatted += '\t';
+                }
+                formatted += c;
+            } else {
+                formatted += c;
+            }
+        }
+        return formatted;
+    }
 
 private:
     std::string serializeNode(const typename FlashRadixTree<Key, Value, FindMode>::FlashRadixTreeNode* node) const  {
