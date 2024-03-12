@@ -39,10 +39,7 @@ public:
     {
         splay() noexcept = default;
         splay(KeyType key, ValueType value) noexcept: key(key), value(value), children{nullptr, nullptr}  {}
-        ~splay() 
-        {
-            
-        }
+        ~splay() = default;
         
         KeyType key;
         ValueType value;
@@ -64,14 +61,14 @@ public:
             return !(*this == rhs);
         }
     private:
-        splay(Sentinal sentinal) noexcept : key(), value(), sentinal(sentinal) {}
+        splay(Sentinal sentinal) noexcept : key(), value(), children{nullptr, nullptr} , sentinal(sentinal) {}
         friend SplayTree;
     };
     enum Child { LEFT = 0, RIGHT = 1};
     
-    static constexpr size_t max_alignment_value_iterator = max_alignment<void*>();
 
 private:
+    static constexpr size_t max_alignment_value_iterator = max_alignment<void*>();
     enum class IteratorDirection { FORWARD, REVERSE};
     template<IteratorDirection direction>
     class alignas( max_alignment_value_iterator) Xiterator

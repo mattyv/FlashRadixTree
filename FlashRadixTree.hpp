@@ -135,6 +135,22 @@ public:
         {
             deleted = true;
         }
+        
+        void clear()
+        {
+            for(const auto& it : children) {
+                auto child = it->value;
+                if(child != nullptr) {
+                    child->clear();
+                    delete child;
+                }
+            }
+            children.clear();
+            isEndOfWord = false;
+            value = Value();
+            prefix = Key();
+            deleted = false;
+        }
     };
     using ValueType = Value;
 private:
@@ -322,10 +338,11 @@ public:
         }
         return nullptr;
     }
-        
+    
+    //delete all items non recursively
     void clear() noexcept {
-        //_clearRecursively(_root);
-        _root->children.clear();
+        if(_root != nullptr)
+            _root->clear();
         _root = nullptr;
     }
         
