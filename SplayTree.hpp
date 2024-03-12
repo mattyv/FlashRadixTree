@@ -18,13 +18,22 @@ constexpr size_t max_alignment() {
     return std::max({alignof(Args)...});
 }
 #endif
- 
+
+//concept for Key type which must have < and > and == operators
+template <typename T>
+concept ComparableKeyType = requires(T a, T b)
+{
+    {a < b} -> std::convertible_to<bool>;
+    {a > b} -> std::convertible_to<bool>;
+    {a == b} -> std::convertible_to<bool>;
+};
+
 //key, value and compare function
-template <typename KeyType, typename ValueType>
+template <ComparableKeyType KeyType, typename ValueType>
 class SplayTree
 {
-    static constexpr size_t max_alignment_value = max_alignment<KeyType, ValueType, void*[2]>();
-    
+    enum class Sentinal { END, REND, NONE };
+    static constexpr size_t max_alignment_value = max_alignment<KeyType, ValueType, void*[2], Sentinal>();
 public:
     struct alignas(max_alignment_value) splay
     {
@@ -34,14 +43,119 @@ public:
         KeyType key;
         ValueType value;
         splay* children[2] = {nullptr, nullptr};
+        Sentinal sentinal = Sentinal::NONE;
+        
+    private:
+        splay(Sentinal sentinal) noexcept : sentinal(sentinal) {}
+        friend SplayTree;
     };
     enum Child { LEFT = 0, RIGHT = 1};
+    
+    static constexpr size_t max_alignment_value_iterator = max_alignment<void*>();
+
+private:
+    enum class IteratorDirection { FORWARD, REVERSE};
+    template<IteratorDirection direction>
+    class alignas( max_alignment_value_iterator) Xiterator
+    {
+    private:
+        splay* _node;
+        splay* _parent;
+        const SplayTree* _tree;
+        
+        Xiterator(splay* node, splay* parent, const SplayTree* tree) noexcept
+        : _node(node), _parent(parent), _tree(tree)
+        {}
+    public:
+        Xiterator& operator++() noexcept
+        {
+            if(_node == nullptr || _tree == nullptr || _parent == nullptr)
+                return *this;
+            
+            //splay tree to traverse
+            if constexpr (direction == IteratorDirection::FORWARD)
+            {
+                if(_node->children[RIGHT] == nullptr &&  _parent->key < _node->key)
+                    return const_cast<Xiterator&>(_tree->end());
+                
+                const KeyType& key = (_node->children[RIGHT] != nullptr ? _node->children[RIGHT]->key : _parent->key);
+                _node = _tree->_splay(key, _tree->_root);
+            }
+            else
+            {
+                if(_node->children[LEFT] == nullptr &&  _parent->key > _node->key)
+                    return const_cast<Xiterator&>(_tree->rend());
+                
+                const KeyType& key = (_node->children[LEFT] != nullptr ? _node->children[LEFT]->key : _parent->key);
+            }
+            
+            _parent = nullptr;
+            return *this;
+        }
+        Xiterator& operator--() noexcept
+        {
+            if(_node == nullptr || _tree == nullptr || _parent == nullptr)
+                return *this;
+            
+            //splay tree to traverse
+            if constexpr (direction == IteratorDirection::FORWARD)
+            {
+                if(_node->children[LEFT] == nullptr &&  _parent->key > _node->key)
+                    return _tree->end();
+                
+                const KeyType& key = (_node->children[LEFT] != nullptr ? _node->children[LEFT]->key : _parent->key);
+                _node = _tree->_splay(key, _tree->_root);
+            }
+            else
+            {
+                if(_node->children[RIGHT] == nullptr &&  _parent->key < _node->key)
+                    return _tree->rend();
+                
+                const KeyType& key = (_node->children[RIGHT] != nullptr ? _node->children[RIGHT]->key : _parent->key);
+            }
+            return *this;
+        }
+        //pre-increment
+        Xiterator operator++(int) noexcept
+        {
+            iterator tmp = *this;
+            ++(*this);
+            return tmp;
+        }
+        //pre-decrement
+        Xiterator operator--(int) noexcept
+        {
+            iterator tmp = *this;
+            --(*this);
+            return tmp;
+        }
+        constexpr splay* operator->() const noexcept
+        {
+            return _node;
+        }
+        constexpr splay* operator*() const noexcept
+        {
+            return _node;
+        }
+        constexpr bool operator==(const Xiterator& rhs) const noexcept
+        {
+            return _node == rhs._node;
+        }
+        constexpr bool operator!=(const Xiterator& rhs) const noexcept
+        {
+            return _node != rhs._node;
+        }
+        friend SplayTree;
+    };
+public:
+    using iterator = Xiterator<IteratorDirection::FORWARD>;
+    using reverse_iterator = Xiterator<IteratorDirection::REVERSE>;
+    
     
     SplayTree() noexcept = default;
     ~SplayTree() noexcept
     {
-        //iterate and delete
-        inOrderAndOp([this]( splay* node) noexcept -> bool {delete node;return true;});
+        clear();
     }
     
     SplayTree(const SplayTree& ) = delete;
@@ -67,6 +181,16 @@ public:
     {
         return _size;
     }
+    
+    void clear() noexcept
+    {
+        splay* root = _root;
+        while(root != nullptr)
+            _erase(root->key, root);
+        _root = nullptr;
+        _size = 0;
+    }
+    
     splay* insert(KeyType key, ValueType value) noexcept
     {
         _root = _insert(key, value, _root);
@@ -87,14 +211,38 @@ public:
         return _root;
     }
     
+    iterator begin() const noexcept
+    {
+        if(_root == nullptr)
+            return end();
+        _root = _getMinimumAndSplay(_root);
+        return iterator(_root, nullptr, this);
+    }
     
+    reverse_iterator rbegin() const noexcept
+    {
+        if(_root == nullptr)
+            return end();
+        _root = _getMaximumAndSplay(_root);
+        return iterator(_root, nullptr, this);
+    }
+    
+    constexpr const iterator& end() const noexcept
+    {
+        return _endIt;
+    }
+    
+    constexpr const reverse_iterator& rend() const noexcept
+    {
+        return _rendIt;
+    }
     
     void printInOrder() noexcept
     {
         _printInOrder(_root);
     }
     
-    splay* getMinimum() const  noexcept{
+    /*splay* getMinimum() const  noexcept{
         _root = _getMinimumAndSplay(_root);
         return _root;
     }
@@ -109,7 +257,7 @@ public:
     
     void rinOrderAndOp(std::function<bool( splay*)> op) const  noexcept{
         _rinOrderAndOp(_root, op);
-    }
+    }*/
     //move assignment
     SplayTree& operator=( SplayTree&& other) noexcept
     {
@@ -124,6 +272,12 @@ public:
     }
 private:
     mutable splay* _root = nullptr;
+    //sentinal node for end()
+    const splay _end = splay(Sentinal::END);
+    const iterator _endIt = iterator(const_cast<splay*>(&_end), nullptr, this);
+    //sentinal node for rend()
+    const splay _rend = splay(Sentinal::REND);
+    const reverse_iterator _rendIt = reverse_iterator(const_cast<splay*>(&_rend), nullptr, this);
     size_t _size = 0;
     
     splay* _insert(KeyType key, ValueType value, splay* root) noexcept
@@ -282,7 +436,7 @@ private:
         }
     }
     
-    void _inOrderAndOp(splay* root, std::function<bool( splay*)> op) const noexcept{
+   /* void _inOrderAndOp(splay* root, std::function<bool( splay*)> op) const noexcept{
         if (root)
         {
             _inOrderAndOp(root->children[LEFT], op);
@@ -300,7 +454,7 @@ private:
                 return;
             _rinOrderAndOp(root->children[LEFT], op);
         }
-    }
+    }*/
     
     splay* _getMinimumAndSplay(splay* root) const  noexcept{
         //perfom zig-zig or zig to move the left most node to the root

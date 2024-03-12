@@ -344,10 +344,14 @@ private:
         std::cout << "K: " << key << " P: " << node->prefix << " (" << node->value << ")" << " is EOW " << (node->isEndOfWord ? "Yes" : "No") << std::endl;
         
 #if defined( USE_SPLAY_TREE)
-        node->children.inOrderAndOp([&](const SplayTree<typename Key::value_type, FlashRadixTreeNode*>::splay* node)->bool {
+        /*->children.inOrderAndOp([&](const SplayTree<typename Key::value_type, FlashRadixTreeNode*>::splay* node)->bool {
             _printRecursively(node->key, node->value, level + 1);
             return true;
-        });
+        });*/
+        for(const auto& it : node->children)
+        {
+            _printRecursively(it->key, it->value, level + 1);
+        }
 #elif defined( USE_CHAR_MAP)
         node->children.inOrderAndOp([&](const auto& node)->bool {
             _printRecursively(node->key, node->value, level + 1);
@@ -379,10 +383,14 @@ private:
             return;
         }
 #if defined( USE_SPLAY_TREE)
-        node->children.inOrderAndOp([&](const SplayTree<typename Key::value_type, FlashRadixTreeNode*>::splay* node)->bool {
+        /*node->children.inOrderAndOp([&](const SplayTree<typename Key::value_type, FlashRadixTreeNode*>::splay* node)->bool {
             _clearRecursively(node->value);
             return true;
-        });
+        });*/
+        for(const auto& it : node->children)
+        {
+            _clearRecursively(it->value);
+        }
 #elif defined( USE_CHAR_MAP)
         node->children.inOrderAndOp([&](const auto node)->bool {
             _clearRecursively(node.value);
@@ -501,12 +509,12 @@ class FlashRadixTreeSerializer {
     static_assert(StringLike<Key>, "Key type must satisfy StringLike concept");
     static_assert(Streaming<Value>, "Value type must satisfy Streaming concept");
 public:
-    static std::string serialize(const FlashRadixTree<Key, Value, FindMode>& tree) {
+    std::string serialize(const FlashRadixTree<Key, Value, FindMode>& tree) {
         return serializeNode(tree.getRoot());
     }
 
 private:
-    static std::string serializeNode(const typename FlashRadixTree<Key, Value, FindMode>::FlashRadixTreeNode* node) {
+    std::string serializeNode(const typename FlashRadixTree<Key, Value, FindMode>::FlashRadixTreeNode* node) const  {
         if (node == nullptr) {
             return "";
         }
@@ -520,14 +528,22 @@ private:
         {
             bool first = true;
 #ifdef USE_SPLAY_TREE
-            node->children.inOrderAndOp([&ss, &first](const SplayTree<typename Key::value_type, typename FlashRadixTree<Key, Value, FindMode>::FlashRadixTreeNode*>::splay* childPair) -> bool {
+            /*node->children.inOrderAndOp([&ss, &first](const SplayTree<typename Key::value_type, typename FlashRadixTree<Key, Value, FindMode>::FlashRadixTreeNode*>::splay* childPair) -> bool {
                 if (!first) {
                     ss << ",";
                 }
                 ss << serializeNode(childPair->value);
                 first = false;
                 return true;
-            });
+            });*/
+            for(const auto& it : node->children)
+            {
+                if (!first) {
+                    ss << ",";
+                }
+                ss << serializeNode(it->value);
+                first = false;
+            }
 #elif defined( USE_CHAR_MAP)
             node->children.inOrderAndOp([&ss, &first](const auto& childPair) -> bool {
                 if (!first) {
