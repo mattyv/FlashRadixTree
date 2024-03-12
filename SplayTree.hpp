@@ -39,6 +39,10 @@ public:
     {
         splay() noexcept = default;
         splay(KeyType key, ValueType value) noexcept: key(key), value(value), children{nullptr, nullptr}  {}
+        ~splay() 
+        {
+            
+        }
         
         KeyType key;
         ValueType value;
@@ -60,7 +64,7 @@ public:
             return !(*this == rhs);
         }
     private:
-        splay(Sentinal sentinal) noexcept : sentinal(sentinal) {}
+        splay(Sentinal sentinal) noexcept : key(), value(), sentinal(sentinal) {}
         friend SplayTree;
     };
     enum Child { LEFT = 0, RIGHT = 1};
@@ -74,58 +78,65 @@ private:
     {
     private:
         splay* _node;
-        splay* _parent;
         const SplayTree* _tree;
         
-        Xiterator(splay* node, splay* parent, const SplayTree* tree) noexcept
-        : _node(node), _parent(parent), _tree(tree)
+        Xiterator(splay* node, const SplayTree* tree) noexcept
+        : _node(node), _tree(tree)
         {}
     public:
         Xiterator& operator++() noexcept
         {
-            if(_node == nullptr || _tree == nullptr )//|| _parent == nullptr)
+            if(_node == nullptr || _tree == nullptr )
                 return *this;
             
             //splay tree to traverse
             if constexpr (direction == IteratorDirection::FORWARD)
             {
-                if(_node->children[RIGHT] == nullptr && (_parent == nullptr || _parent->key < _node->key))
-                    return const_cast<Xiterator&>(_tree->end());
-                
-                const KeyType& key = (_node->children[RIGHT] != nullptr ? _node->children[RIGHT]->key : _parent->key);
-                _node = _tree->_splay(key, _tree->_root);
+                if(_node->children[RIGHT] == nullptr )
+                    _node = const_cast<splay*>(&_tree->_end);
+                else
+                {
+                    const KeyType& key = _node->children[RIGHT]->key;
+                    _node = _tree->find(key);
+                }
             }
             else
             {
-                if(_node->children[LEFT] == nullptr &&  (_parent == nullptr || _parent->key > _node->key))
-                    return const_cast<Xiterator&>(_tree->rend());
-                
-                const KeyType& key = (_node->children[LEFT] != nullptr ? _node->children[LEFT]->key : _parent->key);
+                if(_node->children[LEFT] == nullptr )
+                    _node = const_cast<splay*>(&_tree->_rend);
+                else
+                {
+                    const KeyType& key = _node->children[LEFT]->key;
+                    _node = _tree->find(key, _tree->_root);
+                }
             }
-            
-            _parent = nullptr;
             return *this;
         }
         Xiterator& operator--() noexcept
         {
-            if(_node == nullptr || _tree == nullptr )//|| _parent == nullptr)
+            if(_node == nullptr || _tree == nullptr )
                 return *this;
             
             //splay tree to traverse
             if constexpr (direction == IteratorDirection::FORWARD)
             {
-                if(_node->children[LEFT] == nullptr && (_parent == nullptr || _parent->key > _node->key))
-                    return _tree->end();
-                
-                const KeyType& key = (_node->children[LEFT] != nullptr ? _node->children[LEFT]->key : _parent->key);
-                _node = _tree->_splay(key, _tree->_root);
+                if(_node->children[LEFT] == nullptr )
+                    _node = const_cast<splay*>(&_tree->_rend);
+                else
+                {
+                    const KeyType& key = _node->children[LEFT]->key;
+                    _node = _tree->find(key, _tree->_root);
+                }
             }
             else
             {
-                if(_node->children[RIGHT] == nullptr && (_parent == nullptr || _parent->key < _node->key))
-                    return _tree->rend();
-                
-                const KeyType& key = (_node->children[RIGHT] != nullptr ? _node->children[RIGHT]->key : _parent->key);
+                if(_node->children[RIGHT] == nullptr )
+                    _node = const_cast<splay*>(&_tree->_end);
+                else
+                {
+                    const KeyType& key = _node->children[RIGHT]->key;
+                    _node = _tree->find(key, _tree->_root);
+                }
             }
             return *this;
         }
@@ -153,11 +164,15 @@ private:
         }
         constexpr bool operator==(const Xiterator& rhs) const noexcept
         {
-            return _node == rhs._node;
+            if(_node == nullptr && rhs._node == nullptr)
+                return true;
+            return *_node == *rhs._node;
         }
         constexpr bool operator!=(const Xiterator& rhs) const noexcept
         {
-            return _node != rhs._node;
+            if(_node == nullptr && rhs._node == nullptr)
+                return false;
+            return *_node != *rhs._node;
         }
         friend SplayTree;
     };
@@ -198,9 +213,8 @@ public:
     
     void clear() noexcept
     {
-        splay* root = _root;
-        while(root != nullptr)
-            _erase(root->key, root);
+        while(_root != nullptr)
+            erase(_root->key);
         _root = nullptr;
         _size = 0;
     }
@@ -230,7 +244,7 @@ public:
         if(_root == nullptr)
             return end();
         _root = _getMinimumAndSplay(_root);
-        return iterator(_root, nullptr, this);
+        return iterator(_root, this);
     }
     
     reverse_iterator rbegin() const noexcept
@@ -238,7 +252,7 @@ public:
         if(_root == nullptr)
             return end();
         _root = _getMaximumAndSplay(_root);
-        return iterator(_root, nullptr, this);
+        return iterator(_root, this);
     }
     
     constexpr const iterator& end() const noexcept
@@ -288,10 +302,10 @@ private:
     mutable splay* _root = nullptr;
     //sentinal node for end()
     const splay _end = splay(Sentinal::END);
-    const iterator _endIt = iterator(const_cast<splay*>(&_end), nullptr, this);
+    const iterator _endIt = iterator(const_cast<splay*>(&_end), this);
     //sentinal node for rend()
     const splay _rend = splay(Sentinal::REND);
-    const reverse_iterator _rendIt = reverse_iterator(const_cast<splay*>(&_rend), nullptr, this);
+    const reverse_iterator _rendIt = reverse_iterator(const_cast<splay*>(&_rend), this);
     size_t _size = 0;
     
     splay* _insert(KeyType key, ValueType value, splay* root) noexcept

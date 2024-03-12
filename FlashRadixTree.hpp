@@ -324,7 +324,8 @@ public:
     }
         
     void clear() noexcept {
-        _clearRecursively(_root);
+        //_clearRecursively(_root);
+        _root->children.clear();
         _root = nullptr;
     }
         
