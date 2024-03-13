@@ -16,9 +16,9 @@ unordered_map::find()
 FlashRadixTree::find() (using partial key match)
 165.00 cycles/find() min, 257.14 avg, 11,174.00 max
 map::find()
-221.00 cycles/find() min,   305.85 avg, 5,0012.00 max  
+221.00 cycles/find() min,   305.85 avg, 50,012.00 max  
 unordered_map::find()
-156.00 cycles/find() min,   173.40 avg, 2,1561.00 max
+156.00 cycles/find() min,   173.40 avg, 21,561.00 max
 ```
 
 ## Overview
