@@ -50,10 +50,8 @@ public:
         constexpr bool operator==(const splay& rhs) const noexcept
         {
             return key == rhs.key
-            && value == rhs.value
-            && children[LEFT] == rhs.children[LEFT]
-            && children[RIGHT] == rhs.children[RIGHT]
             && sentinal == rhs.sentinal;
+            //not checking children and value
         }
         
         constexpr bool operator!=(const splay& rhs) const noexcept
@@ -74,13 +72,14 @@ private:
     class alignas( max_alignment_value_iterator) Xiterator
     {
     private:
-        splay* _node;
-        const SplayTree* _tree;
+        splay* _node = nullptr;
+        const SplayTree* _tree = nullptr;
         
         Xiterator(splay* node, const SplayTree* tree) noexcept
         : _node(node), _tree(tree)
         {}
     public:
+        Xiterator() noexcept = default;  //todo: shold probaly initalize to end() or rend()
         Xiterator& operator++() noexcept
         {
             if(_node == nullptr || _tree == nullptr || *_node == _tree->_end || *_node == _tree->_rend)
@@ -92,7 +91,7 @@ private:
                 if(_node->children[RIGHT] == nullptr )
                     _node = const_cast<splay*>(&_tree->_end);
                 //make sure node is at the root
-                else if(_tree->find(_node->key) != nullptr)
+                else if(_tree->find(_node->key) != _tree->end())
                     _node = _tree->_rotateToNextLarger();
             }
             else
@@ -100,7 +99,7 @@ private:
                 if(_node->children[LEFT] == nullptr )
                     _node = const_cast<splay*>(&_tree->_rend);
                 //make sure node is at the root
-                else if(_tree->find(_node->key) != nullptr)
+                else if(_tree->find(_node->key) != _tree->end())
                     _node = _tree->_rotateToNextSmaller();
             }
             return *this;
@@ -116,7 +115,7 @@ private:
                 if(_node->children[LEFT] == nullptr )
                     _node = const_cast<splay*>(&_tree->_rend);
                 //make sure node is at the root
-                else if(_tree->find(_node->key) != nullptr)
+                else if(_tree->find(_node->key) != _tree->end())
                     _node = _tree->_rotateToNextSmaller();
             }
             else
@@ -124,7 +123,7 @@ private:
                 if(_node->children[RIGHT] == nullptr )
                     _node = const_cast<splay*>(&_tree->_end);
                 //make sure node is at the root
-                else if(_tree->find(_node->key) != nullptr)
+                else if(_tree->find(_node->key) != _tree->end())
                     _node = _tree->_rotateToNextLarger();
             }
             return *this;
@@ -208,24 +207,24 @@ public:
         _size = 0;
     }
     
-    splay* insert(KeyType key, ValueType value) noexcept
+    iterator insert(KeyType key, ValueType value) noexcept
     {
         _root = _insert(key, value, _root);
-        return _root;;
+        return iterator(_root, this);
     }
     
-    splay* find(KeyType key) const noexcept
+    iterator find(KeyType key) const noexcept
     {
         _root = _find(key, _root);
         if(_root && _root->key != key)
-            return nullptr;
-        return _root;
+            return _endIt;
+        return iterator(_root, this);
     }
     
-    splay* erase(KeyType key) noexcept
+    iterator erase(KeyType key) noexcept
     {
         _root = _erase(key, _root);
-        return _root;
+        return iterator(_root, this);;
     }
     
     iterator begin() const noexcept
@@ -259,22 +258,6 @@ public:
         _printInOrder(_root);
     }
     
-    /*splay* getMinimum() const  noexcept{
-        _root = _getMinimumAndSplay(_root);
-        return _root;
-    }
-    
-    splay* getMaximum() const  noexcept{
-        _root = _getMaximumAndSplay(_root);
-        return _root;
-    }
-    void inOrderAndOp(std::function<bool( splay*)> op)const  noexcept{
-        _inOrderAndOp(_root, op);
-    }
-    
-    void rinOrderAndOp(std::function<bool( splay*)> op) const  noexcept{
-        _rinOrderAndOp(_root, op);
-    }*/
     //move assignment
     SplayTree& operator=( SplayTree&& other) noexcept
     {
@@ -452,26 +435,7 @@ private:
             _printInOrder(root->children[RIGHT]);
         }
     }
-    
-   /* void _inOrderAndOp(splay* root, std::function<bool( splay*)> op) const noexcept{
-        if (root)
-        {
-            _inOrderAndOp(root->children[LEFT], op);
-            if(!op(root))
-                return;
-            _inOrderAndOp(root->children[RIGHT], op);
-        }
-    }
-    
-    void _rinOrderAndOp(splay* root, std::function<bool( splay*)> op) const  noexcept{
-        if (root)
-        {
-            _rinOrderAndOp(root->children[RIGHT], op);
-            if(!op(root))
-                return;
-            _rinOrderAndOp(root->children[LEFT], op);
-        }
-    }*/
+
     
     splay* _getMinimumAndSplay(splay* root) const  noexcept{
         //perfom zig-zig or zig to move the left most node to the root

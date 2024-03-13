@@ -37,18 +37,19 @@ struct Data
 };
 
 void printResults(std::string op,performance_counters min, performance_counters avg, performance_counters max) {
-  printf(" %8.2f instructions/%s min, %8.2f avg, %8.2f max ", min.instructions, op.c_str(),
-         avg.instructions, max.instructions);
-  printf("\n");
-  printf(" %8.2f cycles/%s min, %8.2f avg, %8.2f max ", min.cycles, op.c_str(), avg.cycles, max.cycles);
-  printf("\n");
-  printf(" %8.2f instructions/cycle ",
-         min.instructions / min.cycles);
-  printf("\n");
-  printf(" %8.2f branches/%s min, %8.2f avg, %8.2f max ", min.branches, op.c_str(), avg.branches, max.branches);
-  printf("\n");
-  printf(" %8.4f mis. branches/%s ", avg.missed_branches, op.c_str());
-  printf("\n");
+
+    printf(" %8.2f instructions/%s min, %8.2f avg, %8.2f max ", min.instructions, op.c_str(),
+           avg.instructions, max.instructions);
+    printf("\n");
+    printf(" %8.2f cycles/%s min, %8.2f avg, %8.2f max ", min.cycles, op.c_str(), avg.cycles, max.cycles);
+    printf("\n");
+    printf(" %8.2f instructions/cycle ",
+           min.instructions / min.cycles);
+    printf("\n");
+    printf(" %8.2f branches/%s min, %8.2f avg, %8.2f max ", min.branches, op.c_str(), avg.branches, max.branches);
+    printf("\n");
+    printf(" %8.4f mis. branches/%s ", avg.missed_branches, op.c_str());
+    printf("\n");
 }
 
 int main(int argc, const char * argv[]) {
@@ -61,7 +62,7 @@ int main(int argc, const char * argv[]) {
     std::ifstream file;
     file.open("/Users/matthew/Documents/Code/CPP/FlashRadixTree/FlashRadixTree/sample_data.txt");
     std::string line;
-    unsigned int n = 300; //defines message size. Each character in the string is duplicated n times
+    unsigned int n = 1; //defines message size. Each character in the string is duplicated n times
     while (std::getline(file, line)) {
         //dupliacate each character in the string n times
         std::string newLine;
@@ -366,7 +367,7 @@ int main(int argc, const char * argv[]) {
             performance_counters start = get_counters();
             auto found = splay.find(symbol);
             performance_counters end = get_counters();
-            if (found == nullptr) {
+            if (found == splay.end()) {
                 return 1;
             }
             performance_counters diff = end - start;
