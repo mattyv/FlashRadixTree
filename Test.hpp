@@ -587,19 +587,10 @@ bool RunTests()
     rTree.clear();
     value = 0;
     itInsert = rTree.insert("AAA", value++);
-    rTree.print();
     itInsert = rTree.insert("AAB", value++);
-    rTree.print();
     itInsert = rTree.insert("ABA", value++);
-    got = serializer.format(serializer.serialize(rTree));
-    std::cout << got << std::endl;
-    rTree.print();
     itInsert = rTree.insert("ACA", value++);
-    got = serializer.format(serializer.serialize(rTree));
-    std::cout << got << std::endl;
-    rTree.print();
     itInsert = rTree.insert("ACB", value++);
-    rTree.print();
 
     got = serializer.serialize(rTree);
     expected = "+[,0,*,<"

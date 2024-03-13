@@ -91,21 +91,17 @@ private:
             {
                 if(_node->children[RIGHT] == nullptr )
                     _node = const_cast<splay*>(&_tree->_end);
-                else
-                {
-                    const KeyType& key = _node->children[RIGHT]->key;
-                    _node = _tree->find(key);
-                }
+                //make sure node is at the root
+                else if(_tree->find(_node->key) != nullptr)
+                    _node = _tree->_rotateToNextLarger();
             }
             else
             {
                 if(_node->children[LEFT] == nullptr )
                     _node = const_cast<splay*>(&_tree->_rend);
-                else
-                {
-                    const KeyType& key = _node->children[LEFT]->key;
-                    _node = _tree->find(key);
-                }
+                //make sure node is at the root
+                else if(_tree->find(_node->key) != nullptr)
+                    _node = _tree->_rotateToNextSmaller();
             }
             return *this;
         }
@@ -119,21 +115,17 @@ private:
             {
                 if(_node->children[LEFT] == nullptr )
                     _node = const_cast<splay*>(&_tree->_rend);
-                else
-                {
-                    const KeyType& key = _node->children[LEFT]->key;
-                    _node = _tree->find(key);
-                }
+                //make sure node is at the root
+                else if(_tree->find(_node->key) != nullptr)
+                    _node = _tree->_rotateToNextSmaller();
             }
             else
             {
                 if(_node->children[RIGHT] == nullptr )
                     _node = const_cast<splay*>(&_tree->_end);
-                else
-                {
-                    const KeyType& key = _node->children[RIGHT]->key;
-                    _node = _tree->find(key);
-                }
+                //make sure node is at the root
+                else if(_tree->find(_node->key) != nullptr)
+                    _node = _tree->_rotateToNextLarger();
             }
             return *this;
         }
@@ -501,6 +493,7 @@ private:
         return root;
     }
     
+    
     splay* _getMaximumAndSplay(splay* root) const  noexcept{
         //perfom zag-zag or zag to move the right most node to the root
         if(root == nullptr) return nullptr;
@@ -508,17 +501,62 @@ private:
         splay* x = root;
         while (x->children[RIGHT] != nullptr) {
             if (x->children[RIGHT]->children[RIGHT] != nullptr) {
-                // "Zag-zag" step: make two left rotations
+                // "Zig-zig" step: make two left rotations
                 x->children[RIGHT] = _LL_Rotate(x->children[RIGHT]);
                 if (x->children[RIGHT] != nullptr)
                     x = _LL_Rotate(x);
             } else {
-                // "Zag" step: a single rotation is enough when there is no right child for the right child of x
+                // "Zig" step: a single rotation is enough when there is no right child for the right child of x
                 x = _LL_Rotate(x);
             }
         }
         root = x;
         return root;
+    }
+    
+    // Rotate the tree so that the next larger element becomes the root
+    splay* _rotateToNextLarger() const noexcept {
+        // If there's no right subtree, there's no next larger element
+        if (!_root || !_root->children[RIGHT])
+            return _root;
+        
+        // The right child with no left child is the next larger element
+        if (!_root->children[RIGHT]->children[LEFT]) {
+            _root = _LL_Rotate(_root); // Perform the left rotation
+        } else { // The next larger element is in the left subtree of the right child
+            _root->children[RIGHT] = _RR_Rotate(_root->children[RIGHT]);
+            _root = _LL_Rotate(_root);
+        }
+        return _root;
+    }
+    
+    // Rotate the tree so that the next smaller element becomes the root
+    splay* _rotateToNextSmaller() const noexcept {
+        if (!_root || !_root->children[LEFT]) return _root; // No left subtree, nothing to do
+        
+        splay* parent = _root;
+        splay* child = _root->children[LEFT];
+        
+        // Find the maximum element in the left subtree, which is the next smaller element
+        while (child->children[RIGHT]) {
+            parent = child;
+            child = child->children[RIGHT];
+        }
+        
+        // Rotate the found node
+        if (parent != _root) {
+            // Perform the left rotation using _RR_Rotate() function
+            parent = _RR_Rotate(parent);
+            // Adjust the left child of the new parent node
+            parent->children[LEFT] = _root->children[LEFT];
+        }
+        
+        // Set the right subtree of the current root to be the right child of the successor
+        parent->children[RIGHT] = _root->children[RIGHT];
+        
+        // The successor node becomes the new root
+        _root = parent;
+        return _root;
     }
 };
 #endif /* SplayTree_h */

@@ -98,11 +98,11 @@ public:
         bool deleted = false;
         
         FlashRadixTreeNode(const Key& prefix, const Value&& value) noexcept
-        : prefix(prefix), value(std::move(value)), isEndOfWord(false)
+        : isEndOfWord(false), value(std::move(value)), prefix(prefix), deleted(false)
         {};
         
         FlashRadixTreeNode(const Key& prefix, const Value&& value, bool isEndOfWord) noexcept
-        : prefix(prefix), value(std::move(value)), isEndOfWord(isEndOfWord)
+        : isEndOfWord(isEndOfWord), value(std::move(value)), prefix(prefix), deleted(false)
         {};
         
         FlashRadixTreeNode() = default;
