@@ -62,7 +62,7 @@ int main(int argc, const char * argv[]) {
     std::ifstream file;
     file.open("/Users/matthew/Documents/Code/CPP/FlashRadixTree/FlashRadixTree/sample_data.txt");
     std::string line;
-    unsigned int n = 1; //defines message size. Each character in the string is duplicated n times
+    unsigned int n = 300; //defines message size. Each character in the string is duplicated n times
     while (std::getline(file, line)) {
         //dupliacate each character in the string n times
         std::string newLine;
@@ -298,7 +298,7 @@ int main(int argc, const char * argv[]) {
             performance_counters start = get_counters();
             const auto found = tree.find(symbol);
             performance_counters end = get_counters();
-            if (found == nullptr) {
+            if (found == tree.end()) {
                 return 1;
             }
             performance_counters diff = end - start;
@@ -332,7 +332,7 @@ int main(int argc, const char * argv[]) {
             performance_counters start = get_counters();
             auto found = treeExactMatch.find(symbol);
             performance_counters end = get_counters();
-            if (found == nullptr) {
+            if (found == treeExactMatch.end()) {
                 return 1;
             }
             performance_counters diff = end - start;

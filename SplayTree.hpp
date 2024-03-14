@@ -31,7 +31,7 @@ concept ComparableKeyType = requires(T a, T b)
 template <ComparableKeyType KeyType, typename ValueType>
 class SplayTree
 {
-    enum class Sentinal { END, REND, NONE };
+    enum class Sentinal : int { END = 1, REND, NONE };
     static constexpr size_t max_alignment_value = max_alignment<KeyType, ValueType, void*[2], Sentinal>();
 public:
     struct alignas(max_alignment_value) splay
@@ -210,13 +210,15 @@ public:
     iterator insert(KeyType key, ValueType value) noexcept
     {
         _root = _insert(key, value, _root);
+        if(_root == nullptr)
+            return end();
         return iterator(_root, this);
     }
     
     iterator find(KeyType key) const noexcept
     {
         _root = _find(key, _root);
-        if(_root && _root->key != key)
+        if((_root == nullptr )|| (_root && _root->key != key))
             return _endIt;
         return iterator(_root, this);
     }
@@ -224,6 +226,8 @@ public:
     iterator erase(KeyType key) noexcept
     {
         _root = _erase(key, _root);
+        if(_root == nullptr)
+            return end();
         return iterator(_root, this);;
     }
     
