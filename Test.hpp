@@ -547,6 +547,39 @@ bool RunTests()
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
+    
+    ss.str("");
+    for(auto& it : rTree)
+    {
+        ss << it.prefix << "," << it.value << "," << it.getFullKey() << endl;
+    }
+    got = ss.str();
+    expected = "A,0,AA\nB,1,AB\nBA,2,BA\n";
+    
+    if(got != expected)
+    {
+        std::cout << "Action failed insert @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        std::cout << "Got: " << got << "\nExpected: " << expected << std::endl;
+        rTree.print();
+        return false;
+    }
+    
+    ss.str("");
+    for(auto it = rTree.rbegin(); it != rTree.rend(); ++it)
+    {
+        ss << it->prefix << "," << it->value << "," << it->getFullKey() << endl;
+    }
+    got = ss.str();
+    expected = "BA,2,BA\nB,1,AB\nA,0,AA\n";
+    
+    if(got != expected)
+    {
+        std::cout << "Action failed insert @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        std::cout << "Got: " << got << "\nExpected: " << expected << std::endl;
+        rTree.print();
+        return false;
+    }
+    
     okErase = rTree.erase("AA");
     if(!okErase)
     {

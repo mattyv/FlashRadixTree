@@ -31,26 +31,25 @@ concept ComparableKeyType = requires(T a, T b)
 template <ComparableKeyType KeyType, typename ValueType>
 class SplayTree
 {
-    enum class Sentinal : int { END = 1, REND, NONE };
-    static constexpr size_t max_alignment_value = max_alignment<KeyType, ValueType, void*[2], Sentinal>();
+    //enum class Sentinal : int { END = 1, REND, NONE };
+    static constexpr size_t max_alignment_value = max_alignment<KeyType, ValueType, void*[2]>();
 public:
     struct alignas(max_alignment_value) splay
     {
         splay() noexcept = default;
         splay(KeyType key, ValueType value) noexcept
-        : key(key), value(value), children{nullptr, nullptr}, sentinal(Sentinal::NONE)
+        : key(key), value(value), children{nullptr, nullptr}
         {}
         ~splay() = default;
         
         KeyType key;
         ValueType value;
         splay* children[2] = {nullptr, nullptr};
-        Sentinal sentinal = Sentinal::NONE;
+        //Sentinal sentinal = Sentinal::NONE;
         
         constexpr bool operator==(const splay& rhs) const noexcept
         {
-            return key == rhs.key
-            && sentinal == rhs.sentinal;
+            return key == rhs.key;
             //not checking children and value
         }
         
@@ -58,8 +57,7 @@ public:
         {
             return !(*this == rhs);
         }
-    private:
-        splay(Sentinal sentinal) noexcept : key(), value(), children{nullptr, nullptr} , sentinal(sentinal) {}
+        
         friend SplayTree;
     };
     enum Child { LEFT = 0, RIGHT = 1};

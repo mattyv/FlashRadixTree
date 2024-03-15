@@ -88,18 +88,19 @@ private:
         FlashRadixTreeNode* _node;
         const FlashRadixTree* _tree;
         IteratorDirection _direction = Direction;
+        bool _end = true;
         XFlashRadixTreeIterator(FlashRadixTreeNode* node, const FlashRadixTree* tree) noexcept
-        : _node(node), _tree(tree), _direction(Direction)
+        : _node(node), _tree(tree), _direction(Direction), _end(node == nullptr || tree == nullptr)
         {}
     public:
         //constructor to allow a reverse type from a forward
         XFlashRadixTreeIterator(const XFlashRadixTreeIterator<IteratorDirection::REVERSE>& other) noexcept
-        : _node(other._node), _tree(other._tree), _direction(Direction)
+        : _node(other._node), _tree(other._tree), _direction(Direction), _end(other._end)
         {
         }
         
         XFlashRadixTreeIterator(const XFlashRadixTreeIterator<IteratorDirection::FORWARD>& other) noexcept
-        : _node(other._node), _tree(other._tree), _direction(Direction)
+        : _node(other._node), _tree(other._tree), _direction(Direction), _end(other._end)
         {
         }
         
@@ -109,6 +110,7 @@ private:
             _node = other._node;
             _tree = other._tree;
             _direction = Direction;
+            _end = other._end;
             return *this;
         }
         
@@ -118,6 +120,7 @@ private:
             _node = other._node;
             _tree = other._tree;
             _direction = Direction;
+            _end = other._end;
             return *this;
         }
         
@@ -128,6 +131,7 @@ private:
             } else {
                 _node = _tree->_prev(_node);
             }
+            _end = _node == nullptr;
             return *this;
         }
         XFlashRadixTreeIterator& operator--() noexcept
@@ -137,6 +141,7 @@ private:
             } else {
                 _node = _tree->_next(_node);
             }
+            _end = _node == nullptr;
             return *this;
         }
         
@@ -156,9 +161,12 @@ private:
         
         bool operator==(const XFlashRadixTreeIterator& other) const noexcept
         {
-            if(_node == nullptr && other._node == nullptr) {
+            if(_end && other._end)
                 return true;
-            }
+            if(_node == nullptr && other._node == nullptr)
+                return true;
+            if(_node == nullptr || other._node == nullptr)
+                return false;
             return *_node == *other._node;
         }
         bool operator!=(const XFlashRadixTreeIterator& other) const noexcept
@@ -307,10 +315,8 @@ public:
 private:
     
     FlashRadixTreeNode* _root;
-    FlashRadixTreeNode _end = FlashRadixTreeNode(Sentinal::END);
-    iterator _endIt = iterator(const_cast<FlashRadixTreeNode*>(&_end), this);
-    FlashRadixTreeNode _rend = FlashRadixTreeNode(Sentinal::REND);
-    reverse_iterator _rendIt = reverse_iterator(const_cast<FlashRadixTreeNode*>(&_rend), this);
+    iterator _endIt = iterator(nullptr, nullptr);
+    reverse_iterator _rendIt = reverse_iterator(nullptr, nullptr);
 public:
     
     FlashRadixTree() : _root( new FlashRadixTreeNode()) {}
@@ -526,9 +532,6 @@ public:
         _root = nullptr;
     }
         
-    /*void inOrderAndOp(const std::function<bool(const Key&, const Value&)>& op) const noexcept {
-        inOrderAndOpRecursively(_root, Key(), op);
-    }*/
 private:
     void _printRecursively(const typename Key::value_type& key, FlashRadixTreeNode* node, int level) const noexcept{
         if (node == nullptr) {
@@ -698,8 +701,6 @@ private:
         auto it = children->rbegin();
         while( children != nullptr)
         {
-            //if(it->value->isEndOfWord)
-            //    break;
             const auto check = children->rbegin();
             if(check == children->rend())
                 break;
@@ -714,7 +715,7 @@ private:
     FlashRadixTreeNode* _next(FlashRadixTreeNode* node) const noexcept
     {
         if(node == nullptr)
-            return const_cast<FlashRadixTreeNode*>(&_end);
+            return nullptr;
         
         //next will be first node on lower level if there is one, and its ann end of word and not deleted
         //otherwise it will be the next node on the same level that is an end of word and not deleted
@@ -755,30 +756,20 @@ private:
             }
         }
         if(currentNode->parent == nullptr || it == currentNode->parent->children.end())
-            return const_cast<FlashRadixTreeNode*>(&_end);
+            return nullptr;
         return it->value;
     }
     
     FlashRadixTreeNode* _prev(FlashRadixTreeNode* node) const noexcept
     {
         if(node == nullptr)
-            return const_cast<FlashRadixTreeNode*>(&_rend);
+            return nullptr;
         
         //next will be next the next node on the same level that is an end of word and not deleted
-        //otherwise it will be node on upper level if there is one, and its an end of word and not deleted
-        //or if we reach the end of the current level we go all the way down skippinng end of words... and repeat
+        //otherwise it will be node on the max child of the next node on the level above.
         auto* currentNode = node;
         typename FlashRadixTreeNode::Children::reverse_iterator  it = node->my_iterator; //explicitly use reverse here as my_iterator is a forward iterator
-       /* while(!currentNode->children.empty())
-        {
-            it = currentNode->children.rbegin();
-            if(it != currentNode->children.rend() ) {
-                if( it->value->isEndOfWord && !it->value->deleted)
-                    return it->value;
-                currentNode = it->value; //else cycle down
-            }
-        }*/
-        //start by iterating once at the current level
+    
         ++it;
         
         //if we reach the end of the current level we go up one level and repeat
@@ -807,15 +798,13 @@ private:
             {
                 it = currentNode->children.rbegin();
                 if(it != currentNode->children.rend() ) {
-                    //if( it->value->isEndOfWord && !it->value->deleted)
-                    //    return it->value;
                     currentNode = it->value; //else cycle down
                 }
             }
 
         }
         if(currentNode->parent == nullptr || it == currentNode->children.rend())
-            return const_cast<FlashRadixTreeNode*>(&_rend);
+            return nullptr;
         return it->value;
     }
     
