@@ -208,23 +208,27 @@ public:
         Value value = Value();
         Key prefix = Key();
         bool deleted = false;
-        Sentinal sentinal = Sentinal::NONE;
+        //Sentinal sentinal = Sentinal::NONE;
         Children::iterator my_iterator;
         FlashRadixTreeNode* parent = nullptr;
     private:
-        mutable std::optional<Key> fullKey;
+        mutable std::optional<std::string> fullKey;
     public:
         
-        FlashRadixTreeNode(const Key& prefix, const Value&& value, FlashRadixTreeNode* parent ) noexcept
-        : isEndOfWord(false), value(std::move(value)), prefix(prefix), deleted(false), sentinal(Sentinal::NONE), parent(parent)
+        FlashRadixTreeNode(const Key& prefix, Value&& value, FlashRadixTreeNode* parent ) noexcept
+        : isEndOfWord(false), value(std::move(value)), prefix(prefix), deleted(false), parent(parent)
         {};
         
-        FlashRadixTreeNode(const Key& prefix, const Value&& value, bool isEndOfWord, FlashRadixTreeNode* parent ) noexcept
-        : isEndOfWord(isEndOfWord), value(std::move(value)), prefix(prefix), deleted(false), sentinal(Sentinal::NONE), parent(parent)
+        FlashRadixTreeNode(const Key& prefix, const Value& value, FlashRadixTreeNode* parent ) noexcept
+        : isEndOfWord(false), value(value), prefix(prefix), deleted(false), parent(parent)
         {};
         
-        FlashRadixTreeNode(Sentinal sentinal) noexcept
-        : isEndOfWord(false), value(), prefix(), deleted(false), sentinal(sentinal), parent(nullptr)
+        FlashRadixTreeNode(const Key& prefix, Value&& value, bool isEndOfWord, FlashRadixTreeNode* parent ) noexcept
+        : isEndOfWord(isEndOfWord), value(std::move(value)), prefix(prefix), deleted(false), parent(parent)
+        {};
+        
+        FlashRadixTreeNode(const Key& prefix, const Value& value, bool isEndOfWord, FlashRadixTreeNode* parent ) noexcept
+        : isEndOfWord(isEndOfWord), value(value), prefix(prefix), deleted(false), parent(parent)
         {};
         
         FlashRadixTreeNode() = default;
@@ -258,8 +262,7 @@ public:
         {
             return (isEndOfWord == other.isEndOfWord)
             && (prefix == other.prefix)
-            && (deleted == other.deleted)
-            && (sentinal == other.sentinal);
+            && (deleted == other.deleted);
         }
         
         bool constexpr operator!=(const FlashRadixTreeNode& other) const noexcept
@@ -399,7 +402,7 @@ public:
                     
                     
                     // Create a new node for the common prefix
-                    auto* newChild = new FlashRadixTreeNode(commonPrefix, std::move((lineIsWholePrefix ? std::move(value) : Value())), lineIsWholePrefix, currentNode);
+                    auto* newChild = new FlashRadixTreeNode(commonPrefix, std::move((lineIsWholePrefix ? std::forward<Value>(value) : Value())), lineIsWholePrefix, currentNode);
                     
                     // The new node should adopt the existing child node
                     childNode->prefix = suffixEdge;
@@ -436,12 +439,12 @@ public:
                 remaining = remaining.substr(commonPrefixLength);
             } else {
                 // No common prefix found, create a new edge for the remaining part of the key
-                auto newNode = new FlashRadixTreeNode(remaining, std::move(value), currentNode);
+                auto newNode = new FlashRadixTreeNode(remaining, std::forward<Value>(value), currentNode);
 #if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
-                auto it = currentNode->children.insert(remaining[0], newNode);
+                auto it = currentNode->children.insert(remaining[0], std::move(newNode));
                 currentNode = it->value;
 #else
-                auto it = currentNode->children.emplace(remaining[0], newNode);
+                auto it = currentNode->children.emplace(remaining[0], std::move(newNode));
                 currentNode = it.first->second;
 #endif
                 newNode->setMyIterator(it);

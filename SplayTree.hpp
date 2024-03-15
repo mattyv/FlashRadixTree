@@ -37,9 +37,14 @@ public:
     struct alignas(max_alignment_value) splay
     {
         splay() noexcept = default;
-        splay(KeyType key, ValueType value) noexcept
+        splay(KeyType key, ValueType&& value) noexcept
+        : key(key), value(std::move(value)), children{nullptr, nullptr}
+        {}
+        
+        splay(KeyType key, const ValueType& value) noexcept
         : key(key), value(value), children{nullptr, nullptr}
         {}
+        
         ~splay() = default;
         
         KeyType key;
@@ -250,13 +255,15 @@ public:
         _size = 0;
     }
     
-    iterator insert(KeyType key, ValueType value) noexcept
+    iterator insert(KeyType key, ValueType&& value) noexcept
     {
-        _root = _insert(key, value, _root);
+        _root = _insert(key, std::forward<ValueType>(value), _root);
         if(_root == nullptr)
             return end();
         return iterator(_root, this);
     }
+    
+   
     
     iterator find(KeyType key) const noexcept
     {
@@ -327,11 +334,11 @@ private:
     const reverse_iterator _rendIt = reverse_iterator(nullptr, nullptr);
     size_t _size = 0;
     
-    splay* _insert(KeyType key, ValueType value, splay* root) noexcept
+    splay* _insert(KeyType key, ValueType&& value, splay* root) noexcept
     {
         if (!root) {
             // If there is no root, create a new node and return it.
-            return _New_Node(key, value);
+            return _New_Node(key, std::forward<ValueType>(value));
         }
 
         // Splay the tree with the given key.
@@ -342,7 +349,7 @@ private:
             return root;
         }
         // Create a new node as we are sure we need to insert it.
-        splay* new_node = _New_Node(key, value);
+        splay* new_node = _New_Node(key, std::forward<ValueType>(value));
         
         // Calculate direction: 0 for LEFT, 1 for RIGHT
         const Child dir = static_cast<Child>(key > root->key);
@@ -458,9 +465,9 @@ private:
     
     
 
-    splay* _New_Node(KeyType key, ValueType value) noexcept
+    splay* _New_Node(KeyType key, ValueType&& value) noexcept
     {
-        splay* p_node = new splay(key, value);
+        splay* p_node = new splay(key, std::forward<ValueType>(value));
         p_node->children[LEFT] = p_node->children[RIGHT] = nullptr;
         ++_size;
         return p_node;
