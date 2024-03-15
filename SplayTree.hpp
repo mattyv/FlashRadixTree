@@ -74,22 +74,54 @@ private:
     private:
         splay* _node = nullptr;
         const SplayTree* _tree = nullptr;
+        bool _isEnd = true;
+        IteratorDirection _direction = direction;
         
         Xiterator(splay* node, const SplayTree* tree) noexcept
-        : _node(node), _tree(tree)
-        {}
+        : _node(node), _tree(tree), _isEnd(node == nullptr || tree == nullptr), _direction(direction)
+        {
+        }
     public:
-        Xiterator() noexcept = default;  //todo: shold probaly initalize to end() or rend()
+        Xiterator() noexcept = default;
+        Xiterator(const Xiterator<IteratorDirection::FORWARD>& rhs) noexcept
+        : _node(rhs._node), _tree(rhs._tree), _isEnd(rhs._isEnd), _direction(direction)
+        {
+        }
+        Xiterator(const Xiterator<IteratorDirection::REVERSE>& rhs) noexcept
+        : _node(rhs._node), _tree(rhs._tree), _isEnd(rhs._isEnd), _direction(direction)
+        {
+        }
+        
+        Xiterator& operator=(const Xiterator<IteratorDirection::REVERSE>& rhs) noexcept
+        {
+            _node = rhs._node;
+            _tree = rhs._tree;
+            _isEnd = rhs._isEnd;
+            _direction = direction;
+            return *this;
+        }
+        
+        Xiterator& operator=(const Xiterator<IteratorDirection::FORWARD>& rhs) noexcept
+        {
+            _node = rhs._node;
+            _tree = rhs._tree;
+            _isEnd = rhs._isEnd;
+            _direction = direction;
+            return *this;
+        }
         Xiterator& operator++() noexcept
         {
-            if(_node == nullptr || _tree == nullptr || *_node == _tree->_end || *_node == _tree->_rend)
+            if(_isEnd || _node == nullptr || _tree == nullptr)// || *_node == _tree->_end || *_node == _tree->_rend)
+            {
+                _isEnd = true;
                 return *this;
+            }
             
             //splay tree to traverse
-            if constexpr (direction == IteratorDirection::FORWARD)
+            if (_direction == IteratorDirection::FORWARD)
             {
                 if(_node->children[RIGHT] == nullptr )
-                    _node = const_cast<splay*>(&_tree->_end);
+                    _node = nullptr;
                 //make sure node is at the root
                 else if(_tree->find(_node->key) != _tree->end())
                     _node = _tree->_rotateToNextLarger();
@@ -97,23 +129,27 @@ private:
             else
             {
                 if(_node->children[LEFT] == nullptr )
-                    _node = const_cast<splay*>(&_tree->_rend);
+                    _node = nullptr;
                 //make sure node is at the root
                 else if(_tree->find(_node->key) != _tree->end())
                     _node = _tree->_rotateToNextSmaller();
             }
+            _isEnd = _node == nullptr;
             return *this;
         }
         Xiterator& operator--() noexcept
         {
-            if(_node == nullptr || _tree == nullptr || *_node == _tree->_end || *_node == _tree->_rend)
+            if(_isEnd || _node == nullptr || _tree == nullptr)// || *_node == _tree->_end || *_node == _tree->_rend)
+            {
+                _isEnd = true;
                 return *this;
+            }
             
             //splay tree to traverse
-            if constexpr (direction == IteratorDirection::FORWARD)
+            if (_direction == IteratorDirection::FORWARD)
             {
                 if(_node->children[LEFT] == nullptr )
-                    _node = const_cast<splay*>(&_tree->_rend);
+                    _node = nullptr;
                 //make sure node is at the root
                 else if(_tree->find(_node->key) != _tree->end())
                     _node = _tree->_rotateToNextSmaller();
@@ -121,11 +157,12 @@ private:
             else
             {
                 if(_node->children[RIGHT] == nullptr )
-                    _node = const_cast<splay*>(&_tree->_end);
+                    _node = nullptr;
                 //make sure node is at the root
                 else if(_tree->find(_node->key) != _tree->end())
                     _node = _tree->_rotateToNextLarger();
             }
+            _isEnd = _node == nullptr;
             return *this;
         }
         //pre-increment
@@ -152,14 +189,22 @@ private:
         }
         constexpr bool operator==(const Xiterator& rhs) const noexcept
         {
+            if(_isEnd == rhs._isEnd)
+                return true;
             if(_node == nullptr && rhs._node == nullptr)
                 return true;
+            if(_node == nullptr || rhs._node == nullptr)
+                return false;
             return *_node == *rhs._node;
         }
         constexpr bool operator!=(const Xiterator& rhs) const noexcept
         {
+            if(_isEnd != rhs._isEnd)
+                return true;
             if(_node == nullptr && rhs._node == nullptr)
                 return false;
+            if(_node == nullptr || rhs._node == nullptr)
+                return true;
             return *_node != *rhs._node;
         }
         friend SplayTree;
@@ -242,9 +287,9 @@ public:
     reverse_iterator rbegin() const noexcept
     {
         if(_root == nullptr)
-            return end();
+            return rend();
         _root = _getMaximumAndSplay(_root);
-        return iterator(_root, this);
+        return reverse_iterator(_root, this);
     }
     
     constexpr const iterator& end() const noexcept
@@ -277,11 +322,11 @@ public:
 private:
     mutable splay* _root = nullptr;
     //sentinal node for end()
-    const splay _end = splay(Sentinal::END);
-    const iterator _endIt = iterator(const_cast<splay*>(&_end), this);
+    //const splay _end = splay(Sentinal::END);
+    const iterator _endIt = iterator(nullptr, nullptr);
     //sentinal node for rend()
-    const splay _rend = splay(Sentinal::REND);
-    const reverse_iterator _rendIt = reverse_iterator(const_cast<splay*>(&_rend), this);
+    //const splay _rend = splay(Sentinal::REND);
+    const reverse_iterator _rendIt = reverse_iterator(nullptr, nullptr);
     size_t _size = 0;
     
     splay* _insert(KeyType key, ValueType value, splay* root) noexcept
@@ -500,30 +545,17 @@ private:
     
     // Rotate the tree so that the next smaller element becomes the root
     splay* _rotateToNextSmaller() const noexcept {
-        if (!_root || !_root->children[LEFT]) return _root; // No left subtree, nothing to do
+        // If there's no left subtree, there's no next smaller element
+        if (!_root || !_root->children[LEFT])
+            return _root;
         
-        splay* parent = _root;
-        splay* child = _root->children[LEFT];
-        
-        // Find the maximum element in the left subtree, which is the next smaller element
-        while (child->children[RIGHT]) {
-            parent = child;
-            child = child->children[RIGHT];
+        // The left child with no right child is the next smaller element
+        if (!_root->children[LEFT]->children[RIGHT]) {
+            _root = _RR_Rotate(_root); // Perform the right rotation
+        } else { // The next smaller element is in the right subtree of the left child
+            _root->children[LEFT] = _LL_Rotate(_root->children[LEFT]);
+            _root = _RR_Rotate(_root);
         }
-        
-        // Rotate the found node
-        if (parent != _root) {
-            // Perform the left rotation using _RR_Rotate() function
-            parent = _RR_Rotate(parent);
-            // Adjust the left child of the new parent node
-            parent->children[LEFT] = _root->children[LEFT];
-        }
-        
-        // Set the right subtree of the current root to be the right child of the successor
-        parent->children[RIGHT] = _root->children[RIGHT];
-        
-        // The successor node becomes the new root
-        _root = parent;
         return _root;
     }
 };

@@ -78,6 +78,22 @@ bool RunTests()
         return false;
     }
     
+    //test reverse iterator
+    ss.str("");
+    for( auto it = rTree.rbegin(); it != rTree.rend(); ++it)
+    {
+        ss << it->prefix << "," << it->value << "," << it->getFullKey() << std::endl;
+    }
+    gotStr = ss.str();
+    expectedStr = "C,1,AC\nB,0,AB\n";
+    
+    if(gotStr != expectedStr)
+    {
+        std::cout << "Action failed reverse iterator @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        std::cout << "Got: " << gotStr << "\nExpected: " << expectedStr << std::endl;
+        return false;
+    }
+    
     auto okErase = rTree.erase("A");
     if(okErase)
     {
@@ -160,6 +176,21 @@ bool RunTests()
     {
         std::cout << "Action failed iterator @ " << __LINE__ << " in " << __FILE__ << std::endl;
         std::cout << "Got:      " << gotStr << "\nExpected: " << expectedStr << std::endl;
+        return false;
+    }
+    
+    //test reverse iterator
+    ss.str("");
+    for( auto it = rTree.rbegin(); it != rTree.rend(); ++it)
+    {
+        ss << it->prefix << "," << it->value << "," << it->getFullKey() << std::endl;
+    }
+    gotStr = ss.str();
+    expectedStr = "B,0,AB\nA,1,A\n";
+    if(gotStr != expectedStr)
+    {
+        std::cout << "Action failed reverse iterator @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        std::cout << "Got: " << gotStr << "\nExpected: " << expectedStr << std::endl;
         return false;
     }
     
@@ -728,11 +759,26 @@ bool RunTests()
         ss << it.prefix << "," << it.value << "," << it.getFullKey() << std::endl;
     }
     got = ss.str();
-    expected = "A,0,AAA\nB,1,AAB\nBA,2,ABA\nC,0,ACA\nB,4,ACB\n";
+    expected = "A,0,AAA\nB,1,AAB\nBA,2,ABA\nA,3,ACA\nB,4,ACB\n";
     if(got != expected)
     {
         std::cout << "Action failed iterator @ " << __LINE__ << " in " << __FILE__ << std::endl;
-        std::cout << "Got:      " << got << "\nExpected: " << expected << std::endl;
+        std::cout << "Got: " << got << "\nExpected: " << expected << std::endl;
+        rTree.print();
+        return false;
+    }
+    
+    ss.str("");
+    for(auto it = rTree.rbegin(); it != rTree.rend(); ++it)
+    {
+        ss << it->prefix << "," << it->value << "," << it->getFullKey() << std::endl;
+    }
+    got = ss.str();
+    expected = "B,4,ACB\nA,3,ACA\nBA,2,ABA\nB,1,AAB\nA,0,AAA\n";
+    if(got != expected)
+    {
+        std::cout << "Action failed reverse iterator @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        std::cout << "Got: " << got << "\nExpected: " << expected << std::endl;
         rTree.print();
         return false;
     }
