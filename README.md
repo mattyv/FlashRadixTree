@@ -25,7 +25,7 @@ unordered_map::find()
 It's hard to beat STL's' unordered_map for raw speed. Especially lookup speed.
 But if you need ordered traversal then you lose the abilty to hash and the penalty can be high. Typically the AVL tree implementation tries to balance, but its trying to optimised against the average case. In the case of calling find() over a key set with non uniform distribution your average AVL tree is not optimised for this. 
 
-This project explores some ideas i've had regarding alternate data stuctures to the unorderd_map and map, and aiming the exploration to key sets with a non uniform distributin and key sets with large number of characters and common prefix's. Example of these can be found in many places. 
+This project explores some ideas i've had regarding alternate data stuctures to the unorderd_map and map, and aiming the exploration to key sets with a non uniform distributin and key sets with large number of characters and/or common prefix's. Example of these can be found in many places. 
 
 ### What is a Radix tree? 
 Its a compressed form of a Trie. A Trie is a tree of nodes, where each node is a character. The root node is a null character, and each node has a list of children, each child is a character. 
