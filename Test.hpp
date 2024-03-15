@@ -12,7 +12,7 @@ bool RunTests()
     
     
     int value = 0;
-    auto* itInsert = rTree.insert("AB", value++);
+    auto itInsert = rTree.insert("AB", value++);
     auto got = serializer.serialize(rTree);
 
     std::string expected = "+[,0,*,<+[AB,0,√,<->]>]";
@@ -37,13 +37,13 @@ bool RunTests()
     }
 
     auto valExpect = rTree.find("AB");
-    if(valExpect == nullptr ||  valExpect->value != 0)
+    if(valExpect == rTree.end() ||  valExpect->value != 0)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
     valExpect = rTree.find("AC");
-    if(valExpect == nullptr || valExpect->value != 1)
+    if(valExpect == rTree.end() || valExpect->value != 1)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
@@ -55,6 +55,42 @@ bool RunTests()
         std::cout << "Action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         std::cout << "Got:      " << got << "\nExpected: " << expected << std::endl;
         rTree.print();
+        return false;
+    }
+    auto key = valExpect->getFullKey();
+    if(key != "AC")
+    {
+        std::cout << "Action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        std::cout << "Got:      " << key << "\nExpected: " << "AC" << std::endl;
+        return false;
+    }
+    std::stringstream ss;
+    for( auto& it : rTree)
+    {
+        ss << it.prefix << "," << it.value << "," << it.getFullKey() << std::endl;
+    }
+    std::string gotStr = ss.str();
+    std::string expectedStr = "B,0,AB\nC,1,AC\n";
+    if(gotStr != expectedStr)
+    {
+        std::cout << "Action failed iterator @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        std::cout << "Got:      " << gotStr << "\nExpected: " << expectedStr << std::endl;
+        return false;
+    }
+    
+    //test reverse iterator
+    ss.str("");
+    for( auto it = rTree.rbegin(); it != rTree.rend(); ++it)
+    {
+        ss << it->prefix << "," << it->value << "," << it->getFullKey() << std::endl;
+    }
+    gotStr = ss.str();
+    expectedStr = "C,1,AC\nB,0,AB\n";
+    
+    if(gotStr != expectedStr)
+    {
+        std::cout << "Action failed reverse iterator @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        std::cout << "Got: " << gotStr << "\nExpected: " << expectedStr << std::endl;
         return false;
     }
     
@@ -83,7 +119,7 @@ bool RunTests()
     }
 
     valExpect = rTree.find("AB");
-    if(valExpect != nullptr)
+    if(valExpect != rTree.end())
     {
         std::cout << "Find action should have failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
@@ -115,17 +151,46 @@ bool RunTests()
         rTree.print();
         return false;
     }
-
+    
     valExpect = rTree.find("AB");
-    if(valExpect == nullptr || valExpect->value != 0)
+    if(valExpect == rTree.end() || valExpect->value != 0)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
     valExpect = rTree.find("A");
-    if(valExpect == nullptr || valExpect->value != 1)
+    if(valExpect == rTree.end() || valExpect->value != 1)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        return false;
+    }
+    
+    ss.str("");
+    for( auto& it : rTree)
+    {
+        ss << it.prefix << "," << it.value << "," << it.getFullKey() << std::endl;
+    }
+    gotStr = ss.str();
+    expectedStr = "A,1,A\nB,0,AB\n";
+    if(gotStr != expectedStr)
+    {
+        std::cout << "Action failed iterator @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        std::cout << "Got:      " << gotStr << "\nExpected: " << expectedStr << std::endl;
+        return false;
+    }
+    
+    //test reverse iterator
+    ss.str("");
+    for( auto it = rTree.rbegin(); it != rTree.rend(); ++it)
+    {
+        ss << it->prefix << "," << it->value << "," << it->getFullKey() << std::endl;
+    }
+    gotStr = ss.str();
+    expectedStr = "B,0,AB\nA,1,A\n";
+    if(gotStr != expectedStr)
+    {
+        std::cout << "Action failed reverse iterator @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        std::cout << "Got: " << gotStr << "\nExpected: " << expectedStr << std::endl;
         return false;
     }
     
@@ -162,13 +227,13 @@ bool RunTests()
     }
 
     valExpect = rTree.find("A");
-    if(valExpect == nullptr || valExpect->value != 0)
+    if(valExpect == rTree.end() || valExpect->value != 0)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
     valExpect = rTree.find("AB");
-    if(valExpect == nullptr || valExpect->value != 1)
+    if(valExpect == rTree.end() || valExpect->value != 1)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
@@ -191,13 +256,13 @@ bool RunTests()
     }
 
     valExpect = rTree.find("A");
-    if(valExpect != nullptr)
+    if(valExpect != rTree.end())
     {
         std::cout << "Find action should have failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
     valExpect = rTree.find("AB");
-    if(valExpect == nullptr || valExpect->value != 1)
+    if(valExpect == rTree.end() || valExpect->value != 1)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
@@ -240,7 +305,7 @@ bool RunTests()
     }
 
     valExpect = rTree.find("AB");
-    if(valExpect == nullptr || valExpect->value != 0)
+    if(valExpect == rTree.end() || valExpect->value != 0)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
@@ -263,13 +328,13 @@ bool RunTests()
     }
 
     valExpect = rTree.find("AB");
-    if(valExpect == nullptr || valExpect->value != 0)
+    if(valExpect == rTree.end() || valExpect->value != 0)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
     valExpect = rTree.find("AC");
-    if(valExpect == nullptr || valExpect->value != 1)
+    if(valExpect == rTree.end() || valExpect->value != 1)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
@@ -291,15 +356,31 @@ bool RunTests()
     }
 
     valExpect = rTree.find("AB");
-    if(valExpect == nullptr || valExpect->value != 0)
+    if(valExpect == rTree.end() || valExpect->value != 0)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
     valExpect = rTree.find("BC");
-    if(valExpect == nullptr || valExpect->value != 1)
+    if(valExpect == rTree.end() || valExpect->value != 1)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        return false;
+    }
+    
+    ss.str("");
+    for(auto& it: rTree)
+    {
+        ss << it.prefix << "," << it.value << "," << it.getFullKey() << std::endl;
+    }
+    
+    got = ss.str();
+    expected = "AB,0,AB\nBC,1,BC\n";
+    if(got != expected)
+    {
+        std::cout << "Action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        std::cout << "Got:      " << got << "\nExpected: " << expected << std::endl;
+        rTree.print();
         return false;
     }
     
@@ -320,21 +401,36 @@ bool RunTests()
     }
 
     valExpect = rTree.find("A");
-    if(valExpect == nullptr || valExpect->value != 0)
+    if(valExpect == rTree.end() || valExpect->value != 0)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
     valExpect = rTree.find("AB");
-    if(valExpect == nullptr || valExpect->value != 1)
+    if(valExpect == rTree.end() || valExpect->value != 1)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
     valExpect = rTree.find("ABC");
-    if(valExpect == nullptr || valExpect->value != 2)
+    if(valExpect == rTree.end() || valExpect->value != 2)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        return false;
+    }
+    
+    ss.str("");
+    for(auto& it: rTree)
+    {
+        ss << it.prefix << "," << it.value << "," << it.getFullKey() << std::endl;
+    }
+    got = ss.str();
+    expected = "A,0,A\nB,1,AB\nC,2,ABC\n";
+    if(got != expected)
+    {
+        std::cout << "Action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        std::cout << "Got:      " << got << "\nExpected: " << expected << std::endl;
+        rTree.print();
         return false;
     }
     
@@ -393,19 +489,19 @@ bool RunTests()
     }
 
     valExpect = rTree.find("A");
-    if(valExpect == nullptr || valExpect->value != 0)
+    if(valExpect == rTree.end() || valExpect->value != 0)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
     valExpect = rTree.find("ABC");
-    if(valExpect == nullptr || valExpect->value != 1)
+    if(valExpect == rTree.end() || valExpect->value != 1)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
     valExpect = rTree.find("AB");
-    if(valExpect == nullptr || valExpect->value != 2)
+    if(valExpect == rTree.end() || valExpect->value != 2)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
@@ -434,23 +530,56 @@ bool RunTests()
     }
 
     valExpect = rTree.find("AA");
-    if(valExpect == nullptr || valExpect->value != 0)
+    if(valExpect == rTree.end() || valExpect->value != 0)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
     valExpect = rTree.find("AB");
-    if(valExpect == nullptr || valExpect->value != 1)
+    if(valExpect == rTree.end() || valExpect->value != 1)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
     valExpect = rTree.find("BA");
-    if(valExpect == nullptr || valExpect->value != 2)
+    if(valExpect == rTree.end() || valExpect->value != 2)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
+    
+    ss.str("");
+    for(auto& it : rTree)
+    {
+        ss << it.prefix << "," << it.value << "," << it.getFullKey() << endl;
+    }
+    got = ss.str();
+    expected = "A,0,AA\nB,1,AB\nBA,2,BA\n";
+    
+    if(got != expected)
+    {
+        std::cout << "Action failed insert @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        std::cout << "Got: " << got << "\nExpected: " << expected << std::endl;
+        rTree.print();
+        return false;
+    }
+    
+    ss.str("");
+    for(auto it = rTree.rbegin(); it != rTree.rend(); ++it)
+    {
+        ss << it->prefix << "," << it->value << "," << it->getFullKey() << endl;
+    }
+    got = ss.str();
+    expected = "BA,2,BA\nB,1,AB\nA,0,AA\n";
+    
+    if(got != expected)
+    {
+        std::cout << "Action failed insert @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        std::cout << "Got: " << got << "\nExpected: " << expected << std::endl;
+        rTree.print();
+        return false;
+    }
+    
     okErase = rTree.erase("AA");
     if(!okErase)
     {
@@ -508,19 +637,19 @@ bool RunTests()
     }
 
     valExpect = rTree.find("AAA");
-    if(valExpect == nullptr || valExpect->value != 0)
+    if(valExpect == rTree.end() || valExpect->value != 0)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
     valExpect = rTree.find("ABA");
-    if(valExpect == nullptr || valExpect->value != 1)
+    if(valExpect == rTree.end() || valExpect->value != 1)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
     valExpect = rTree.find("AAB");
-    if(valExpect == nullptr || valExpect->value != 2)
+    if(valExpect == rTree.end() || valExpect->value != 2)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
@@ -565,21 +694,36 @@ bool RunTests()
     }
 
     valExpect = rTree.find("AAA");
-    if(valExpect == nullptr || valExpect->value != 0)
+    if(valExpect == rTree.end() || valExpect->value != 0)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
     valExpect = rTree.find("AAB");
-    if(valExpect == nullptr || valExpect->value != 1)
+    if(valExpect == rTree.end() || valExpect->value != 1)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
     valExpect = rTree.find("ABA");
-    if(valExpect == nullptr || valExpect->value != 2)
+    if(valExpect == rTree.end() || valExpect->value != 2)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        return false;
+    }
+    
+    ss.str("");
+    for(auto& it : rTree)
+    {
+        ss << it.prefix << "," << it.value << "," << it.getFullKey() << std::endl;
+    }
+    got = ss.str();
+    expected = "A,0,AAA\nB,1,AAB\nBA,2,ABA\n";
+    if(got != expected)
+    {
+        std::cout << "Action failed iterator @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        std::cout << "Got:      " << got << "\nExpected: " << expected << std::endl;
+        rTree.print();
         return false;
     }
     
@@ -612,33 +756,63 @@ bool RunTests()
     }
 
     valExpect = rTree.find("AAA");
-    if(valExpect == nullptr || valExpect->value != 0)
+    if(valExpect == rTree.end() || valExpect->value != 0)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
     valExpect = rTree.find("AAB");
-    if(valExpect == nullptr || valExpect->value != 1)
+    if(valExpect == rTree.end() || valExpect->value != 1)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
     valExpect = rTree.find("ABA");
-    if(valExpect == nullptr || valExpect->value != 2)
+    if(valExpect == rTree.end() || valExpect->value != 2)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
     valExpect = rTree.find("ACA");
-    if(valExpect == nullptr || valExpect->value != 3)
+    if(valExpect == rTree.end() || valExpect->value != 3)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
     valExpect = rTree.find("ACB");
-    if(valExpect == nullptr || valExpect->value != 4)
+    if(valExpect == rTree.end() || valExpect->value != 4)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        return false;
+    }
+    
+    ss.str("");
+    for(auto& it : rTree)
+    {
+        ss << it.prefix << "," << it.value << "," << it.getFullKey() << std::endl;
+    }
+    got = ss.str();
+    expected = "A,0,AAA\nB,1,AAB\nBA,2,ABA\nA,3,ACA\nB,4,ACB\n";
+    if(got != expected)
+    {
+        std::cout << "Action failed iterator @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        std::cout << "Got: " << got << "\nExpected: " << expected << std::endl;
+        rTree.print();
+        return false;
+    }
+    
+    ss.str("");
+    for(auto it = rTree.rbegin(); it != rTree.rend(); ++it)
+    {
+        ss << it->prefix << "," << it->value << "," << it->getFullKey() << std::endl;
+    }
+    got = ss.str();
+    expected = "B,4,ACB\nA,3,ACA\nBA,2,ABA\nB,1,AAB\nA,0,AAA\n";
+    if(got != expected)
+    {
+        std::cout << "Action failed reverse iterator @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        std::cout << "Got: " << got << "\nExpected: " << expected << std::endl;
+        rTree.print();
         return false;
     }
     
@@ -674,7 +848,7 @@ bool RunTests()
     
     value = 0;
     std::string key1 = "AAA";
-    auto* itInsertVS = rTreeSV.insert(key1, value++);
+    auto itInsertVS = rTreeSV.insert(key1, value++);
     std::string key2 = "AAB";
     itInsertVS = rTreeSV.insert(key2, value++);
     std::string key3 = "ABA";
@@ -728,13 +902,13 @@ bool RunTests()
     }
 
     auto valExpectPrefix = rTreePrefix.find("AA");
-    if(valExpectPrefix == nullptr || valExpectPrefix->value != 0)
+    if(valExpectPrefix == rTreePrefix.end() || valExpectPrefix->value != 0)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
     valExpectPrefix = rTreePrefix.find("AABB");
-    if(valExpectPrefix == nullptr || valExpectPrefix->value != 1)
+    if(valExpectPrefix == rTreePrefix.end() || valExpectPrefix->value != 1)
     {
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
