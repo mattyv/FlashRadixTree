@@ -1,5 +1,5 @@
 # FlashRadixTree
-Fast key value pair data structure with ordered traversal. For use with keys with common prefixes and asymetric key distribution.
+Fast key value pair data structure with ordered traversal. For use with keys with common prefixes and asymmetric key distribution.
 
 ## Performance Overview
 ### 1.7KB key Apple M2 (ARM 64), Somoma 14.3.1 (23D60) CPU Cycles Comparison
@@ -23,16 +23,16 @@ unordered_map::find()
 
 ## Overview
 It's hard to beat STL's' unordered_map for raw speed. Especially lookup speed.
-But if you need ordered traversal then you lose the abilty to hash and the penalty can be high. Typically the AVL tree implementation tries to balance, but its trying to optimised against the average case. In the case of calling find() over a key set with non uniform distribution your average AVL tree is not optimised for this. 
+But if you need ordered traversal then you lose the ability to hash and the penalty can be high. Typically the AVL tree implementation tries to balance, but it's trying to optimised against the average case. In the case of calling find() over a key set with non uniform distribution your average AVL tree is not optimised for this. 
 
-This project explores some ideas i've had regarding alternate data stuctures to the unorderd_map and map, and aiming the exploration to key sets with a non uniform distributin and key sets with large number of characters and/or common prefix's. Example of these can be found in many places. 
+This project explores some ideas i've had regarding alternate data structures to the unorderd_map and map, and aiming the exploration to key sets with a non uniform distribution and key sets with common prefix's. Example of these can be found in many places. 
 
 ### What is a Radix tree? 
 Its a compressed form of a Trie. A Trie is a tree of nodes, where each node is a character. The root node is a null character, and each node has a list of children, each child is a character. 
 
-How does a Radix tree differ from a Trie? A Radix tree is a prefix flavor of a Trie. It compresses the trie by merging nodes with a single child to form strings of prefixes.
+How does a Radix tree differ from a Trie? A Radix tree is a prefix flavour of a Trie. It compresses the trie by merging nodes with a single child to form strings of prefixes.
 
-Below is an exampe of a Trie containing the words "go" "google" "goggles", "hell", "hellow" "hollow".
+Below is an example of a Trie containing the words "go" "google" "goggles", "hell", "hellow" "hollow".
 
 ```
 Root
@@ -126,7 +126,7 @@ If you can pre-load the data structure ahead of time, and this may be an advanta
 In the case of our Radix tree this can give us an advantage. 
 
 ### How to search fast then using this advantage? 
-The children of the tree will always have a unique first character, so we can assume that if we have a match of the first character and the node in question is End-of-word then we have a match, and we can save the comparison on the remaining characters. Likewise if we find a node which is end of word, and the lenghts of the key and prefix match we can also save a full comparison as this must be the key we're looking for. This may be an avantage, especially in situations with very long keys.
+The children of the tree will always have a unique first character, so we can assume that if we have a match of the first character and the node in question is End-of-word then we have a match, and we can save the comparison on the remaining characters. Likewise if we find a node which is end of word, and the lengths of the key and prefix match we can also save a full comparison as this must be the key we're looking for. This may be an advantage, especially in situations with very long keys.
 For this reason the FlashRadixTree has two match modes specified on construction, "Partial" and "Exact". Where partial assumes the case above, and Exact matches the entire key when required.
 
 The non uniform nature of keys is an interesting case which this structure tries to focus on. In many cases you may find that some keys are more active than others. this is probably very true of a lot of other scenarios. Can we optimise for this. Well..? this is a ticky one...
@@ -136,17 +136,17 @@ Enter the curios case of the Splay tree.
 ### What is a Splay tree? 
 Its a self adjusting binary search tree with the additional property that recently accessed elements are quick to access again. It does this by rotating the trough through a series of "Zigs", "Zags", and "Zig Zag" rotations to bring the accessed node to the root of the tree during the access. This is a very interesting property. A good description of this can be found here: https://en.wikipedia.org/wiki/Splay_tree
 
-It performs basic binary search tree operations such as insertion, look-up and removal in O(log n) amortized time. For many practical purposes, it is the same as the self-balancing binary search tree. It was invented by Daniel Sleator and Robert Tarjan in 1985.
-A lot of research has been done into this data structure and to this day it remains a bit of an enigma as to its performance characteristics and temporal locatity benefits. But it does seem to work work well in some situatios for non uniform access. Particulaly because of the self adjusting property and the temporal locality of the data.
+It performs basic binary search tree operations such as insertion, look-up and removal in O(log n) amortised time. For many practical purposes, it is the same as the self-balancing binary search tree. It was invented by Daniel Sleator and Robert Tarjan in 1985.
+A lot of research has been done into this data structure and to this day it remains a bit of an enigma as to its performance characteristics and temporal locality benefits. But it does seem to work well in some situations for non uniform access. Particularly because of the self adjusting property and the temporal locality of the data.
 
-So in the FlashRadixTree i offer two options. To use the use of the Splay tree or the use of the map. The Splay tree or map is used to populate the child nodes of reach level of our radixt tree. As for which is better? It may depend on your key set, and I leave it to you to test which one works better. 
+So in the FlashRadixTree i offer two options. To use the use of the Splay tree or the use of the map. The Splay tree or map is used to populate the child nodes of reach level of our radix tree. As for which is better? It may depend on your key set, and I leave it to you to test which one works better. 
 
 
 ## Example Timings (Apple M2 (ARM 64), Somoma 14.3.1 (23D60)) 
 ... will aim to get some linux test soon. Sorry for now we timings can only be done on apple silicon. Will add intel soon hopefully.
 
-Large messages FlashRadixTree perform well aginst unordered_map and map for find() in these tests. (again i encourage your own testing).
-I also focus on the top 10% of keys used to find as typiclly you may wan them to be perfomant.
+Large messages FlashRadixTree performs well against unordered_map and map for find() in these tests. (again i encourage your own testing).
+I also focus on the top 10% of keys used to find as typically you may want them to be performant.
 ```
 size of one line in kilobytes: 1.75781kb
 hash map insert time
@@ -275,7 +275,7 @@ Number of runs for insert() 288
 
 Number of runs for find() 103880
 ```
-### Small messages FlashRadixTree performs well aginst map for find().
+### Small messages FlashRadixTree performs well against map for find().
 ```
 Unit tests passed
 size of one line in bytes: 6b
