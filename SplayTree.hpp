@@ -329,20 +329,20 @@ private:
     
     splay* _insert(KeyType key, ValueType value, splay* root) noexcept
     {
-        static splay* p_node = nullptr; //TODO: maybe get rid of this static variable
-        if (!p_node)
-            p_node = _New_Node(key, value);
-        else
-            p_node->key = key;
-        if (!root)
-        {
-            root = p_node;
-            p_node = nullptr;
+        if (!root) {
+            // If there is no root, create a new node and return it.
+            return _New_Node(key, value);
+        }
+
+        // Splay the tree with the given key.
+        root = _splay(key, root);
+        
+        // If the key is already in the tree, we return the splayed tree without inserting.
+        if (key == root->key) {
             return root;
         }
-        root = _splay(key, root);
-        /* This is BST that, all keys <= root->key is in root->children[LEFT], all keys >
-         root->key is in root->children[RIGHT]. */
+        // Create a new node as we are sure we need to insert it.
+        splay* new_node = _New_Node(key, value);
         
         // Calculate direction: 0 for LEFT, 1 for RIGHT
         const Child dir = static_cast<Child>(key > root->key);
@@ -351,13 +351,12 @@ private:
         
         if (root != nullptr && key != root->key)
         {
-            p_node->children[dir] = root->children[dir];
-            p_node->children[other_dir] = root;
+            new_node->children[dir] = root->children[dir];
             root->children[dir] = nullptr;
-            root = p_node;
+            new_node->children[other_dir] = root;
         }
-        p_node = nullptr;
-        return root;
+        
+        return new_node;
     }
     
     splay* _erase(KeyType key, splay* root) noexcept
