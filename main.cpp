@@ -207,6 +207,122 @@ int main(int argc, const char * argv[]) {
     
     std::cout << std::endl;
     
+    //iterate over all the symbols
+    agg_min_hash = 1e300;
+    agg_avg_hash = 0.0;
+    agg_max_hash = 0.0;
+    
+    for( auto it  = map.begin(); it != map.end(); )
+    {
+        performance_counters start = get_counters();
+        ++it;
+        performance_counters end = get_counters();
+     
+        performance_counters diff = end - start;
+        agg_min_hash = agg_min_hash.min(diff);
+        agg_max_hash = agg_max_hash.max(diff);
+        agg_avg_hash += diff;
+        
+    }
+    agg_avg_hash /= map.size();
+    
+    
+    //iterate over all the symbols
+    agg_min_map = 1e300;
+    agg_avg_map = 0.0;
+    agg_max_map = 0.0;
+    
+    for( auto it  = map.begin(); it != map.end(); )
+    {
+        performance_counters start = get_counters();
+        ++it;
+        performance_counters end = get_counters();
+     
+        performance_counters diff = end - start;
+        agg_min_map = agg_min_map.min(diff);
+        agg_max_map = agg_max_map.max(diff);
+        agg_avg_map += diff;
+        
+    }
+    agg_avg_map /= map.size();
+    
+    
+    //iterate over all the symbols
+    agg_min_tree = 1e300;
+    agg_avg_tree = 0.0;
+    agg_max_tree = 0.0;
+    
+    for( auto it  = tree.begin(); it != tree.end(); )
+    {
+        performance_counters start = get_counters();
+        ++it;
+        performance_counters end = get_counters();
+     
+        performance_counters diff = end - start;
+        agg_min_tree = agg_min_tree.min(diff);
+        agg_max_tree = agg_max_tree.max(diff);
+        agg_avg_tree += diff;
+        
+    }
+    agg_avg_tree /= tree.size();
+    
+    
+    //iterate over all the symbols
+    agg_min_treeExact = 1e300;
+    agg_avg_treeExact = 0.0;
+    agg_max_treeExact = 0.0;
+    
+    for( auto it  = treeExactMatch.begin(); it != treeExactMatch.end(); )
+    {
+        performance_counters start = get_counters();
+        ++it;
+        performance_counters end = get_counters();
+     
+        performance_counters diff = end - start;
+        agg_min_treeExact = agg_min_treeExact.min(diff);
+        agg_max_treeExact = agg_max_treeExact.max(diff);
+        agg_avg_treeExact += diff;
+        
+    }
+    agg_avg_treeExact /= treeExactMatch.size();
+    
+    
+    //iterate over all the symbols
+    agg_min_splay = 1e300;
+    agg_avg_splay = 0.0;
+    agg_max_splay = 0.0;
+    
+    for( auto it  = splay.begin(); it != splay.end(); )
+    {
+        performance_counters start = get_counters();
+        ++it;
+        performance_counters end = get_counters();
+     
+        performance_counters diff = end - start;
+        agg_min_splay = agg_min_splay.min(diff);
+        agg_max_splay = agg_max_splay.max(diff);
+        agg_avg_splay += diff;
+        
+    }
+    agg_avg_splay /= splay.size();
+    
+    std::cout << "hash map iterate time" << std::endl;
+    printResults("++it",agg_min_hash, agg_avg_hash, agg_max_hash);
+    
+    std::cout << "map iterate time" << std::endl;
+    printResults("++it", agg_min_map, agg_avg_map, agg_max_map);
+    
+    std::cout << "tree iterate time" << std::endl;
+    printResults("++it",agg_min_tree, agg_avg_tree, agg_max_tree);
+    
+    std::cout << "tree exact match iterate time" << std::endl;
+    printResults("++it",agg_min_treeExact, agg_avg_treeExact, agg_max_treeExact);
+    
+    std::cout << "splay iterate time" << std::endl;
+    printResults("++it",agg_min_splay, agg_avg_splay, agg_max_splay);
+    
+    std::cout << std::endl;
+    
     //search for all symbols runNumber times
     agg_min_hash = 1e300;
     agg_avg_hash = 0.0;

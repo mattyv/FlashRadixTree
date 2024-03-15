@@ -25,6 +25,12 @@ bool RunTests()
     }
 
     itInsert = rTree.insert("AC", value++);
+    
+    if(rTree.size() != 2)
+    {
+        std::cout << "Size action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        return false;
+    }
 
     got = serializer.serialize(rTree);
     expected = "+[,0,*,<+[A,0,*,<+[B,0,√,<->],+[C,1,√,<->]>]>]";
@@ -135,12 +141,23 @@ bool RunTests()
         rTree.print();
         return false;
     }
-
     
     rTree.clear();
+    if(rTree.size() != 0)
+    {
+        std::cout << "Size action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        return false;
+    }
     value = 0;
     itInsert = rTree.insert("AB", value++);
     itInsert = rTree.insert("A", value++);
+    
+    
+    if(rTree.size() != 2)
+    {
+        std::cout << "Size action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        return false;
+    }
 
     got = serializer.serialize(rTree);
     expected = "+[,0,*,<+[A,1,√,<+[B,0,√,<->]>]>]";
@@ -207,6 +224,12 @@ bool RunTests()
         std::cout << "Action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         std::cout << "Got:      " << got << "\nExpected: " << expected << std::endl;
         rTree.print();
+        return false;
+    }
+    
+    if(rTree.size() != 1)
+    {
+        std::cout << "Size action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
     
@@ -735,6 +758,12 @@ bool RunTests()
     itInsert = rTree.insert("ABA", value++);
     itInsert = rTree.insert("ACA", value++);
     itInsert = rTree.insert("ACB", value++);
+    
+    if(rTree.size() != 5)
+    {
+        std::cout << "Size action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        return false;
+    }
 
     got = serializer.serialize(rTree);
     expected = "+[,0,*,<"

@@ -320,6 +320,7 @@ private:
     FlashRadixTreeNode* _root;
     iterator _endIt = iterator(nullptr, nullptr);
     reverse_iterator _rendIt = reverse_iterator(nullptr, nullptr);
+    size_t _size = 0;
 public:
     
     FlashRadixTree() : _root( new FlashRadixTreeNode()) {}
@@ -335,6 +336,10 @@ public:
     
     constexpr FlashRadixTreeNode* getRoot() const noexcept {
         return _root;
+    }
+    
+    constexpr size_t size() const noexcept {
+        return _size;
     }
     
     iterator begin() const noexcept {
@@ -403,6 +408,7 @@ public:
                     
                     // Create a new node for the common prefix
                     auto* newChild = new FlashRadixTreeNode(commonPrefix, std::move((lineIsWholePrefix ? std::forward<Value>(value) : Value())), lineIsWholePrefix, currentNode);
+                    inserted = newChild;
                     
                     // The new node should adopt the existing child node
                     childNode->prefix = suffixEdge;
@@ -458,7 +464,10 @@ public:
         if(inserted == nullptr)
             return _endIt;
         else
+        {
+            ++_size;
             return iterator(inserted, this);
+        }
     }
     
         
@@ -533,6 +542,7 @@ public:
         if(_root != nullptr)
             _root->clear();
         _root = nullptr;
+        _size = 0;
     }
         
 private:
@@ -563,20 +573,7 @@ private:
         }
 #endif
     }
-    
-    void inOrderAndOpRecursively( FlashRadixTreeNode* node, const Key& key, const std::function<bool(const Key&, const Value&)>& op) const noexcept {
-        if (node == nullptr) {
-            return;
-        }
-        
-        node->children.inOrderAndOp([this, &op]( auto splay)->bool
-                                    {
-                                        this->inOrderAndOpRecursively(splay->value, splay->value->prefix, op);
-                                        return true;
-                                    });
-        if(!op(key, node->value))
-            return;
-    }
+  
         
         
     bool _mark_erase(const Key& key) noexcept
@@ -634,6 +631,7 @@ private:
 
         // If the current node has has more than one child then we're done
         if (currentNode->children.size() > 1) {
+            --_size;
             return true;
         }
 
@@ -671,7 +669,7 @@ private:
                 delete currentNode;
             }
         }
-
+        --_size;
         return true;
     }
     
@@ -864,14 +862,6 @@ private:
         {
             bool first = true;
 #ifdef USE_SPLAY_TREE
-            /*node->children.inOrderAndOp([&ss, &first](const SplayTree<typename Key::value_type, typename FlashRadixTree<Key, Value, FindMode>::FlashRadixTreeNode*>::splay* childPair) -> bool {
-                if (!first) {
-                    ss << ",";
-                }
-                ss << serializeNode(childPair->value);
-                first = false;
-                return true;
-            });*/
             for(const auto& it : node->children)
             {
                 if (!first) {
