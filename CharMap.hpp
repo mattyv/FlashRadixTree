@@ -14,19 +14,12 @@
 #include <vector>
 #include <cstddef>
 
-#ifndef MAX_ALIGNMENT
-#define MAX_ALIGNMENT
-template <typename... Args>
-constexpr size_t max_alignment() {
-    return std::max({alignof(Args)...});
-}
-#endif
 
 template <typename Value>
 class CharMap {
 public:
     static constexpr size_t max_alignment_value_CharMapNode = max_alignment<char, Value, bool>();
-    struct alignas(max_alignment_value_CharMapNode) CharMapNode
+    struct CharMapNode
     {
         CharMapNode(char key, const Value&& value) noexcept: key(key), value(value)  {}
         CharMapNode() noexcept = default;
