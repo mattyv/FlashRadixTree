@@ -27,13 +27,6 @@
 #include <sstream>
 #include <algorithm>
 
-#ifndef MAX_ALIGNMENT
-#define MAX_ALIGNMENT
-template <typename... Args>
-constexpr size_t max_alignment() {
-    return std::max({alignof(Args)...});
-}
-#endif
 
 template<typename T>
 concept StringLike = requires(T a, const T b, const char* s, std::size_t pos, std::size_t len, std::ostream& os, const T& t) {
@@ -174,14 +167,8 @@ private:
 public:
     using iterator = XFlashRadixTreeIterator<IteratorDirection::FORWARD>;
     using reverse_iterator = XFlashRadixTreeIterator<IteratorDirection::REVERSE>;
-#ifdef USE_SPLAY_TREE
-    static constexpr size_t max_alignment_value_FlashRadixTreeNode = max_alignment<Key, Value, bool, SplayTree<typename Key::value_type, void*>,std::optional<Key>>();
-#elif defined USE_CHAR_MAP
-    static constexpr size_t max_alignment_value_FlashRadixTreeNode = max_alignment<Key, Value, bool, CharMap<Value>,std::optional<Key>>();
-#else
-    static constexpr size_t max_alignment_value_FlashRadixTreeNode = max_alignment<Key, Value, bool, std::map<typename Key::value_type, void*>,std::optional<Key>>();
-#endif
-    class alignas(max_alignment_value_FlashRadixTreeNode) FlashRadixTreeNode {
+
+    class FlashRadixTreeNode {
     public:
 #ifdef USE_SPLAY_TREE
         using Children = SplayTree<typename Key::value_type, FlashRadixTreeNode*>;

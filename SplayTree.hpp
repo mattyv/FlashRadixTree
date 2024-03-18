@@ -11,14 +11,6 @@
 #include <algorithm>
 using namespace std;
 
-#ifndef MAX_ALIGNMENT
-#define MAX_ALIGNMENT
-template <typename... Args>
-constexpr size_t max_alignment() {
-    return std::max({alignof(Args)...});
-}
-#endif
-
 template <typename T>
 concept ComparableKeyType = requires(T a, T b)
 {
@@ -33,7 +25,7 @@ class SplayTree
 {
     static constexpr size_t max_alignment_value = max_alignment<KeyType, ValueType, void*[2]>();
 public:
-    struct alignas(max_alignment_value) splay
+    struct splay
     {
         splay() noexcept = default;
         splay(KeyType key, ValueType&& value) noexcept
@@ -67,10 +59,10 @@ public:
     
 
 private:
-    static constexpr size_t max_alignment_value_iterator = max_alignment<void*>();
+
     enum class IteratorDirection { FORWARD, REVERSE};
     template<IteratorDirection direction>
-    class alignas( max_alignment_value_iterator) Xiterator
+    class Xiterator
     {
     private:
         splay* _node = nullptr;
