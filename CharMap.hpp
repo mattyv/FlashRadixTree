@@ -28,7 +28,7 @@ public:
     static constexpr size_t max_alignment_value_CharMapNode = max_alignment<char, Value, bool>();
     struct alignas(max_alignment_value_CharMapNode) CharMapNode
     {
-        CharMapNode(char key, const Value&& value) noexcept: key(key), value(value), empty(false)  {}
+        CharMapNode(char key, const Value&& value) noexcept: key(key), value(value)  {}
         CharMapNode() noexcept = default;
         char key = 0;
         Value value = Value{};

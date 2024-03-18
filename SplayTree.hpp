@@ -31,21 +31,24 @@ concept ComparableKeyType = requires(T a, T b)
 template <ComparableKeyType KeyType, typename ValueType>
 class SplayTree
 {
-    //enum class Sentinal : int { END = 1, REND, NONE };
     static constexpr size_t max_alignment_value = max_alignment<KeyType, ValueType, void*[2]>();
 public:
     struct alignas(max_alignment_value) splay
     {
         splay() noexcept = default;
-        splay(KeyType key, ValueType value) noexcept
-        : key(key), value(value), children{nullptr, nullptr}
+        splay(KeyType key, ValueType&& value) noexcept
+        : key(key), value(std::move(value))
         {}
+        
+        splay(KeyType key, const ValueType& value) noexcept
+        : key(key), value(value)
+        {}
+        
         ~splay() = default;
         
         KeyType key;
         ValueType value;
         splay* children[2] = {nullptr, nullptr};
-        //Sentinal sentinal = Sentinal::NONE;
         
         constexpr bool operator==(const splay& rhs) const noexcept
         {
@@ -76,40 +79,38 @@ private:
         IteratorDirection _direction = direction;
         
         Xiterator(splay* node, const SplayTree* tree) noexcept
-        : _node(node), _tree(tree), _isEnd(node == nullptr || tree == nullptr), _direction(direction)
+        : _node(node), _tree(tree), _isEnd(node == nullptr || tree == nullptr)
         {
         }
     public:
         Xiterator() noexcept = default;
-        Xiterator(const Xiterator<IteratorDirection::FORWARD>& rhs) noexcept
-        : _node(rhs._node), _tree(rhs._tree), _isEnd(rhs._isEnd), _direction(direction)
-        {
-        }
-        Xiterator(const Xiterator<IteratorDirection::REVERSE>& rhs) noexcept
-        : _node(rhs._node), _tree(rhs._tree), _isEnd(rhs._isEnd), _direction(direction)
-        {
-        }
+        // Default copy constructor - used for same type
+        Xiterator(const Xiterator& other) = default;
+
+        // Default copy assignment operator - used for same type
+        Xiterator& operator=(const Xiterator& other) = default;
+
+        // Prevent cross-direction copying and assignment using a deleted function template
+        template<IteratorDirection OtherDirection>
+        Xiterator(const Xiterator<OtherDirection>&) = delete;
+       
+        template<IteratorDirection OtherDirection>
+        Xiterator& operator=(const Xiterator<OtherDirection>&) = delete;
         
-        Xiterator& operator=(const Xiterator<IteratorDirection::REVERSE>& rhs) noexcept
-        {
-            _node = rhs._node;
-            _tree = rhs._tree;
-            _isEnd = rhs._isEnd;
-            _direction = direction;
-            return *this;
+        //converter functions to convert form forward to reverse and vice versa
+        //template<IteratorDirection OtherDirection>
+        auto get_other_direction() const noexcept {
+            if constexpr (direction == IteratorDirection::FORWARD) {
+                return Xiterator<IteratorDirection::REVERSE>(_node, _tree);
+            } else {
+                return Xiterator<IteratorDirection::FORWARD>(_node, _tree);
+            }
         }
+                    
         
-        Xiterator& operator=(const Xiterator<IteratorDirection::FORWARD>& rhs) noexcept
-        {
-            _node = rhs._node;
-            _tree = rhs._tree;
-            _isEnd = rhs._isEnd;
-            _direction = direction;
-            return *this;
-        }
         Xiterator& operator++() noexcept
         {
-            if(_isEnd || _node == nullptr || _tree == nullptr)// || *_node == _tree->_end || *_node == _tree->_rend)
+            if(_isEnd || _node == nullptr || _tree == nullptr)
             {
                 _isEnd = true;
                 return *this;
@@ -118,18 +119,20 @@ private:
             //splay tree to traverse
             if (_direction == IteratorDirection::FORWARD)
             {
+                //make sure node is at the root
+                auto it = _tree->find(_node->key);
                 if(_node->children[RIGHT] == nullptr )
                     _node = nullptr;
-                //make sure node is at the root
-                else if(_tree->find(_node->key) != _tree->end())
+                else if(it != _tree->end())
                     _node = _tree->_rotateToNextLarger();
             }
             else
             {
+                //make sure node is at the root
+                auto it = _tree->find(_node->key);
                 if(_node->children[LEFT] == nullptr )
                     _node = nullptr;
-                //make sure node is at the root
-                else if(_tree->find(_node->key) != _tree->end())
+                else if(it != _tree->end())
                     _node = _tree->_rotateToNextSmaller();
             }
             _isEnd = _node == nullptr;
@@ -137,7 +140,7 @@ private:
         }
         Xiterator& operator--() noexcept
         {
-            if(_isEnd || _node == nullptr || _tree == nullptr)// || *_node == _tree->_end || *_node == _tree->_rend)
+            if(_isEnd || _node == nullptr || _tree == nullptr)
             {
                 _isEnd = true;
                 return *this;
@@ -146,18 +149,20 @@ private:
             //splay tree to traverse
             if (_direction == IteratorDirection::FORWARD)
             {
+                //make sure node is at the root
+                auto it = _tree->find(_node->key);
                 if(_node->children[LEFT] == nullptr )
                     _node = nullptr;
-                //make sure node is at the root
-                else if(_tree->find(_node->key) != _tree->end())
+                else if(it != _tree->end())
                     _node = _tree->_rotateToNextSmaller();
             }
             else
             {
+                //make sure node is at the root
+                auto it = _tree->find(_node->key);
                 if(_node->children[RIGHT] == nullptr )
                     _node = nullptr;
-                //make sure node is at the root
-                else if(_tree->find(_node->key) != _tree->end())
+                else if(it != _tree->end())
                     _node = _tree->_rotateToNextLarger();
             }
             _isEnd = _node == nullptr;
@@ -250,13 +255,15 @@ public:
         _size = 0;
     }
     
-    iterator insert(KeyType key, ValueType value) noexcept
+    iterator insert(KeyType key, ValueType&& value) noexcept
     {
-        _root = _insert(key, value, _root);
+        _root = _insert(key, std::forward<ValueType>(value), _root);
         if(_root == nullptr)
             return end();
         return iterator(_root, this);
     }
+    
+   
     
     iterator find(KeyType key) const noexcept
     {
@@ -327,11 +334,11 @@ private:
     const reverse_iterator _rendIt = reverse_iterator(nullptr, nullptr);
     size_t _size = 0;
     
-    splay* _insert(KeyType key, ValueType value, splay* root) noexcept
+    splay* _insert(KeyType key, ValueType&& value, splay* root) noexcept
     {
         if (!root) {
             // If there is no root, create a new node and return it.
-            return _New_Node(key, value);
+            return _New_Node(key, std::forward<ValueType>(value));
         }
 
         // Splay the tree with the given key.
@@ -342,7 +349,7 @@ private:
             return root;
         }
         // Create a new node as we are sure we need to insert it.
-        splay* new_node = _New_Node(key, value);
+        splay* new_node = _New_Node(key, std::forward<ValueType>(value));
         
         // Calculate direction: 0 for LEFT, 1 for RIGHT
         const Child dir = static_cast<Child>(key > root->key);
@@ -458,9 +465,9 @@ private:
     
     
 
-    splay* _New_Node(KeyType key, ValueType value) noexcept
+    splay* _New_Node(KeyType key, ValueType&& value) noexcept
     {
-        splay* p_node = new splay(key, value);
+        splay* p_node = new splay(key, std::forward<ValueType>(value));
         p_node->children[LEFT] = p_node->children[RIGHT] = nullptr;
         ++_size;
         return p_node;
