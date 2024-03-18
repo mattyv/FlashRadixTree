@@ -12,6 +12,7 @@
 #include "Test.hpp"
 #include "SplayTree.hpp"
 #include <unordered_map>
+#include <set>
 #include <unordered_set>
 #include <map>
 #include <iostream>
@@ -62,7 +63,7 @@ int main(int argc, const char * argv[]) {
     std::ifstream file;
     file.open("/Users/matthew/Documents/Code/CPP/FlashRadixTree/FlashRadixTree/sample_data.txt");
     std::string line;
-    unsigned int n = 300; //defines message size. Each character in the string is duplicated n times
+    unsigned int n = 1; //defines message size. Each character in the string is duplicated n times
     while (std::getline(file, line)) {
         //dupliacate each character in the string n times
         std::string newLine;
@@ -97,7 +98,7 @@ int main(int argc, const char * argv[]) {
         topKeys.insert(pair.first);
     }
     
-    std::unordered_set<std::string> uniqueSymbols(symbols.begin(), symbols.end());
+    std::set<std::string> uniqueSymbols(symbols.begin(), symbols.end());
     
     //print the size of one line in kilobytes
     if(symbols[0].size() > 1024)
@@ -252,10 +253,14 @@ int main(int argc, const char * argv[]) {
     agg_avg_tree = 0.0;
     agg_max_tree = 0.0;
     
+    std::stringstream ss;
+    int count = 0;
     for( auto it  = tree.begin(); it != tree.end(); )
     {
+        auto fullKey = it->getFullKey();
+        ss << fullKey << "," << count << std::endl;
         performance_counters start = get_counters();
-        ++it;
+        ++it; ++count;
         performance_counters end = get_counters();
      
         performance_counters diff = end - start;
@@ -266,6 +271,13 @@ int main(int argc, const char * argv[]) {
     }
     agg_avg_tree /= tree.size();
     
+    std::cout << "Iterator symbols\n";
+    std::cout << ss.str() << endl;
+    
+    
+    std::cout << "Unique symbols: " << uniqueSymbols.size() << "\n";
+    for(auto key : uniqueSymbols)
+        std::cout << key << std::endl;
     
     //iterate over all the symbols
     agg_min_treeExact = 1e300;

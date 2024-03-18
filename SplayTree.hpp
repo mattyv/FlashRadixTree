@@ -114,7 +114,7 @@ private:
         }
         Xiterator& operator++() noexcept
         {
-            if(_isEnd || _node == nullptr || _tree == nullptr)// || *_node == _tree->_end || *_node == _tree->_rend)
+            if(_isEnd || _node == nullptr || _tree == nullptr)
             {
                 _isEnd = true;
                 return *this;
@@ -123,18 +123,20 @@ private:
             //splay tree to traverse
             if (_direction == IteratorDirection::FORWARD)
             {
+                //make sure node is at the root
+                auto it = _tree->find(_node->key);
                 if(_node->children[RIGHT] == nullptr )
                     _node = nullptr;
-                //make sure node is at the root
-                else if(_tree->find(_node->key) != _tree->end())
+                else if(it != _tree->end())
                     _node = _tree->_rotateToNextLarger();
             }
             else
             {
+                //make sure node is at the root
+                auto it = _tree->find(_node->key);
                 if(_node->children[LEFT] == nullptr )
                     _node = nullptr;
-                //make sure node is at the root
-                else if(_tree->find(_node->key) != _tree->end())
+                else if(it != _tree->end())
                     _node = _tree->_rotateToNextSmaller();
             }
             _isEnd = _node == nullptr;
@@ -142,7 +144,7 @@ private:
         }
         Xiterator& operator--() noexcept
         {
-            if(_isEnd || _node == nullptr || _tree == nullptr)// || *_node == _tree->_end || *_node == _tree->_rend)
+            if(_isEnd || _node == nullptr || _tree == nullptr)
             {
                 _isEnd = true;
                 return *this;
@@ -151,18 +153,20 @@ private:
             //splay tree to traverse
             if (_direction == IteratorDirection::FORWARD)
             {
+                //make sure node is at the root
+                auto it = _tree->find(_node->key);
                 if(_node->children[LEFT] == nullptr )
                     _node = nullptr;
-                //make sure node is at the root
-                else if(_tree->find(_node->key) != _tree->end())
+                else if(it != _tree->end())
                     _node = _tree->_rotateToNextSmaller();
             }
             else
             {
+                //make sure node is at the root
+                auto it = _tree->find(_node->key);
                 if(_node->children[RIGHT] == nullptr )
                     _node = nullptr;
-                //make sure node is at the root
-                else if(_tree->find(_node->key) != _tree->end())
+                else if(it != _tree->end())
                     _node = _tree->_rotateToNextLarger();
             }
             _isEnd = _node == nullptr;
