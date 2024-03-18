@@ -93,36 +93,23 @@ private:
         : _node(node), _tree(tree), _direction(Direction), _end(node == nullptr || tree == nullptr)
         {}
     public:
-        //constructor to allow a reverse type from a forward
-        XFlashRadixTreeIterator(const XFlashRadixTreeIterator<IteratorDirection::REVERSE>& other) noexcept
-        : _node(other._node), _tree(other._tree), _direction(Direction), _end(other._end)
-        {
-        }
+        XFlashRadixTreeIterator() noexcept = default;
+        ~XFlashRadixTreeIterator() noexcept = default;
         
-        XFlashRadixTreeIterator(const XFlashRadixTreeIterator<IteratorDirection::FORWARD>& other) noexcept
-        : _node(other._node), _tree(other._tree), _direction(Direction), _end(other._end)
-        {
-        }
+        // Default copy constructor - used for same type
+        XFlashRadixTreeIterator(const XFlashRadixTreeIterator& other) = default;
+
+        // Default copy assignment operator - used for same type
+        XFlashRadixTreeIterator& operator=(const XFlashRadixTreeIterator& other) = default;
+
+        // Prevent cross-direction copying and assignment using a deleted function template
+       template<IteratorDirection OtherDirection>
+       XFlashRadixTreeIterator(const XFlashRadixTreeIterator<OtherDirection>&) = delete;
+       
+       template<IteratorDirection OtherDirection>
+       XFlashRadixTreeIterator& operator=(const XFlashRadixTreeIterator<OtherDirection>&) = delete;
+
         
-        //assign a reverse iterator to a forward iterator
-        XFlashRadixTreeIterator& operator=(const XFlashRadixTreeIterator<IteratorDirection::REVERSE>& other) noexcept
-        {
-            _node = other._node;
-            _tree = other._tree;
-            _direction = Direction;
-            _end = other._end;
-            return *this;
-        }
-        
-        //assign a forward iterator to a reverse iterator
-        XFlashRadixTreeIterator& operator=(const XFlashRadixTreeIterator<IteratorDirection::FORWARD>& other) noexcept
-        {
-            _node = other._node;
-            _tree = other._tree;
-            _direction = Direction;
-            _end = other._end;
-            return *this;
-        }
         
         XFlashRadixTreeIterator& operator++() noexcept
         {
@@ -208,7 +195,6 @@ public:
         Value value = Value();
         Key prefix = Key();
         bool deleted = false;
-        //Sentinal sentinal = Sentinal::NONE;
         Children::iterator my_iterator;
         FlashRadixTreeNode* parent = nullptr;
     private:
@@ -216,19 +202,19 @@ public:
     public:
         
         FlashRadixTreeNode(const Key& prefix, Value&& value, FlashRadixTreeNode* parent ) noexcept
-        : isEndOfWord(false), value(std::move(value)), prefix(prefix), deleted(false), parent(parent)
+        : isEndOfWord(false), value(std::move(value)), prefix(prefix), parent(parent)
         {};
         
         FlashRadixTreeNode(const Key& prefix, const Value& value, FlashRadixTreeNode* parent ) noexcept
-        : isEndOfWord(false), value(value), prefix(prefix), deleted(false), parent(parent)
+        : isEndOfWord(false), value(value), prefix(prefix), parent(parent)
         {};
         
         FlashRadixTreeNode(const Key& prefix, Value&& value, bool isEndOfWord, FlashRadixTreeNode* parent ) noexcept
-        : isEndOfWord(isEndOfWord), value(std::move(value)), prefix(prefix), deleted(false), parent(parent)
+        : isEndOfWord(isEndOfWord), value(std::move(value)), prefix(prefix), parent(parent)
         {};
         
         FlashRadixTreeNode(const Key& prefix, const Value& value, bool isEndOfWord, FlashRadixTreeNode* parent ) noexcept
-        : isEndOfWord(isEndOfWord), value(value), prefix(prefix), deleted(false), parent(parent)
+        : isEndOfWord(isEndOfWord), value(value), prefix(prefix), parent(parent)
         {};
         
         FlashRadixTreeNode() = default;
@@ -769,7 +755,7 @@ private:
         //next will be next the next node on the same level that is an end of word and not deleted
         //otherwise it will be node on the max child of the next node on the level above.
         auto* currentNode = node;
-        typename FlashRadixTreeNode::Children::reverse_iterator  it = node->my_iterator; //explicitly use reverse here as my_iterator is a forward iterator
+        typename FlashRadixTreeNode::Children::reverse_iterator  it = node->my_iterator.get_other_direction(); //explicitly use reverse here as my_iterator is a forward iterator
     
         ++it;
         
@@ -777,7 +763,7 @@ private:
         if(it == currentNode->children.rend() && currentNode->parent != nullptr)
         {
             currentNode = currentNode->parent;
-            it = currentNode->my_iterator;
+            it = currentNode->my_iterator.get_other_direction();
             if(*it != nullptr && it != currentNode->children.rend() && (!it->value->isEndOfWord || it->value->deleted))
             {
                 ++it;
@@ -785,7 +771,7 @@ private:
             while(it == currentNode->children.rend() && currentNode->parent != nullptr) //if we reach the end of the current level we go up one level and repeat
             {
                 currentNode = currentNode->parent;
-                it = currentNode->my_iterator;
+                it = currentNode->my_iterator.get_other_direction();
                 ++it;
                 if(it != currentNode->children.rend())
                     currentNode = it->value;
@@ -810,6 +796,7 @@ private:
     }
     
 };
+
 
 
 template <Streaming Key, Streaming Value, MatchMode FindMode = MatchMode::Exact>

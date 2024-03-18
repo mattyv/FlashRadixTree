@@ -31,18 +31,17 @@ concept ComparableKeyType = requires(T a, T b)
 template <ComparableKeyType KeyType, typename ValueType>
 class SplayTree
 {
-    //enum class Sentinal : int { END = 1, REND, NONE };
     static constexpr size_t max_alignment_value = max_alignment<KeyType, ValueType, void*[2]>();
 public:
     struct alignas(max_alignment_value) splay
     {
         splay() noexcept = default;
         splay(KeyType key, ValueType&& value) noexcept
-        : key(key), value(std::move(value)), children{nullptr, nullptr}
+        : key(key), value(std::move(value))
         {}
         
         splay(KeyType key, const ValueType& value) noexcept
-        : key(key), value(value), children{nullptr, nullptr}
+        : key(key), value(value)
         {}
         
         ~splay() = default;
@@ -50,7 +49,6 @@ public:
         KeyType key;
         ValueType value;
         splay* children[2] = {nullptr, nullptr};
-        //Sentinal sentinal = Sentinal::NONE;
         
         constexpr bool operator==(const splay& rhs) const noexcept
         {
@@ -81,37 +79,35 @@ private:
         IteratorDirection _direction = direction;
         
         Xiterator(splay* node, const SplayTree* tree) noexcept
-        : _node(node), _tree(tree), _isEnd(node == nullptr || tree == nullptr), _direction(direction)
+        : _node(node), _tree(tree), _isEnd(node == nullptr || tree == nullptr)
         {
         }
     public:
         Xiterator() noexcept = default;
-        Xiterator(const Xiterator<IteratorDirection::FORWARD>& rhs) noexcept
-        : _node(rhs._node), _tree(rhs._tree), _isEnd(rhs._isEnd), _direction(direction)
-        {
-        }
-        Xiterator(const Xiterator<IteratorDirection::REVERSE>& rhs) noexcept
-        : _node(rhs._node), _tree(rhs._tree), _isEnd(rhs._isEnd), _direction(direction)
-        {
-        }
+        // Default copy constructor - used for same type
+        Xiterator(const Xiterator& other) = default;
+
+        // Default copy assignment operator - used for same type
+        Xiterator& operator=(const Xiterator& other) = default;
+
+        // Prevent cross-direction copying and assignment using a deleted function template
+        template<IteratorDirection OtherDirection>
+        Xiterator(const Xiterator<OtherDirection>&) = delete;
+       
+        template<IteratorDirection OtherDirection>
+        Xiterator& operator=(const Xiterator<OtherDirection>&) = delete;
         
-        Xiterator& operator=(const Xiterator<IteratorDirection::REVERSE>& rhs) noexcept
-        {
-            _node = rhs._node;
-            _tree = rhs._tree;
-            _isEnd = rhs._isEnd;
-            _direction = direction;
-            return *this;
+        //converter functions to convert form forward to reverse and vice versa
+        //template<IteratorDirection OtherDirection>
+        auto get_other_direction() const noexcept {
+            if constexpr (direction == IteratorDirection::FORWARD) {
+                return Xiterator<IteratorDirection::REVERSE>(_node, _tree);
+            } else {
+                return Xiterator<IteratorDirection::FORWARD>(_node, _tree);
+            }
         }
+                    
         
-        Xiterator& operator=(const Xiterator<IteratorDirection::FORWARD>& rhs) noexcept
-        {
-            _node = rhs._node;
-            _tree = rhs._tree;
-            _isEnd = rhs._isEnd;
-            _direction = direction;
-            return *this;
-        }
         Xiterator& operator++() noexcept
         {
             if(_isEnd || _node == nullptr || _tree == nullptr)

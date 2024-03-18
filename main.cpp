@@ -271,14 +271,6 @@ int main(int argc, const char * argv[]) {
     }
     agg_avg_tree /= tree.size();
     
-    std::cout << "Iterator symbols\n";
-    std::cout << ss.str() << endl;
-    
-    
-    std::cout << "Unique symbols: " << uniqueSymbols.size() << "\n";
-    for(auto key : uniqueSymbols)
-        std::cout << key << std::endl;
-    
     //iterate over all the symbols
     agg_min_treeExact = 1e300;
     agg_avg_treeExact = 0.0;
