@@ -7,7 +7,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout repository with submodules
+      uses: actions/checkout@v2
+      with:
+        submodules: 'recursive' # Fetches all submodules recursively
 
     - name: Create Build Directory
       run: mkdir build
