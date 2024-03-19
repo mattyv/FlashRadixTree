@@ -16,7 +16,7 @@ concept ComparableKeyType = requires(T a, T b)
 {
     {a < b} -> std::convertible_to<bool>;
     {a > b} -> std::convertible_to<bool>;
-    {a == b} -> std::convertible_to<bool>;
+    {a == b}  -> std::convertible_to<bool>;
 };
 
 
@@ -27,12 +27,12 @@ class SplayTree
 public:
     struct splay
     {
-        splay() noexcept = default;
-        splay(KeyType key, ValueType&& value) noexcept
+        splay()  = default;
+        splay( KeyType key, ValueType&& value)
         : key(key), value(std::move(value))
         {}
         
-        splay(KeyType key, const ValueType& value) noexcept
+        splay( KeyType key, const ValueType& value)
         : key(key), value(value)
         {}
         
@@ -42,13 +42,13 @@ public:
         ValueType value;
         splay* children[2] = {nullptr, nullptr};
         
-        constexpr bool operator==(const splay& rhs) const noexcept
+        constexpr bool operator==(const splay& rhs) const 
         {
             return key == rhs.key;
             //not checking children and value
         }
         
-        constexpr bool operator!=(const splay& rhs) const noexcept
+        constexpr bool operator!=(const splay& rhs) const 
         {
             return !(*this == rhs);
         }
@@ -70,17 +70,17 @@ private:
         bool _isEnd = true;
         IteratorDirection _direction = direction;
         
-        Xiterator(splay* node, const SplayTree* tree) noexcept
+        Xiterator(splay* node, const SplayTree* tree) 
         : _node(node), _tree(tree), _isEnd(node == nullptr || tree == nullptr)
         {
         }
     public:
-        Xiterator() noexcept = default;
+        Xiterator()  = default;
         // Default copy constructor - used for same type
-        Xiterator(const Xiterator& other) = default;
+        Xiterator(const Xiterator& other) noexcept = default;
 
         // Default copy assignment operator - used for same type
-        Xiterator& operator=(const Xiterator& other) = default;
+        Xiterator& operator=(const Xiterator& other) noexcept = default;
 
         // Prevent cross-direction copying and assignment using a deleted function template
         template<IteratorDirection OtherDirection>
@@ -91,7 +91,7 @@ private:
         
         //converter functions to convert form forward to reverse and vice versa
         //template<IteratorDirection OtherDirection>
-        auto get_other_direction() const noexcept {
+        auto get_other_direction() const  noexcept {
             if constexpr (direction == IteratorDirection::FORWARD) {
                 return Xiterator<IteratorDirection::REVERSE>(_node, _tree);
             } else {
@@ -100,7 +100,7 @@ private:
         }
                     
         
-        Xiterator& operator++() noexcept
+        Xiterator& operator++() 
         {
             if(_isEnd || _node == nullptr || _tree == nullptr)
             {
@@ -130,7 +130,7 @@ private:
             _isEnd = _node == nullptr;
             return *this;
         }
-        Xiterator& operator--() noexcept
+        Xiterator& operator--() 
         {
             if(_isEnd || _node == nullptr || _tree == nullptr)
             {
@@ -161,28 +161,28 @@ private:
             return *this;
         }
         //pre-increment
-        Xiterator operator++(int) noexcept
+        Xiterator operator++(int) 
         {
             Xiterator tmp = *this;
             ++(*this);
             return tmp;
         }
         //pre-decrement
-        Xiterator operator--(int) noexcept
+        Xiterator operator--(int) 
         {
             Xiterator tmp = *this;
             --(*this);
             return tmp;
         }
-        constexpr splay* operator->() const noexcept
+        constexpr splay* operator->() const 
         {
             return _node;
         }
-        constexpr splay* operator*() const noexcept
+        constexpr splay* operator*() const 
         {
             return _node;
         }
-        constexpr bool operator==(const Xiterator& rhs) const noexcept
+        constexpr bool operator==(const Xiterator& rhs) const 
         {
             if(_isEnd == rhs._isEnd)
                 return true;
@@ -192,7 +192,7 @@ private:
                 return false;
             return *_node == *rhs._node;
         }
-        constexpr bool operator!=(const Xiterator& rhs) const noexcept
+        constexpr bool operator!=(const Xiterator& rhs) const 
         {
             if(_isEnd != rhs._isEnd)
                 return true;
@@ -209,8 +209,8 @@ public:
     using reverse_iterator = Xiterator<IteratorDirection::REVERSE>;
     
     
-    SplayTree() noexcept = default;
-    ~SplayTree() noexcept
+    SplayTree()  = default;
+    ~SplayTree() 
     {
         clear();
     }
@@ -226,20 +226,20 @@ public:
         other._root = nullptr;
         other._size = 0;
     }
-    constexpr splay* root() const noexcept
+    constexpr splay* root() const 
     {
         return _root;
     }
-    constexpr bool empty() const noexcept
+    constexpr bool empty() const  noexcept
     {
         return _root == nullptr;
     }
-    constexpr size_t size() const noexcept
+    constexpr size_t size() const  noexcept
     {
         return _size;
     }
     
-    void clear() noexcept
+    void clear() 
     {
         while(_root != nullptr)
             erase(_root->key);
@@ -247,7 +247,7 @@ public:
         _size = 0;
     }
     
-    iterator insert(KeyType key, ValueType&& value) noexcept
+    iterator insert(KeyType key, ValueType&& value) 
     {
         _root = _insert(key, std::forward<ValueType>(value), _root);
         if(_root == nullptr)
@@ -257,15 +257,15 @@ public:
     
    
     
-    iterator find(KeyType key) const noexcept
+    iterator find(KeyType key) const 
     {
         _root = _find(key, _root);
-        if((_root == nullptr )|| (_root && _root->key != key))
+        if((_root == nullptr ) || (_root && _root->key != key))
             return _endIt;
         return iterator(_root, this);
     }
     
-    iterator erase(KeyType key) noexcept
+    iterator erase(KeyType key) 
     {
         _root = _erase(key, _root);
         if(_root == nullptr)
@@ -273,7 +273,7 @@ public:
         return iterator(_root, this);;
     }
     
-    iterator begin() const noexcept
+    iterator begin() const  noexcept
     {
         if(_root == nullptr)
             return end();
@@ -281,7 +281,7 @@ public:
         return iterator(_root, this);
     }
     
-    reverse_iterator rbegin() const noexcept
+    reverse_iterator rbegin() const  noexcept
     {
         if(_root == nullptr)
             return rend();
@@ -289,17 +289,17 @@ public:
         return reverse_iterator(_root, this);
     }
     
-    constexpr const iterator& end() const noexcept
+    constexpr const iterator& end() const  noexcept
     {
         return _endIt;
     }
     
-    constexpr const reverse_iterator& rend() const noexcept
+    constexpr const reverse_iterator& rend() const  noexcept
     {
         return _rendIt;
     }
     
-    void printInOrder() noexcept
+    void printInOrder() 
     {
         _printInOrder(_root);
     }
@@ -326,7 +326,7 @@ private:
     const reverse_iterator _rendIt = reverse_iterator(nullptr, nullptr);
     size_t _size = 0;
     
-    splay* _insert(KeyType key, ValueType&& value, splay* root) noexcept
+    splay* _insert(KeyType key, ValueType&& value, splay* root) 
     {
         if (!root) {
             // If there is no root, create a new node and return it.
@@ -342,6 +342,8 @@ private:
         }
         // Create a new node as we are sure we need to insert it.
         splay* new_node = _New_Node(key, std::forward<ValueType>(value));
+        if(! new_node)
+            return nullptr;
         
         // Calculate direction: 0 for LEFT, 1 for RIGHT
         const Child dir = static_cast<Child>(key > root->key);
@@ -358,7 +360,7 @@ private:
         return new_node;
     }
     
-    splay* _erase(KeyType key, splay* root) noexcept
+    splay* _erase(KeyType key, splay* root) 
     {
         if (!root)
             return nullptr;
@@ -382,12 +384,12 @@ private:
         delete temp;
         return root;
     }
-    splay* _find(KeyType key, splay* root) const noexcept
+    splay* _find(KeyType key, splay* root) const 
     {
         return _splay(key, root);
     }
     // RR(Y rotates to the right)
-    splay* _RR_Rotate(splay* k2) const noexcept
+    splay* _RR_Rotate(splay* k2) const  noexcept
     {
         splay* k1 = k2->children[LEFT];
         k2->children[LEFT] = k1->children[RIGHT];
@@ -396,7 +398,7 @@ private:
     }
     
     // LL(Y rotates to the left)
-    splay* _LL_Rotate(splay* k2) const noexcept
+    splay* _LL_Rotate(splay* k2) const  noexcept
     {
         splay* k1 = k2->children[RIGHT];
         k2->children[RIGHT] = k1->children[LEFT];
@@ -405,7 +407,7 @@ private:
     }
     
     // An implementation of top-down splay tree
-    splay* _splay(KeyType key, splay* root) const noexcept
+    splay* _splay(KeyType key, splay* root) const 
     {
         if (!root)
             return nullptr;
@@ -457,16 +459,23 @@ private:
     
     
 
-    splay* _New_Node(KeyType key, ValueType&& value) noexcept
+    splay* _New_Node(KeyType key, ValueType&& value)
     {
-        splay* p_node = new splay(key, std::forward<ValueType>(value));
-        p_node->children[LEFT] = p_node->children[RIGHT] = nullptr;
-        ++_size;
-        return p_node;
+        try
+        {
+            splay* p_node = new splay(key, std::forward<ValueType>(value));
+            p_node->children[LEFT] = p_node->children[RIGHT] = nullptr;
+            ++_size;
+            return p_node;
+        }
+        catch (const std::bad_alloc& e)
+        {
+            return nullptr;
+        }
     }
     
 
-    void _printInOrder(splay* root) noexcept
+    void _printInOrder(splay* root)
     {
         if (root)
         {
@@ -482,7 +491,7 @@ private:
     }
 
     
-    splay* _getMinimumAndSplay(splay* root) const  noexcept{
+    splay* _getMinimumAndSplay(splay* root) const  noexcept {
         //perfom zig-zig or zig to move the left most node to the root
         if(root == nullptr) return nullptr;
         
@@ -503,7 +512,7 @@ private:
     }
     
     
-    splay* _getMaximumAndSplay(splay* root) const  noexcept{
+    splay* _getMaximumAndSplay(splay* root) const  noexcept {
         //perfom zag-zag or zag to move the right most node to the root
         if(root == nullptr) return nullptr;
         
@@ -524,7 +533,7 @@ private:
     }
     
     // Rotate the tree so that the next larger element becomes the root
-    splay* _rotateToNextLarger() const noexcept {
+    splay* _rotateToNextLarger() const  noexcept {
         // If there's no right subtree, there's no next larger element
         if (!_root || !_root->children[RIGHT])
             return _root;
