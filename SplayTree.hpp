@@ -221,6 +221,7 @@ public:
     //move constructor
     SplayTree( SplayTree&& other) noexcept
     {
+        clear();
         _root = other._root;
         _size = other._size;
         other._root = nullptr;
@@ -309,6 +310,7 @@ public:
     {
         if (this != &other)
         {
+            clear();
             _root = other._root;
             _size = other._size;
             other._root = nullptr;
