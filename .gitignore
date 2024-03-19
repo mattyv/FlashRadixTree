@@ -26,6 +26,11 @@
 *.a
 *.lib
 
+# Build folders
+build/
+Release/
+Debug/
+
 # Executables
 *.exe
 *.out
