@@ -407,7 +407,7 @@ public:
                     auto itNewChild = currentNode->children.emplace(commonPrefix[0], std::move(newChild));
                     currentNode = itNewChild.first->second;
 #endif
-                    currentNode->setMyIterator(itNewChild);
+                    itNewChild->value->setMyIterator(itNewChild);
                 } else {
                     // Entire edge is a common prefix, proceed with the child node
                     currentNode = childNode;
@@ -431,8 +431,8 @@ public:
                 auto itNewNode = currentNode->children.emplace(remaining[0], std::move(newNode));
                 currentNode = itNewNode.first->second.get();
 #endif
-                currentNode->setMyIterator(it);
-                currentNode->isEndOfWord = true;
+                itNewNode->value->setMyIterator(itNewNode);
+                itNewNode->value->isEndOfWord = true;
                 
                 // As we've inserted the rest of the key, we're done
                 remaining = Key();

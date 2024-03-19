@@ -55,15 +55,15 @@ void printResults(std::string op,performance_counters min, performance_counters 
 
 int main(int argc, const char * argv[]) {
     
-    //if(!RunTests())
-    //    return 1;
+    if(!RunTests())
+        return 1;
     
     
     std::vector<std::string> symbols;
     std::ifstream file;
     file.open("/Users/matthew/Documents/Code/CPP/FlashRadixTree/FlashRadixTree/sample_data.txt");
     std::string line;
-    unsigned int n = 1; //defines message size. Each character in the string is duplicated n times
+    unsigned int n = 300; //defines message size. Each character in the string is duplicated n times
     while (std::getline(file, line)) {
         //dupliacate each character in the string n times
         std::string newLine;
