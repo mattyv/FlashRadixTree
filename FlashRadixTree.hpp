@@ -471,7 +471,7 @@ public:
         }
         
         const FlashRadixTreeNode* currentNode = _root;
-        const char keyPrefix = key[0];
+        char keyPrefix = key[0];
         Key remaining = key;
         size_t seen = 0;
         while( currentNode != nullptr)
