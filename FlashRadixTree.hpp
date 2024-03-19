@@ -351,7 +351,7 @@ public:
         Key remaining = key;
         
         while (!remaining.empty()) {
-            const auto it = currentNode->children.find(remaining[0]);
+            const auto& it = currentNode->children.find(remaining[0]);
             
             if( it != currentNode->children.end()) {
                 // Found a common prefix, split the edge if necessary
@@ -470,7 +470,7 @@ public:
         size_t seen = 0;
         while( currentNode != nullptr)
         {
-            auto it = currentNode->children.find(keyPrefix);
+            const auto& it = currentNode->children.find(keyPrefix);
 
             if(it != currentNode->children.end())
             {
