@@ -1,3 +1,6 @@
+
+## Issue tracking
+[![Open Issues](https://img.shields.io/github/issues-raw/mattyv/FlashRadixTree.svg)](https://github.com/mattyv/FlashRadixTree/issues)
 # FlashRadixTree
 Fast key value pair data structure with ordered traversal. For use with keys with common prefixes and asymmetric key distribution.
 
@@ -438,4 +441,3 @@ Top 10% count of keys used (not printing keys as they can be long):
 55
 53
 ```
-## Note - iterators right now are experemental
