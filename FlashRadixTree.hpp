@@ -277,13 +277,6 @@ public:
         
         void clear()
         {
-            /*for(const auto& it : children) {
-                auto child = it->value;
-                if(child != nullptr) {
-                    child->clear();
-                    delete child;
-                }
-            }*/
             children.clear();
             isEndOfWord = false;
             value = Value();
@@ -295,7 +288,7 @@ public:
 
 private:
     
-    FlashRadixTreeNode* _root;
+    std::unique_ptr<FlashRadixTreeNode> _root;
     iterator _endIt = iterator(nullptr, nullptr);
     reverse_iterator _rendIt = reverse_iterator(nullptr, nullptr);
     size_t _size = 0;
@@ -313,7 +306,7 @@ public:
     }
     
     constexpr FlashRadixTreeNode* getRoot() const  {
-        return _root;
+        return _root.get();
     }
     
     constexpr size_t size() const  noexcept {
@@ -348,10 +341,10 @@ public:
     {
         if (_root == nullptr) {
             // If the root doesn't exist, create it.
-            _root = new FlashRadixTreeNode();
+            _root = std::make_unique<FlashRadixTreeNode>();
         }
         
-        FlashRadixTreeNode* currentNode = _root;
+        FlashRadixTreeNode* currentNode = _root.get();
         FlashRadixTreeNode* inserted = nullptr;
         Key remaining = key;
         
@@ -460,7 +453,7 @@ public:
     }
     
     void print() const  {
-        _printRecursively(' ', _root, 0);
+        _printRecursively(' ', _root.get(), 0);
         std::cout << std::endl;
     }
 
@@ -469,7 +462,7 @@ public:
             return _endIt; // An empty key cannot be found.
         }
         
-        auto currentNode = _root;
+        auto* currentNode = _root.get();
         char keyPrefix = key[0];
         Key remaining = key;
         size_t seen = 0;
@@ -572,7 +565,7 @@ private:
             return false; // Cannot erase an empty key
         }
 
-        FlashRadixTreeNode* currentNode = _root;
+        FlashRadixTreeNode* currentNode = _root.get();
         FlashRadixTreeNode* parentNode = nullptr;
         Key remainingKey = key;
 
@@ -633,18 +626,16 @@ private:
                 currentNode->prefix.append(remainingChild->prefix);
                 currentNode->value = remainingChild->value;
                 currentNode->isEndOfWord = remainingChild->isEndOfWord;
-                currentNode->children = std::move(remainingChild->children);
-               // delete remainingChild;
+                currentNode->children = std::move(remainingChild->children); //overrride children.
             }
             //if the parent node has only one child we can compress (unless we're root. that makes no sense)
-            else if(parentNode != _root && parentNode->children.size() == 1 && !parentNode->isEndOfWord)
+            else if(parentNode != _root.get() && parentNode->children.size() == 1 && !parentNode->isEndOfWord)
             {
                 auto remainingChild = std::move(parentNode->children.root()->value);
                 parentNode->prefix.append(remainingChild->prefix);
                 parentNode->value = remainingChild->value;
                 parentNode->isEndOfWord = remainingChild->isEndOfWord;
                 parentNode->children = std::move(remainingChild->children);
-                //delete currentNode;
             }
         }
         --_size;

@@ -23,7 +23,6 @@ concept ComparableKeyType = requires(T a, T b)
 template <ComparableKeyType KeyType, typename ValueType>
 class SplayTree
 {
-    static constexpr size_t max_alignment_value = max_alignment<KeyType, ValueType, void*[2]>();
 public:
     struct splay
     {
