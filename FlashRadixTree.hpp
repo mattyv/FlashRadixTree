@@ -32,13 +32,13 @@ template<typename T>
 concept StringLike = requires(T a, const T b, const char* s, std::size_t pos, std::size_t len, std::ostream& os, const T& t) {
     typename T::value_type; // Ensure that T has a value_type member
     { a = s } ;
-    { a == b } noexcept -> std::convertible_to<bool>;
-    { a != b } noexcept -> std::convertible_to<bool>;
-    { a.starts_with(b) } noexcept -> std::convertible_to<bool>;
-    { a[0] } noexcept -> std::convertible_to<typename T::value_type>;
-    { a.size() } noexcept -> std::convertible_to<std::size_t>;
+    { a == b }  -> std::convertible_to<bool>;
+    { a != b }  -> std::convertible_to<bool>;
+    { a.starts_with(b) }  -> std::convertible_to<bool>;
+    { a[0] }  -> std::convertible_to<typename T::value_type>;
+    { a.size() }  -> std::convertible_to<std::size_t>;
     { a.substr(pos, len) }  -> std::convertible_to<T>;
-    { a.length() } noexcept -> std::convertible_to<size_t>;
+    { a.length() }  -> std::convertible_to<size_t>;
     T(s);
 };
 //template<typename T>
@@ -63,11 +63,7 @@ enum class MatchMode {
 
 template <StringLike Key, Streaming Value, MatchMode MatchMode = MatchMode::Exact>
 class FlashRadixTree {
-    
-    static_assert(StringLike<Key>, "Key type must satisfy StringLike concept");
-    static_assert(Streaming<Value>, "Value type must satisfy Streaming concept");
 
-    
     enum class Sentinal { END, REND, NONE };
 public:
     class FlashRadixTreeNode;
@@ -82,29 +78,39 @@ private:
         const FlashRadixTree* _tree;
         IteratorDirection _direction = Direction;
         bool _end = true;
-        XFlashRadixTreeIterator(FlashRadixTreeNode* node, const FlashRadixTree* tree) noexcept
+        XFlashRadixTreeIterator(FlashRadixTreeNode* node, const FlashRadixTree* tree) 
         : _node(node), _tree(tree), _direction(Direction), _end(node == nullptr || tree == nullptr)
         {}
     public:
         XFlashRadixTreeIterator() noexcept = default;
-        ~XFlashRadixTreeIterator() noexcept = default;
+        ~XFlashRadixTreeIterator() = default;
         
         // Default copy constructor - used for same type
-        XFlashRadixTreeIterator(const XFlashRadixTreeIterator& other) = default;
+        XFlashRadixTreeIterator(const XFlashRadixTreeIterator& other) noexcept = default;
 
         // Default copy assignment operator - used for same type
-        XFlashRadixTreeIterator& operator=(const XFlashRadixTreeIterator& other) = default;
+        XFlashRadixTreeIterator& operator=(const XFlashRadixTreeIterator& other) noexcept = default;
 
         // Prevent cross-direction copying and assignment using a deleted function template
-       template<IteratorDirection OtherDirection>
-       XFlashRadixTreeIterator(const XFlashRadixTreeIterator<OtherDirection>&) = delete;
+        template<IteratorDirection OtherDirection>
+        XFlashRadixTreeIterator(const XFlashRadixTreeIterator<OtherDirection>&) = delete;
        
-       template<IteratorDirection OtherDirection>
-       XFlashRadixTreeIterator& operator=(const XFlashRadixTreeIterator<OtherDirection>&) = delete;
+        template<IteratorDirection OtherDirection>
+        XFlashRadixTreeIterator& operator=(const XFlashRadixTreeIterator<OtherDirection>&) = delete;
+        
+        //converter functions to convert form forward to reverse and vice versa
+        //template<IteratorDirection OtherDirection>
+        auto get_other_direction() const  noexcept {
+            if constexpr (Direction == IteratorDirection::FORWARD) {
+                return XFlashRadixTreeIterator<IteratorDirection::REVERSE>(_node, _tree);
+            } else {
+                return XFlashRadixTreeIterator<IteratorDirection::FORWARD>(_node, _tree);
+            }
+        }
 
         
         
-        XFlashRadixTreeIterator& operator++() noexcept
+        XFlashRadixTreeIterator& operator++()  noexcept
         {
             if (_direction == IteratorDirection::FORWARD) {
                 _node = _tree->_next(_node);
@@ -114,7 +120,7 @@ private:
             _end = _node == nullptr;
             return *this;
         }
-        XFlashRadixTreeIterator& operator--() noexcept
+        XFlashRadixTreeIterator& operator--()  noexcept
         {
             if (_direction == IteratorDirection::FORWARD) {
                 _node = _tree->_prev(_node);
@@ -125,21 +131,21 @@ private:
             return *this;
         }
         
-        XFlashRadixTreeIterator operator++(int) noexcept
+        XFlashRadixTreeIterator operator++(int)  noexcept
         {
             XFlashRadixTreeIterator tmp = *this;
             ++(*this);
             return tmp;
         }
         
-        XFlashRadixTreeIterator operator--(int) noexcept
+        XFlashRadixTreeIterator operator--(int)  noexcept
         {
             XFlashRadixTreeIterator tmp = *this;
             --(*this);
             return tmp;
         }
         
-        bool operator==(const XFlashRadixTreeIterator& other) const noexcept
+        bool operator==(const XFlashRadixTreeIterator& other) const 
         {
             if(_end && other._end)
                 return true;
@@ -149,16 +155,16 @@ private:
                 return false;
             return *_node == *other._node;
         }
-        bool operator!=(const XFlashRadixTreeIterator& other) const noexcept
+        bool operator!=(const XFlashRadixTreeIterator& other) const 
         {
             return !(*this == other);
         }
         
-        constexpr FlashRadixTreeNode* operator->() noexcept
+        constexpr FlashRadixTreeNode* operator->() 
         {
             return _node;
         }
-        constexpr FlashRadixTreeNode& operator*() noexcept
+        constexpr FlashRadixTreeNode& operator*() 
         {
             return *_node;
         }
@@ -188,19 +194,19 @@ public:
         mutable std::optional<std::string> fullKey;
     public:
         
-        FlashRadixTreeNode(const Key& prefix, Value&& value, FlashRadixTreeNode* parent ) noexcept
+        FlashRadixTreeNode(const Key& prefix, Value&& value, FlashRadixTreeNode* parent ) 
         : isEndOfWord(false), value(std::move(value)), prefix(prefix), parent(parent)
         {};
         
-        FlashRadixTreeNode(const Key& prefix, const Value& value, FlashRadixTreeNode* parent ) noexcept
+        FlashRadixTreeNode(const Key& prefix, const Value& value, FlashRadixTreeNode* parent ) 
         : isEndOfWord(false), value(value), prefix(prefix), parent(parent)
         {};
         
-        FlashRadixTreeNode(const Key& prefix, Value&& value, bool isEndOfWord, FlashRadixTreeNode* parent ) noexcept
+        FlashRadixTreeNode(const Key& prefix, Value&& value, bool isEndOfWord, FlashRadixTreeNode* parent ) 
         : isEndOfWord(isEndOfWord), value(std::move(value)), prefix(prefix), parent(parent)
         {};
         
-        FlashRadixTreeNode(const Key& prefix, const Value& value, bool isEndOfWord, FlashRadixTreeNode* parent ) noexcept
+        FlashRadixTreeNode(const Key& prefix, const Value& value, bool isEndOfWord, FlashRadixTreeNode* parent ) 
         : isEndOfWord(isEndOfWord), value(value), prefix(prefix), parent(parent)
         {};
         
@@ -231,19 +237,19 @@ public:
             return *this;
         }
         
-        bool constexpr operator==(const FlashRadixTreeNode& other) const noexcept
+        bool constexpr operator==(const FlashRadixTreeNode& other) const 
         {
             return (isEndOfWord == other.isEndOfWord)
             && (prefix == other.prefix)
             && (deleted == other.deleted);
         }
         
-        bool constexpr operator!=(const FlashRadixTreeNode& other) const noexcept
+        bool constexpr operator!=(const FlashRadixTreeNode& other) const 
         {
             return !(*this == other);
         }
         
-        Key getFullKey() const noexcept
+        Key getFullKey() const 
         {
             if(fullKey.has_value())
                 return fullKey.value();
@@ -260,12 +266,12 @@ public:
             return fullKey.value();
         }
         
-        void setMyIterator(const Children::iterator& it) noexcept
+        void setMyIterator(const Children::iterator& it)  noexcept
         {
             my_iterator = it;
         }
         
-        void setDeleted() noexcept
+        void setDeleted()  noexcept
         {
             deleted = true;
         }
@@ -296,7 +302,7 @@ private:
     size_t _size = 0;
 public:
     
-    FlashRadixTree() : _root( new FlashRadixTreeNode()) {}
+    FlashRadixTree()  noexcept : _root( new FlashRadixTreeNode()) {}
     ~FlashRadixTree() {
         clear();
     }
@@ -307,15 +313,15 @@ public:
         other._root = nullptr;
     }
     
-    constexpr FlashRadixTreeNode* getRoot() const noexcept {
+    constexpr FlashRadixTreeNode* getRoot() const  {
         return _root;
     }
     
-    constexpr size_t size() const noexcept {
+    constexpr size_t size() const  noexcept {
         return _size;
     }
     
-    iterator begin() const noexcept {
+    iterator begin() const  noexcept {
         const auto node =  _getMinimum();
         if(node == nullptr) {
             return _endIt;
@@ -323,11 +329,11 @@ public:
         return iterator(node, this);
     }
     
-    constexpr const iterator& end() const noexcept {
+    constexpr const iterator& end() const  noexcept {
         return _endIt;
     }
     
-    reverse_iterator rbegin() const noexcept {
+    reverse_iterator rbegin() const  noexcept {
         const auto node =  _getMaximum();
         if(node == nullptr) {
             return _rendIt;
@@ -335,11 +341,11 @@ public:
         return reverse_iterator(node, this);
     }
     
-    constexpr const reverse_iterator& rend() const noexcept {
+    constexpr const reverse_iterator& rend() const  noexcept {
         return _rendIt;
     }
     
-    iterator insert(const Key& key, Value&& value) noexcept
+    iterator insert(const Key& key, Value&& value) 
     {
         if (_root == nullptr) {
             // If the root doesn't exist, create it.
@@ -446,7 +452,7 @@ public:
         
     //_erase() requires the function append() which will not work on a string_view.
     //in which case we use mark_erase()
-    bool erase(const Key& key) noexcept
+    bool erase(const Key& key) 
     {
         if constexpr(HasAppend<Key>)
             return _erase(key);
@@ -454,18 +460,18 @@ public:
             return _mark_erase(key);
     }
     
-    void print() const noexcept {
+    void print() const  {
         _printRecursively(' ', _root, 0);
         std::cout << std::endl;
     }
 
-    iterator find(const Key& key) const noexcept {
+    iterator find(const Key& key) const {
         if (key.empty()) {
             return _endIt; // An empty key cannot be found.
         }
         
         const FlashRadixTreeNode* currentNode = _root;
-        char keyPrefix = key[0];
+        const char keyPrefix = key[0];
         Key remaining = key;
         size_t seen = 0;
         while( currentNode != nullptr)
@@ -511,7 +517,7 @@ public:
     }
     
     //delete all items non recursively
-    void clear() noexcept {
+    void clear()  {
         if(_root != nullptr)
             _root->clear();
         _root = nullptr;
@@ -519,7 +525,7 @@ public:
     }
         
 private:
-    void _printRecursively(const typename Key::value_type& key, FlashRadixTreeNode* node, int level) const noexcept{
+    void _printRecursively(const typename Key::value_type& key, FlashRadixTreeNode* node, int level) const {
         if (node == nullptr) {
             return;
         }
@@ -549,7 +555,7 @@ private:
   
         
         
-    bool _mark_erase(const Key& key) noexcept
+    bool _mark_erase(const Key& key) 
     {
         auto found = find(key);
         if (found == end()) {
@@ -562,7 +568,7 @@ private:
         }
     }
     
-    bool _erase(const Key& key) noexcept {
+    bool _erase(const Key& key)  {
         if (key.empty()) {
             return false; // Cannot erase an empty key
         }
@@ -646,7 +652,7 @@ private:
         return true;
     }
     
-    FlashRadixTreeNode* _getMinimum() const noexcept
+    FlashRadixTreeNode* _getMinimum() const  noexcept
     {
         if(_root == nullptr)
             return nullptr;
@@ -666,7 +672,7 @@ private:
         return it->value;
     }
     
-    FlashRadixTreeNode* _getMaximum() const noexcept
+    FlashRadixTreeNode* _getMaximum() const  noexcept
     {
         if(_root == nullptr)
             return nullptr;
@@ -686,7 +692,7 @@ private:
         
     
     
-    FlashRadixTreeNode* _next(FlashRadixTreeNode* node) const noexcept
+    FlashRadixTreeNode* _next(FlashRadixTreeNode* node) const  noexcept
     {
         if(node == nullptr)
             return nullptr;
