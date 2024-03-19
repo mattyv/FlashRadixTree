@@ -176,11 +176,11 @@ public:
     class FlashRadixTreeNode {
     public:
 #ifdef USE_SPLAY_TREE
-        using Children = SplayTree<typename Key::value_type, FlashRadixTreeNode*>;
+        using Children = SplayTree<typename Key::value_type, std::unique_ptr<FlashRadixTreeNode>>;
 #elif defined USE_CHAR_MAP
-        using Children = CharMap<FlashRadixTreeNode*>;
+        using Children = CharMap<std::unique_ptr<FlashRadixTreeNode>>;
 #else
-        using Children = std::map<typename Key::value_type, FlashRadixTreeNode*>;
+        using Children = std::map<typename Key::value_type, std::unique_ptr<FlashRadixTreeNode>>;
 #endif
         Children children;
         bool isEndOfWord = false;
@@ -277,13 +277,13 @@ public:
         
         void clear()
         {
-            for(const auto& it : children) {
+            /*for(const auto& it : children) {
                 auto child = it->value;
                 if(child != nullptr) {
                     child->clear();
                     delete child;
                 }
-            }
+            }*/
             children.clear();
             isEndOfWord = false;
             value = Value();
@@ -356,16 +356,16 @@ public:
         Key remaining = key;
         
         while (!remaining.empty()) {
-            const auto& it = currentNode->children.find(remaining[0]);
+            const typename FlashRadixTreeNode::Children::iterator& it = currentNode->children.find(remaining[0]);
             
             if( it != currentNode->children.end()) {
                 // Found a common prefix, split the edge if necessary
 #if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
                 const typename Key::value_type edgeKey = it->key;
-                FlashRadixTreeNode* childNode = it->value;
+                FlashRadixTreeNode* childNode = it->value.get();
 #else
                 const typename Key::value_type edgeKey = it->first;
-                FlashRadixTreeNode* childNode = it->second;
+                FlashRadixTreeNode* childNode = it->second.get();
 #endif
                 const Key& edge = childNode->prefix; // Assuming first is the key in the SplayTree
                 
@@ -385,29 +385,29 @@ public:
                     
                     
                     // Create a new node for the common prefix
-                    auto* newChild = new FlashRadixTreeNode(commonPrefix, std::move((lineIsWholePrefix ? std::forward<Value>(value) : Value())), lineIsWholePrefix, currentNode);
-                    inserted = newChild;
+                    auto newChild = std::make_unique<FlashRadixTreeNode>(commonPrefix, std::move((lineIsWholePrefix ? std::forward<Value>(value) : Value())), lineIsWholePrefix, currentNode);
+                    inserted = newChild.get();
                     
                     // The new node should adopt the existing child node
                     childNode->prefix = suffixEdge;
 #if defined( USE_SPLAY_TREE)  || defined USE_CHAR_MAP
-                    auto it = newChild->children.insert(suffixEdge[0], std::move(childNode));
+                    auto itChildNode = newChild->children.insert(suffixEdge[0], std::move(it->value));
 #else
-                    auto it = newChild->children.emplace(suffixEdge[0], std::move(childNode));
+                    auto itChildNode = newChild->children.emplace(suffixEdge[0], std::move(it->value));
 #endif
-                    childNode->parent = newChild;
-                    childNode->setMyIterator(it);
+                    childNode->parent = newChild.get();
+                    childNode->setMyIterator(itChildNode);
                     currentNode->children.erase(edgeKey);
                     
                     // Insert the new child with the common prefix in the current node's children
 #if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
-                    auto itChild = currentNode->children.insert(commonPrefix[0], std::move(newChild));
-                    currentNode = itChild->value;
+                    auto itNewChild = currentNode->children.insert(commonPrefix[0], std::move(newChild));
+                    currentNode = itNewChild->value.get();
 #else
-                    auto itChild = currentNode->children.emplace(commonPrefix[0], std::move(newChild));
-                    currentNode = itChild.first->second;
+                    auto itNewChild = currentNode->children.emplace(commonPrefix[0], std::move(newChild));
+                    currentNode = itNewChild.first->second;
 #endif
-                    newChild->setMyIterator(itChild);
+                    currentNode->setMyIterator(itNewChild);
                 } else {
                     // Entire edge is a common prefix, proceed with the child node
                     currentNode = childNode;
@@ -423,15 +423,15 @@ public:
                 remaining = remaining.substr(commonPrefixLength);
             } else {
                 // No common prefix found, create a new edge for the remaining part of the key
-                auto newNode = new FlashRadixTreeNode(remaining, std::forward<Value>(value), currentNode);
+                auto newNode = std::make_unique <FlashRadixTreeNode>(remaining, std::forward<Value>(value), currentNode);
 #if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
-                auto it = currentNode->children.insert(remaining[0], std::move(newNode));
-                currentNode = it->value;
+                auto itNewNode = currentNode->children.insert(remaining[0], std::move(newNode));
+                currentNode = itNewNode->value.get();
 #else
-                auto it = currentNode->children.emplace(remaining[0], std::move(newNode));
-                currentNode = it.first->second;
+                auto itNewNode = currentNode->children.emplace(remaining[0], std::move(newNode));
+                currentNode = itNewNode.first->second.get();
 #endif
-                newNode->setMyIterator(it);
+                currentNode->setMyIterator(it);
                 currentNode->isEndOfWord = true;
                 
                 // As we've inserted the rest of the key, we're done
@@ -480,9 +480,9 @@ public:
             if(it != currentNode->children.end())
             {
 #if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
-                currentNode = it->value;
+                currentNode = it->value.get();
 #else
-                currentNode = it->second;
+                currentNode = it->second.get();
 #endif
                 if(MatchMode == MatchMode::Prefix && //if we are in prefix mode we can stop if we find the prefix
                    currentNode->isEndOfWord &&
@@ -538,7 +538,7 @@ private:
 #if defined( USE_SPLAY_TREE)
         for(const auto& it : node->children)
         {
-            _printRecursively(it->key, it->value, level + 1);
+            _printRecursively(it->key, it->value.get(), level + 1);
         }
 #elif defined( USE_CHAR_MAP)
         node->children.inOrderAndOp([&](const auto& node)->bool {
@@ -586,7 +586,7 @@ private:
             }
 
             const Key& nodePrefix = it->value->prefix;
-            FlashRadixTreeNode* childNode = it->value;
+            FlashRadixTreeNode* childNode = it->value.get();
 
             if (remainingKey.starts_with(nodePrefix)) {
                 // Prefix matches, move to the next node
@@ -629,22 +629,22 @@ private:
             }
             else if(currentNode->children.size() == 1 && !currentNode->isEndOfWord)
             {
-                auto remainingChild = currentNode->children.root()->value;
+                auto remainingChild = std::move(currentNode->children.root()->value);
                 currentNode->prefix.append(remainingChild->prefix);
                 currentNode->value = remainingChild->value;
                 currentNode->isEndOfWord = remainingChild->isEndOfWord;
                 currentNode->children = std::move(remainingChild->children);
-                delete remainingChild;
+               // delete remainingChild;
             }
             //if the parent node has only one child we can compress (unless we're root. that makes no sense)
             else if(parentNode != _root && parentNode->children.size() == 1 && !parentNode->isEndOfWord)
             {
-                auto remainingChild = parentNode->children.root()->value;
+                auto remainingChild = std::move(parentNode->children.root()->value);
                 parentNode->prefix.append(remainingChild->prefix);
                 parentNode->value = remainingChild->value;
                 parentNode->isEndOfWord = remainingChild->isEndOfWord;
                 parentNode->children = std::move(remainingChild->children);
-                delete currentNode;
+                //delete currentNode;
             }
         }
         --_size;
@@ -668,7 +668,7 @@ private:
             it = check;
             children = &it->value->children;
         }
-        return it->value;
+        return it->value.get();
     }
     
     FlashRadixTreeNode* _getMaximum() const  noexcept
@@ -686,7 +686,7 @@ private:
             it = check;
             children = &it->value->children;
         }
-        return it->value;
+        return it->value.get();
     }
         
     
@@ -706,8 +706,8 @@ private:
             it = currentNode->children.begin();
             if(it != currentNode->children.end() ) {
                 if( it->value->isEndOfWord && !it->value->deleted)
-                    return it->value;
-                currentNode = it->value; //else cycle down
+                    return it->value.get();
+                currentNode = it->value.get(); //else cycle down
             }
         }
         // we iterate once at the current level
@@ -723,20 +723,20 @@ private:
         //if this node is not end of word or is deleted we go down
         if(it != currentNode->children.end() && (!it->value->isEndOfWord || it->value->deleted))
         {
-            currentNode = it->value;
+            currentNode = it->value.get();
             while(!currentNode->children.empty())
             {
                 it = currentNode->children.begin();
                 if(it != currentNode->children.end() ) {
                     if( it->value->isEndOfWord && !it->value->deleted)
-                        return it->value;
-                    currentNode = it->value; //else cycle down
+                        return it->value.get();
+                    currentNode = it->value.get(); //else cycle down
                 }
             }
         }
         if(currentNode->parent == nullptr || it == currentNode->parent->children.end())
             return nullptr;
-        return it->value;
+        return it->value.get();
     }
     
     FlashRadixTreeNode* _prev(FlashRadixTreeNode* node) const noexcept
@@ -766,25 +766,25 @@ private:
                 it = currentNode->my_iterator.get_other_direction();
                 ++it;
                 if(it != currentNode->children.rend())
-                    currentNode = it->value;
+                    currentNode = it->value.get();
             }
         }
         //if this node is not end of word or is deleted we go all the way down
         if(it != currentNode->children.rend() && !it->value->children.empty() && (!it->value->isEndOfWord || it->value->deleted))
         {
-            currentNode = it->value;
+            currentNode = it->value.get();
             while(!currentNode->children.empty())
             {
                 it = currentNode->children.rbegin();
                 if(it != currentNode->children.rend() ) {
-                    currentNode = it->value; //else cycle down
+                    currentNode = it->value.get(); //else cycle down
                 }
             }
 
         }
         if(currentNode->parent == nullptr || it == currentNode->children.rend())
             return nullptr;
-        return it->value;
+        return it->value.get();
     }
     
 };
@@ -845,7 +845,7 @@ private:
                 if (!first) {
                     ss << ",";
                 }
-                ss << serializeNode(it->value);
+                ss << serializeNode(it->value.get());
                 first = false;
             }
 #elif defined( USE_CHAR_MAP)
