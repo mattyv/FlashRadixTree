@@ -29,20 +29,25 @@
 
 
 template<typename T>
-concept StringLike = requires(T a, const T b, const char* s, std::size_t pos, std::size_t len, std::ostream& os, const T& t) {
-    typename T::value_type; // Ensure that T has a value_type member
-    { a = s } ;
-    { a == b }  -> std::convertible_to<bool>;
-    { a != b }  -> std::convertible_to<bool>;
-    { a.starts_with(b) }  -> std::convertible_to<bool>;
-    { a[0] }  -> std::convertible_to<typename T::value_type>;
-    { a.size() }  -> std::convertible_to<std::size_t>;
-    { a.substr(pos, len) }  -> std::convertible_to<T>;
-    { a.length() }  -> std::convertible_to<size_t>;
-    T(s);
+concept IsBasicString = requires {
+    typename T::traits_type;
+    typename T::allocator_type;
+    // Check if T is an instantiation of std::basic_string
+    requires std::is_same_v<T, std::basic_string<typename T::value_type,
+                                                 typename T::traits_type,
+                                                 typename T::allocator_type>>;
 };
-//template<typename T>
-//concept StringLike = std::convertible_to<T, std::string_view>;
+
+template<typename T>
+concept IsBasicStringView = requires {
+    typename T::traits_type;
+    // Check if T is an instantiation of std::basic_string_view
+    requires std::is_same_v<T, std::basic_string_view<typename T::value_type,
+                                                      typename T::traits_type>>;
+};
+
+template<typename T>
+concept BasicStringOrBasicStringView = IsBasicString<T> || IsBasicStringView<T>;
 
 // Concept to check if a type supports streaming with '<<'
 template<typename T>
@@ -50,18 +55,12 @@ concept Streaming = requires(std::ostream& os, const T& t) {
     { os << t } -> std::convertible_to<std::ostream&>;
 };
 
-// Concept to check if a type has an append() member function
-template<typename T>
-    concept HasAppend = requires(T a, const T& b) {
-        { a.append(b) } -> std::same_as<T&>;
-    };
-
 enum class MatchMode {
     Prefix,
     Exact
 };
 
-template <StringLike Key, Streaming Value, MatchMode MatchMode = MatchMode::Exact>
+template <BasicStringOrBasicStringView Key, Streaming Value, MatchMode MatchMode = MatchMode::Exact>
 class FlashRadixTree {
 
     enum class Sentinal { END, REND, NONE };
@@ -454,7 +453,7 @@ public:
     //in which case we use mark_erase()
     bool erase(const Key& key) 
     {
-        if constexpr(HasAppend<Key>)
+        if constexpr(IsBasicString<Key>)
             return _erase(key);
         else
             return _mark_erase(key);
@@ -470,7 +469,7 @@ public:
             return _endIt; // An empty key cannot be found.
         }
         
-        const FlashRadixTreeNode* currentNode = _root;
+        auto currentNode = _root;
         char keyPrefix = key[0];
         Key remaining = key;
         size_t seen = 0;
@@ -794,8 +793,7 @@ private:
 
 template <Streaming Key, Streaming Value, MatchMode FindMode = MatchMode::Exact>
 class FlashRadixTreeSerializer {
-    static_assert(StringLike<Key>, "Key type must satisfy StringLike concept");
-    static_assert(Streaming<Value>, "Value type must satisfy Streaming concept");
+    
 public:
     std::string serialize(const FlashRadixTree<Key, Value, FindMode>& tree) {
         return serializeNode(tree.getRoot());
