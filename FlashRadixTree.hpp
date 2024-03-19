@@ -26,6 +26,7 @@
 #include <concepts>
 #include <sstream>
 #include <algorithm>
+#include <optional>
 
 
 template<typename T>

@@ -19,8 +19,11 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <optional>
 #include <memory>
+#ifdef __APPLE__
 #include "M1-Cycles/m1cycles.h"
+#endif
 
 //struct to simulate a payload
 struct Data
