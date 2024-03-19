@@ -14,7 +14,7 @@ add_executable(FlashRadixTree main.cpp)
 # add_executable(MyProject main.cpp SplayTree.cpp FlashRadixTree.cpp)
 
 # To include header files, you can use the include_directories command if needed
-include_directories(${PROJECT_SOURCE_DIR}/M1-Cycles)
+#include_directories(${PROJECT_SOURCE_DIR}/M1-Cycles)
 
 # If there are any libraries you need to link to, use the target_link_libraries command
 # target_link_libraries(MyProject PRIVATE some_library)
