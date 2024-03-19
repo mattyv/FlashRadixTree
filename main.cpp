@@ -40,6 +40,8 @@ struct Data
     }
 };
 
+
+#ifdef __APPLE__
 void printResults(std::string op,performance_counters min, performance_counters avg, performance_counters max) {
 
     printf(" %8.2f instructions/%s min, %8.2f avg, %8.2f max ", min.instructions, op.c_str(),
@@ -55,6 +57,7 @@ void printResults(std::string op,performance_counters min, performance_counters 
     printf(" %8.4f mis. branches/%s ", avg.missed_branches, op.c_str());
     printf("\n");
 }
+#endif
 
 int main(int argc, const char * argv[]) {
     
