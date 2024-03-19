@@ -30,6 +30,7 @@
 *.exe
 *.out
 *.app
+FlashRadixTree
 
 # OSX files
 *.DS_Store
