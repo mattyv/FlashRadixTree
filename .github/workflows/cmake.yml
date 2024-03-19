@@ -12,17 +12,14 @@ jobs:
     - name: Create Build Directory
       run: mkdir build
 
-    - name: Change to Build Directory
-      run: cd build
-
-    #- name: Install Dependencies (if you have any)
-    #  run: sudo apt-get update && sudo apt-get install -y <your-dependencies>
-
     - name: Configure CMake
       run: cmake .. -DCMAKE_BUILD_TYPE=Release
+      working-directory: build
 
     - name: Build
       run: cmake --build .
+      working-directory: build
 
     - name: Run tests (Run the FlashRadixTree executable)
       run: ./FlashRadixTree
+      working-directory: build
