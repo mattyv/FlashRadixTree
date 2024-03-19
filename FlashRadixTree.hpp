@@ -31,19 +31,19 @@
 template<typename T>
 concept StringLike = requires(T a, const T b, const char* s, std::size_t pos, std::size_t len, std::ostream& os, const T& t) {
     typename T::value_type; // Ensure that T has a value_type member
-    { a = s };
-    { a == b } -> std::convertible_to<bool>;
-    { a != b } -> std::convertible_to<bool>;
-    { a.starts_with(b) } -> std::convertible_to<bool>;
-    { a.starts_with(s) } -> std::convertible_to<bool>;
-    { a[0] } -> std::convertible_to<typename T::value_type>;
-    { a.begin() } -> std::forward_iterator;
-    { a.end() } -> std::forward_iterator;
-    { a.size() } -> std::convertible_to<std::size_t>;
-    { a.substr(pos, len) } -> std::convertible_to<T>;
-    { a.length() } -> std::convertible_to<size_t>;
+    { a = s } ;
+    { a == b } noexcept -> std::convertible_to<bool>;
+    { a != b } noexcept -> std::convertible_to<bool>;
+    { a.starts_with(b) } noexcept -> std::convertible_to<bool>;
+    { a[0] } noexcept -> std::convertible_to<typename T::value_type>;
+    { a.size() } noexcept -> std::convertible_to<std::size_t>;
+    { a.substr(pos, len) }  -> std::convertible_to<T>;
+    { a.length() } noexcept -> std::convertible_to<size_t>;
     T(s);
 };
+//template<typename T>
+//concept StringLike = std::convertible_to<T, std::string_view>;
+
 // Concept to check if a type supports streaming with '<<'
 template<typename T>
 concept Streaming = requires(std::ostream& os, const T& t) {
@@ -574,7 +574,7 @@ private:
         // Step 1: Find the node
         while (currentNode != nullptr && !remainingKey.empty()) {
             parentNode = currentNode;
-            auto it = currentNode->children.find(remainingKey.at(0));
+            auto it = currentNode->children.find(remainingKey[0]);
             
             if (it == currentNode->children.end()) {
                 return false; // Key not found
@@ -613,7 +613,7 @@ private:
 
             // Remove the leaf node if it does not have any children
             if(currentNode->children.empty())
-                parentNode->children.erase(currentNode->prefix.at(0));
+                parentNode->children.erase(currentNode->prefix[0]);
 
             // If the parent node is now a leaf and is not an end-of-word node, set it as the current node for the next iteration
             if (parentNode->children.empty() && !parentNode->isEndOfWord) {

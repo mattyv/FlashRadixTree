@@ -14,9 +14,9 @@ using namespace std;
 template <typename T>
 concept ComparableKeyType = requires(T a, T b)
 {
-    {a < b} -> std::convertible_to<bool>;
-    {a > b} -> std::convertible_to<bool>;
-    {a == b} -> std::convertible_to<bool>;
+    {a < b} noexcept-> std::convertible_to<bool>;
+    {a > b} noexcept-> std::convertible_to<bool>;
+    {a == b} noexcept -> std::convertible_to<bool>;
 };
 
 
@@ -342,6 +342,8 @@ private:
         }
         // Create a new node as we are sure we need to insert it.
         splay* new_node = _New_Node(key, std::forward<ValueType>(value));
+        if(! new_node)
+            return nullptr;
         
         // Calculate direction: 0 for LEFT, 1 for RIGHT
         const Child dir = static_cast<Child>(key > root->key);
@@ -459,14 +461,21 @@ private:
 
     splay* _New_Node(KeyType key, ValueType&& value) noexcept
     {
-        splay* p_node = new splay(key, std::forward<ValueType>(value));
-        p_node->children[LEFT] = p_node->children[RIGHT] = nullptr;
-        ++_size;
-        return p_node;
+        try
+        {
+            splay* p_node = new splay(key, std::forward<ValueType>(value));
+            p_node->children[LEFT] = p_node->children[RIGHT] = nullptr;
+            ++_size;
+            return p_node;
+        }
+        catch (const std::bad_alloc& e)
+        {
+            return nullptr;
+        }
     }
     
 
-    void _printInOrder(splay* root) noexcept
+    void _printInOrder(splay* root)
     {
         if (root)
         {
