@@ -7,6 +7,17 @@ project(MyProject VERSION 1.0)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+# Check if we are NOT compiling on Linux
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  add_definitions(-DNOT_LINUX)
+  # Set the sources that are not for Linux
+  set(NOT_LINUX_SOURCES
+    SomeAppleSpecificFile.cpp
+    SomeOtherNonLinuxSpecificFile.cpp
+    # ... other non-Linux-specific source files
+  )
+endif()
+
 # Add the executable
 add_executable(FlashRadixTree main.cpp)
 

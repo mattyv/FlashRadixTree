@@ -58,7 +58,7 @@ int main(int argc, const char * argv[]) {
     if(!RunTests())
         return 1;
     
-    
+#ifdef __APPLE__
     std::vector<std::string> symbols;
     std::ifstream file;
     file.open("/Users/matthew/Documents/Code/CPP/FlashRadixTree/FlashRadixTree/sample_data.txt");
@@ -643,6 +643,6 @@ int main(int argc, const char * argv[]) {
     for (unsigned int i = 0; i < topKeys.size(); ++i) {
         std::cout << sorted[i].second << std::endl;
     }
-    
+#endif
     return 0;
 }

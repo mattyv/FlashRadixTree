@@ -1,0 +1,32 @@
+name: CMake Build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Create Build Directory
+      run: mkdir build
+
+    - name: Change to Build Directory
+      run: cd build
+
+    #- name: Install Dependencies (if you have any)
+    #  run: sudo apt-get update && sudo apt-get install -y <your-dependencies>
+
+    - name: Configure CMake
+      run: cmake .. -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build
+      run: cmake --build .
+
+    - name: Run tests (Run the FlashRadixTree executable)
+      run: ./FlashRadixTree
