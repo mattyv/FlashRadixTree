@@ -8,6 +8,7 @@
 //  Version 3, 29 June 2007
 //
 
+#define ITERATORS_THROW_ON_DIFFERENT_TREES
 #include "FlashRadixTree.hpp"
 #include "Test.hpp"
 #include "SplayTree.hpp"

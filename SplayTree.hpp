@@ -41,13 +41,13 @@ public:
         ValueType value;
         splay* children[2] = {nullptr, nullptr};
         
-        constexpr bool operator==(const splay& rhs) const 
+        constexpr bool operator==(const splay& rhs) const
         {
             return key == rhs.key;
             //not checking children and value
         }
         
-        constexpr bool operator!=(const splay& rhs) const 
+        constexpr bool operator!=(const splay& rhs) const
         {
             return !(*this == rhs);
         }
@@ -69,7 +69,7 @@ private:
         bool _isEnd = true;
         IteratorDirection _direction = direction;
         
-        Xiterator(splay* node, const SplayTree* tree) 
+        Xiterator(splay* node, const SplayTree* tree)
         : _node(node), _tree(tree), _isEnd(node == nullptr || tree == nullptr)
         {
         }
@@ -99,7 +99,7 @@ private:
         }
                     
         
-        Xiterator& operator++() 
+        Xiterator& operator++()
         {
             if(_isEnd || _node == nullptr || _tree == nullptr)
             {
@@ -129,7 +129,7 @@ private:
             _isEnd = _node == nullptr;
             return *this;
         }
-        Xiterator& operator--() 
+        Xiterator& operator--()
         {
             if(_isEnd || _node == nullptr || _tree == nullptr)
             {
@@ -160,29 +160,37 @@ private:
             return *this;
         }
         //pre-increment
-        Xiterator operator++(int) 
+        Xiterator operator++(int)
         {
             Xiterator tmp = *this;
             ++(*this);
             return tmp;
         }
         //pre-decrement
-        Xiterator operator--(int) 
+        Xiterator operator--(int)
         {
             Xiterator tmp = *this;
             --(*this);
             return tmp;
         }
-        constexpr splay* operator->() const 
+        constexpr splay* operator->() const
         {
             return _node;
         }
-        constexpr splay* operator*() const 
+        constexpr splay* operator*() const
         {
             return _node;
         }
-        constexpr bool operator==(const Xiterator& rhs) const 
+        constexpr bool operator==(const Xiterator& rhs) const
         {
+#ifdef ITERATORS_THROW_ON_DIFFERENT_TREES
+            if(_tree != rhs._tree)
+                throw std::runtime_error("iterators are from different trees");
+#else
+            if(_tree != rhs._tree)
+                return false;
+#endif
+            
             if(_isEnd == rhs._isEnd)
                 return true;
             if(_node == nullptr && rhs._node == nullptr)
@@ -191,8 +199,16 @@ private:
                 return false;
             return *_node == *rhs._node;
         }
-        constexpr bool operator!=(const Xiterator& rhs) const 
+        constexpr bool operator!=(const Xiterator& rhs) const
         {
+#ifdef ITERATORS_THROW_ON_DIFFERENT_TREES
+            if(_tree != rhs._tree)
+                throw std::runtime_error("iterators are from different trees");
+#else
+            if(_tree != rhs._tree)
+                return true;
+#endif
+            
             if(_isEnd != rhs._isEnd)
                 return true;
             if(_node == nullptr && rhs._node == nullptr)
@@ -209,7 +225,7 @@ public:
     
     
     SplayTree()  = default;
-    ~SplayTree() 
+    ~SplayTree()
     {
         clear();
     }
@@ -225,7 +241,7 @@ public:
         other._root = nullptr;
         other._size = 0;
     }
-    constexpr splay* root() const 
+    constexpr splay* root() const
     {
         return _root;
     }
@@ -238,7 +254,7 @@ public:
         return _size;
     }
     
-    void clear() 
+    void clear()
     {
         while(_root != nullptr)
             erase(_root->key);
@@ -246,7 +262,7 @@ public:
         _size = 0;
     }
     
-    iterator insert(KeyType key, ValueType&& value) 
+    iterator insert(KeyType key, ValueType&& value)
     {
         _root = _insert(key, std::forward<ValueType>(value), _root);
         if(_root == nullptr)
@@ -256,7 +272,7 @@ public:
     
    
     
-    iterator find(KeyType key) const 
+    iterator find(KeyType key) const
     {
         _root = _find(key, _root);
         if((_root == nullptr ) || (_root && _root->key != key))
@@ -264,7 +280,7 @@ public:
         return iterator(_root, this);
     }
     
-    iterator erase(KeyType key) 
+    iterator erase(KeyType key)
     {
         _root = _erase(key, _root);
         if(_root == nullptr)
@@ -298,7 +314,7 @@ public:
         return _rendIt;
     }
     
-    void printInOrder() 
+    void printInOrder()
     {
         _printInOrder(_root);
     }
@@ -319,13 +335,13 @@ private:
     mutable splay* _root = nullptr;
     //sentinal node for end()
     //const splay _end = splay(Sentinal::END);
-    const iterator _endIt = iterator(nullptr, nullptr);
+    const iterator _endIt = iterator(nullptr, this);
     //sentinal node for rend()
     //const splay _rend = splay(Sentinal::REND);
-    const reverse_iterator _rendIt = reverse_iterator(nullptr, nullptr);
+    const reverse_iterator _rendIt = reverse_iterator(nullptr, this);
     size_t _size = 0;
     
-    splay* _insert(KeyType key, ValueType&& value, splay* root) 
+    splay* _insert(KeyType key, ValueType&& value, splay* root)
     {
         if (!root) {
             // If there is no root, create a new node and return it.
@@ -359,7 +375,7 @@ private:
         return new_node;
     }
     
-    splay* _erase(KeyType key, splay* root) 
+    splay* _erase(KeyType key, splay* root)
     {
         if (!root)
             return nullptr;
@@ -383,7 +399,7 @@ private:
         delete temp;
         return root;
     }
-    splay* _find(KeyType key, splay* root) const 
+    splay* _find(KeyType key, splay* root) const
     {
         return _splay(key, root);
     }
@@ -406,7 +422,7 @@ private:
     }
     
     // An implementation of top-down splay tree
-    splay* _splay(KeyType key, splay* root) const 
+    splay* _splay(KeyType key, splay* root) const
     {
         if (!root)
             return nullptr;
