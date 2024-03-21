@@ -358,148 +358,167 @@ public:
     
     iterator insert(const Key& key, Value&& value)
     {
+        //track any sucessfull changes made. if an allocaiton error exception occurs we can unwind
+        std::stack<std::pair<typename FlashRadixTreeNode::Children*, char>> changes_made;
         if (_root == nullptr) {
             // If the root doesn't exist, create it.
             _root = std::make_unique<FlashRadixTreeNode>();
         }
         
-        FlashRadixTreeNode* currentNode = _root.get();
-        FlashRadixTreeNode* inserted = nullptr;
-        Key remaining = key;
-        
-        while (!remaining.empty()) {
-            const typename FlashRadixTreeNode::Children::iterator& it = currentNode->children.find(remaining[0]);
+        try
+        {
+            FlashRadixTreeNode* currentNode = _root.get();
+            FlashRadixTreeNode* inserted = nullptr;
+            Key remaining = key;
             
-            if( it != currentNode->children.end()) {
-                // Found a common prefix, split the edge if necessary
+            while (!remaining.empty()) {
+                const typename FlashRadixTreeNode::Children::iterator& it = currentNode->children.find(remaining[0]);
+                
+                if( it != currentNode->children.end()) {
+                    // Found a common prefix, split the edge if necessary
 #if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
-                const typename Key::value_type edgeKey = it->key;
-                FlashRadixTreeNode* childNode = it->value.get();
+                    const typename Key::value_type edgeKey = it->key;
+                    FlashRadixTreeNode* childNode = it->value.get();
 #else
-                const typename Key::value_type edgeKey = it->first;
-                FlashRadixTreeNode* childNode = it->second.get();
+                    const typename Key::value_type edgeKey = it->first;
+                    FlashRadixTreeNode* childNode = it->second.get();
 #endif
-                const Key& edge = childNode->prefix; // Assuming first is the key in the SplayTree
-                
-                // Determine the common prefix length
-                size_t commonPrefixLength = 0;
-                bool lineIsWholePrefix = false;
-                while (commonPrefixLength < remaining.size() && commonPrefixLength < edge.size()
-                       && remaining[commonPrefixLength] == edge[commonPrefixLength]) {
-                    ++commonPrefixLength;
-                    lineIsWholePrefix = commonPrefixLength == remaining.size();
-                }
-                
-                if (commonPrefixLength < edge.length()) {
-                    // Split the edge
-                    const Key& commonPrefix = edge.substr(0, commonPrefixLength);
-                    const Key& suffixEdge = edge.substr(commonPrefixLength);
+                    const Key& edge = childNode->prefix; // Assuming first is the key in the SplayTree
                     
+                    // Determine the common prefix length
+                    size_t commonPrefixLength = 0;
+                    bool lineIsWholePrefix = false;
+                    while (commonPrefixLength < remaining.size() && commonPrefixLength < edge.size()
+                           && remaining[commonPrefixLength] == edge[commonPrefixLength]) {
+                        ++commonPrefixLength;
+                        lineIsWholePrefix = commonPrefixLength == remaining.size();
+                    }
                     
-                    // Create a new node for the common prefix
-                    auto newChild = std::make_unique<FlashRadixTreeNode>(commonPrefix, std::move((lineIsWholePrefix ? std::forward<Value>(value) : Value())), lineIsWholePrefix, currentNode);
-                    inserted = newChild.get();
-                    
-                    //new node will take over location of old node in the list followed by existing split node
-                    if(_firstWord == childNode)
-                        _firstWord = inserted;
-                    inserted->prev = childNode->prev;
-                    childNode->prev = inserted;
-                    inserted->next = childNode;
-                    
-                    // The new node should adopt the existing child node
-                    childNode->prefix = suffixEdge;
+                    if (commonPrefixLength < edge.length()) {
+                        // Split the edge
+                        const Key& commonPrefix = edge.substr(0, commonPrefixLength);
+                        const Key& suffixEdge = edge.substr(commonPrefixLength);
+                        
+                        
+                        // Create a new node for the common prefix
+                        auto newChild = std::make_unique<FlashRadixTreeNode>(commonPrefix, std::move((lineIsWholePrefix ? std::forward<Value>(value) : Value())), lineIsWholePrefix, currentNode);
+                        inserted = newChild.get();
+                        
+                        //new node will take over location of old node in the list followed by existing split node
+                        if(_firstWord == childNode)
+                            _firstWord = inserted;
+                        inserted->prev = childNode->prev;
+                        childNode->prev = inserted;
+                        inserted->next = childNode;
+                        
+                        // The new node should adopt the existing child node
+                        childNode->prefix = suffixEdge;
 #if defined( USE_SPLAY_TREE)  || defined USE_CHAR_MAP
-                    newChild->children.insert(suffixEdge[0], std::move(it->value));
+                        newChild->children.insert(suffixEdge[0], std::move(it->value));
 #else
-                    newChild->children.emplace(suffixEdge[0], std::move(it->value));
+                        newChild->children.emplace(suffixEdge[0], std::move(it->value));
 #endif
-                    childNode->parent = newChild.get();
-                    currentNode->children.erase(edgeKey);
-                    
-                    // Insert the new child with the common prefix in the current node's children
+                        changes_made.push(std::make_pair(&currentNode->children, suffixEdge[0]));//save change made in case we run into bad alloc
+                        childNode->parent = newChild.get();
+                        currentNode->children.erase(edgeKey);
+                        
+                        // Insert the new child with the common prefix in the current node's children
 #if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
-                    auto itNewChild = currentNode->children.insert(commonPrefix[0], std::move(newChild));
-                    currentNode = itNewChild->value.get();
+                        auto itNewChild = currentNode->children.insert(commonPrefix[0], std::move(newChild));
+                        currentNode = itNewChild->value.get();
 #else
-                    auto itNewChild = currentNode->children.emplace(commonPrefix[0], std::move(newChild));
-                    currentNode = itNewChild.first->second;
+                        auto itNewChild = currentNode->children.emplace(commonPrefix[0], std::move(newChild));
+                        currentNode = itNewChild.first->second;
 #endif
+                        changes_made.push(std::make_pair(&currentNode->children, commonPrefix[0]));//save change made in case we run into bad alloc
+                    } else {
+                        // Entire edge is a common prefix, proceed with the child node
+                        currentNode = childNode;
+                        if(currentNode->isEndOfWord && currentNode->deleted)
+                        {
+                            //if the current node is deleted, then we can insert the value here
+                            currentNode->value = std::move(value);
+                            currentNode->deleted = false;
+                            inserted = currentNode;
+                        }
+                    }
+                    
+                    // Update the remaining part of the key to insert
+                    remaining = remaining.substr(commonPrefixLength);
                 } else {
-                    // Entire edge is a common prefix, proceed with the child node
-                    currentNode = childNode;
-                    if(currentNode->isEndOfWord && currentNode->deleted)
-                    {
-                        //if the current node is deleted, then we can insert the value here
-                        currentNode->value = std::move(value);
-                        currentNode->deleted = false;
-                        inserted = currentNode;
-                    }
-                }
-                
-                // Update the remaining part of the key to insert
-                remaining = remaining.substr(commonPrefixLength);
-            } else {
-                // No common prefix found, create a new edge for the remaining part of the key
-                auto newNode = std::make_unique <FlashRadixTreeNode>(remaining, std::forward<Value>(value), currentNode);
-                const char newKey = remaining[0];
-                typename FlashRadixTreeNode::Children::iterator lowerBound;
+                    // No common prefix found, create a new edge for the remaining part of the key
+                    auto newNode = std::make_unique <FlashRadixTreeNode>(remaining, std::forward<Value>(value), currentNode);
+                    const char newKey = remaining[0];
+                    typename FlashRadixTreeNode::Children::iterator lowerBound;
 #if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
-                if(_firstWord)
-                    lowerBound = currentNode->children.find_predecessor(newKey);
+                    if(_firstWord)
+                        lowerBound = currentNode->children.find_predecessor(newKey);
                     
-                auto itNewNode = currentNode->children.insert(newKey, std::move(newNode));
-                inserted = itNewNode->value.get();
+                    auto itNewNode = currentNode->children.insert(newKey, std::move(newNode));
+                    changes_made.push(std::make_pair(&currentNode->children, newKey)); //save change made in case we run into bad alloc
+                    inserted = itNewNode->value.get();
 #else
-                if(_firstWord)
-                {
-                    lowerBound = currentNode->children.lower_bound(newKey);
-                    if(lowerBound != currentNode->children.end())
+                    if(_firstWord)
                     {
-                        if(lowerBound->first == newKey)
-                            --lowerBound;
+                        lowerBound = currentNode->children.lower_bound(newKey);
+                        if(lowerBound != currentNode->children.end())
+                        {
+                            if(lowerBound->first == newKey)
+                                --lowerBound;
+                        }
                     }
-                }
-                auto itNewNode = currentNode->children.emplace(newKey, std::move(newNode));
-                inserted = itNewNode.first->second.get();
+                    auto itNewNode = currentNode->children.emplace(newKey, std::move(newNode));
+                    inserted = itNewNode.first->second.get();
 #endif
-                itNewNode->value->isEndOfWord = true;
-                
-                //update the firstword
-                if(_firstWord == nullptr)
-                    _firstWord = inserted;
-                else if(lowerBound != currentNode->children.end())
-                {
-                    auto* lowerNode = lowerBound->value.get();
-                    if(!lowerNode->children.empty())
-                        lowerNode = _getMaximum(lowerNode);
-                    inserted->prev = lowerNode;
-                    inserted->next = lowerNode->next;
-                    lowerNode->next = inserted;
-                }
-                else if(currentNode->children.size() == 1) //no other children to link to so we link with the last node of the children above
-                {
-                    auto* parent = currentNode->parent;
-                    if(parent)
+                    itNewNode->value->isEndOfWord = true;
+                    
+                    //update the firstword
+                    if(_firstWord == nullptr)
+                        _firstWord = inserted;
+                    else if(lowerBound != currentNode->children.end())
                     {
-                        auto* last = parent->children.rbegin()->value.get();
-                        last->next = inserted;
-                        inserted->prev = last;
+                        auto* lowerNode = lowerBound->value.get();
+                        if(!lowerNode->children.empty())
+                            lowerNode = _getMaximum(lowerNode);
+                        inserted->prev = lowerNode;
+                        inserted->next = lowerNode->next;
+                        lowerNode->next = inserted;
                     }
+                    else if(currentNode->children.size() == 1) //no other children to link to so we link with the last node of the children above
+                    {
+                        auto* parent = currentNode->parent;
+                        if(parent)
+                        {
+                            auto* last = parent->children.rbegin()->value.get();
+                            last->next = inserted;
+                            inserted->prev = last;
+                        }
+                    }
+                    
+                    
+                    // As we've inserted the rest of the key, we're done
+                    remaining = Key();
+                    currentNode = inserted;
                 }
-                
-                
-                // As we've inserted the rest of the key, we're done
-                remaining = Key();
-                currentNode = inserted;
+            }
+            if(inserted == nullptr)
+                return _endIt;
+            else
+            {
+                ++_size;
+                return iterator(inserted, this);
             }
         }
-        if(inserted == nullptr)
-            return _endIt;
-        else
+        catch (const std::bad_alloc&)
         {
-            ++_size;
-            return iterator(inserted, this);
+            //unwind changes from the stack and rethrow
+            while(!changes_made.empty())
+            {
+                auto& [node, key] = changes_made.top();
+                node->erase(key);
+                changes_made.pop();
+            }
+            throw std::bad_alloc();
         }
     }
     

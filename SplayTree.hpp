@@ -351,6 +351,7 @@ private:
         }
         // Create a new node as we are sure we need to insert it.
         splay* new_node = _New_Node(key, std::forward<ValueType>(value));
+        //any bad alloc at this point have not made substantial changes so we're ok to let the go uncaught here
         if(! new_node)
             return nullptr;
         
@@ -470,17 +471,10 @@ private:
 
     splay* _New_Node(KeyType key, ValueType&& value)
     {
-        try
-        {
-            splay* p_node = new splay(key, std::forward<ValueType>(value));
+        splay* p_node = new splay(key, std::forward<ValueType>(value));
             p_node->children[LEFT] = p_node->children[RIGHT] = nullptr;
             ++_size;
             return p_node;
-        }
-        catch (const std::bad_alloc& e)
-        {
-            return nullptr;
-        }
     }
     
 
