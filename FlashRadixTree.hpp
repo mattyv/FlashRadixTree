@@ -157,6 +157,8 @@ private:
         
         bool operator==(const XFlashRadixTreeIterator& other) const
         {
+            if(_tree != other._tree)
+                return false;
             if(_end && other._end)
                 return true;
             if(_node == nullptr && other._node == nullptr)
@@ -466,7 +468,7 @@ public:
                 //update the firstword
                 if(_firstWord == nullptr)
                     _firstWord = inserted;
-                if(lowerBound != currentNode->children.end())
+                else if(lowerBound != currentNode->children.end())
                 {
                     auto* lowerNode = lowerBound->value.get();
                     if(!lowerNode->children.empty())
