@@ -183,6 +183,8 @@ private:
         }
         constexpr bool operator==(const Xiterator& rhs) const
         {
+            if(_tree != rhs._tree)
+                return false;
             if(_isEnd == rhs._isEnd)
                 return true;
             if(_node == nullptr && rhs._node == nullptr)
@@ -193,6 +195,8 @@ private:
         }
         constexpr bool operator!=(const Xiterator& rhs) const
         {
+            if(_tree != rhs._tree)
+                return true;
             if(_isEnd != rhs._isEnd)
                 return true;
             if(_node == nullptr && rhs._node == nullptr)
@@ -326,11 +330,9 @@ public:
 private:
     mutable splay* _root = nullptr;
     //sentinal node for end()
-    //const splay _end = splay(Sentinal::END);
-    const iterator _endIt = iterator(nullptr, nullptr);
+    const iterator _endIt = iterator(nullptr, this);
     //sentinal node for rend()
-    //const splay _rend = splay(Sentinal::REND);
-    const reverse_iterator _rendIt = reverse_iterator(nullptr, nullptr);
+    const reverse_iterator _rendIt = reverse_iterator(nullptr, this);
     size_t _size = 0;
     
     splay* _insert(KeyType key, ValueType&& value, splay* root)
