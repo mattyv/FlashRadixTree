@@ -944,6 +944,22 @@ bool RunTests()
     }
     
 
+    bool okOOM = false;
+    FlashRadixTree<std::string, int, MatchMode::Exact> rTreeExactOOM;
+    try
+    {
+        rTreeExactOOM.insert("A", 1);
+        rTreeExactOOM.insert("B", 2);
+    }
+    catch(const std::bad_alloc& e)
+    {
+        okOOM = true;
+    }
+    if(!okOOM)
+    {
+        std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        return false;
+    }
     
     std::cout << "Unit tests passed" << std::endl;
     return true;

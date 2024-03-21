@@ -20,7 +20,7 @@ concept ComparableKeyType = requires(T a, T b)
 };
 
 
-template <ComparableKeyType KeyType, typename ValueType>
+template <ComparableKeyType KeyType, typename ValueType, typename Allocator = std::allocator<ValueType>>
 class SplayTree
 {
 public:
@@ -208,11 +208,14 @@ private:
         friend SplayTree;
     };
 public:
+    using SplayNodeAllocator = typename std::allocator_traits<Allocator>::template rebind_alloc<splay>;
     using iterator = Xiterator<IteratorDirection::FORWARD>;
     using reverse_iterator = Xiterator<IteratorDirection::REVERSE>;
     
     
-    SplayTree()  = default;
+    explicit SplayTree(const SplayNodeAllocator& allocator = SplayNodeAllocator())
+        : _node_allocator(allocator)
+    {}
     ~SplayTree()
     {
         clear();
@@ -334,6 +337,7 @@ private:
     //sentinal node for rend()
     const reverse_iterator _rendIt = reverse_iterator(nullptr, this);
     size_t _size = 0;
+    SplayNodeAllocator _node_allocator;
     
     splay* _insert(KeyType key, ValueType&& value, splay* root)
     {
@@ -391,7 +395,7 @@ private:
             root->children[RIGHT] = temp->children[RIGHT];
         }
         --_size;
-        delete temp;
+        _destroy_node( temp);
         return root;
     }
     splay* _find(KeyType key, splay* root) const
@@ -471,10 +475,19 @@ private:
 
     splay* _New_Node(KeyType key, ValueType&& value)
     {
-        splay* p_node = new splay(key, std::forward<ValueType>(value));
-            p_node->children[LEFT] = p_node->children[RIGHT] = nullptr;
-            ++_size;
-            return p_node;
+        splay* p_node = _node_allocator.allocate(1);
+        new (p_node) splay(key, std::forward<ValueType>(value));
+        ++_size;
+        return p_node;
+    }
+    
+    void _destroy_node(splay* node)
+    {
+        if (node != nullptr)
+        {
+            node->~splay();                     // Call the destructor for the node
+            _node_allocator.deallocate(node, 1); // Deallocate the node's memory
+        }
     }
     
 
