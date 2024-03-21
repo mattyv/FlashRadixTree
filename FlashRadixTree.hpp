@@ -113,12 +113,14 @@ private:
         XFlashRadixTreeIterator& operator++()  noexcept
         {
             if (_direction == IteratorDirection::FORWARD) {
-                while(_node != nullptr && !_node->isEndOfWord)
+                do{
                     _node = _node->next;
+                }while(_node != nullptr && (!_node->isEndOfWord || _node->deleted));
             }
             else {
-                while(_node != nullptr && !_node->isEndOfWord)
+                do{
                     _node = _node->prev;
+                }while(_node != nullptr && (!_node->isEndOfWord || _node->deleted));
             }
             _end = _node == nullptr;
             return *this;
@@ -126,12 +128,14 @@ private:
         XFlashRadixTreeIterator& operator--()  noexcept
         {
             if (_direction == IteratorDirection::FORWARD) {
-                while(_node != nullptr && !_node->isEndOfWord)
+                do{
                     _node = _node->prev;
+                }while(_node != nullptr && (!_node->isEndOfWord || _node->deleted));
             }
             else {
-                while(_node != nullptr && !_node->isEndOfWord)
+                do{
                     _node = _node->next;
+                }while(_node != nullptr && (!_node->isEndOfWord || _node->deleted));
             }
             _end = _node == nullptr;
             return *this;
@@ -196,24 +200,25 @@ public:
         bool deleted = false;
         FlashRadixTreeNode* next = nullptr;
         FlashRadixTreeNode* prev = nullptr;
+        FlashRadixTreeNode* parent = nullptr;
     private:
         mutable std::optional<std::string> fullKey;
     public:
         
-        FlashRadixTreeNode(const Key& prefix, Value&& value )
-        : isEndOfWord(false), value(std::move(value)), prefix(prefix)
+        FlashRadixTreeNode(const Key& prefix, Value&& value, FlashRadixTreeNode* parent )
+        : isEndOfWord(false), value(std::move(value)), prefix(prefix), parent(parent)
         {};
         
-        FlashRadixTreeNode(const Key& prefix, const Value& value)
-        : isEndOfWord(false), value(value), prefix(prefix)
+        FlashRadixTreeNode(const Key& prefix, const Value& value, FlashRadixTreeNode* parent )
+        : isEndOfWord(false), value(value), prefix(prefix), parent(parent)
         {};
         
-        FlashRadixTreeNode(const Key& prefix, Value&& value, bool isEndOfWord)
-        : isEndOfWord(isEndOfWord), value(std::move(value)), prefix(prefix)
+        FlashRadixTreeNode(const Key& prefix, Value&& value, bool isEndOfWord, FlashRadixTreeNode* parent )
+        : isEndOfWord(isEndOfWord), value(std::move(value)), prefix(prefix), parent(parent)
         {};
         
-        FlashRadixTreeNode(const Key& prefix, const Value& value, bool isEndOfWord)
-        : isEndOfWord(isEndOfWord), value(value), prefix(prefix)
+        FlashRadixTreeNode(const Key& prefix, const Value& value, bool isEndOfWord, FlashRadixTreeNode* parent )
+        : isEndOfWord(isEndOfWord), value(value), prefix(prefix), parent(parent)
         {};
         
         FlashRadixTreeNode() = default;
@@ -265,7 +270,7 @@ public:
         
         Key getFullKey() const
         {
-            /*if(fullKey.has_value())
+            if(fullKey.has_value())
                 return fullKey.value();
             
             //traverse up levels and prefix the key
@@ -277,8 +282,7 @@ public:
             for(auto p = parent; p != nullptr; p = p->parent) {
                 fullKey.value().insert(0, p->prefix);
             }
-            return fullKey.value();*/
-            return prefix;  //todo: come back to this.
+            return fullKey.value();
         }
         
         void setDeleted()  noexcept
@@ -340,7 +344,7 @@ public:
     }
     
     reverse_iterator rbegin() const  noexcept {
-        const auto node =  _getMaximum();
+        const auto node =  _getMaximum(_root.get());
         if(node == nullptr) {
             return _rendIt;
         }
@@ -392,15 +396,15 @@ public:
                     
                     
                     // Create a new node for the common prefix
-                    auto newChild = std::make_unique<FlashRadixTreeNode>(commonPrefix, std::move((lineIsWholePrefix ? std::forward<Value>(value) : Value())), lineIsWholePrefix);
+                    auto newChild = std::make_unique<FlashRadixTreeNode>(commonPrefix, std::move((lineIsWholePrefix ? std::forward<Value>(value) : Value())), lineIsWholePrefix, currentNode);
                     inserted = newChild.get();
                     
                     //new node will take over location of old node in the list followed by existing split node
                     if(_firstWord == childNode)
                         _firstWord = inserted;
-                    newChild->prev = childNode->prev;
-                    childNode->prev = newChild.get();
-                    newChild->next = childNode;
+                    inserted->prev = childNode->prev;
+                    childNode->prev = inserted;
+                    inserted->next = childNode;
                     
                     // The new node should adopt the existing child node
                     childNode->prefix = suffixEdge;
@@ -409,6 +413,7 @@ public:
 #else
                     newChild->children.emplace(suffixEdge[0], std::move(it->value));
 #endif
+                    childNode->parent = newChild.get();
                     currentNode->children.erase(edgeKey);
                     
                     // Insert the new child with the common prefix in the current node's children
@@ -435,35 +440,57 @@ public:
                 remaining = remaining.substr(commonPrefixLength);
             } else {
                 // No common prefix found, create a new edge for the remaining part of the key
-                auto newNode = std::make_unique <FlashRadixTreeNode>(remaining, std::forward<Value>(value));
+                auto newNode = std::make_unique <FlashRadixTreeNode>(remaining, std::forward<Value>(value), currentNode);
                 const char newKey = remaining[0];
-#if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
                 typename FlashRadixTreeNode::Children::iterator lowerBound;
+#if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
                 if(_firstWord)
-                    lowerBound = currentNode->children.lower_bound(newKey);
+                    lowerBound = currentNode->children.find_predecessor(newKey);
+                    
                 auto itNewNode = currentNode->children.insert(newKey, std::move(newNode));
-                currentNode = itNewNode->value.get();
+                inserted = itNewNode->value.get();
 #else
+                if(_firstWord)
+                {
+                    lowerBound = currentNode->children.lower_bound(newKey);
+                    if(lowerBound != currentNode->children.end())
+                    {
+                        if(lowerBound->first == newKey)
+                            --lowerBound;
+                    }
+                }
                 auto itNewNode = currentNode->children.emplace(newKey, std::move(newNode));
-                currentNode = itNewNode.first->second.get();
+                inserted = itNewNode.first->second.get();
 #endif
                 itNewNode->value->isEndOfWord = true;
                 
                 //update the firstword
                 if(_firstWord == nullptr)
-                    _firstWord = currentNode;
+                    _firstWord = inserted;
                 if(lowerBound != currentNode->children.end())
                 {
                     auto* lowerNode = lowerBound->value.get();
-                    currentNode->prev = lowerNode;
-                    currentNode->next = lowerNode->next;
-                    lowerNode->next = currentNode;
+                    if(!lowerNode->children.empty())
+                        lowerNode = _getMaximum(lowerNode);
+                    inserted->prev = lowerNode;
+                    inserted->next = lowerNode->next;
+                    lowerNode->next = inserted;
+                }
+                else if(currentNode->children.size() == 1) //no other children to link to so we link with the last node of the children above
+                {
+                    auto* parent = currentNode->parent;
+                    if(parent)
+                    {
+                        auto* last = parent->children.rbegin()->value.get();
+                        last->next = inserted;
+                        inserted->prev = last;
+                    }
                 }
                 
                 
                 // As we've inserted the rest of the key, we're done
                 remaining = Key();
-                inserted = currentNode;
+                currentNode = inserted;
             }
         }
         if(inserted == nullptr)
@@ -700,17 +727,17 @@ private:
     FlashRadixTreeNode* _getMinimum() const  noexcept
     {
         auto* node = _firstWord;
-        while(node != nullptr && !node->isEndOfWord)
+        while(node != nullptr && (!node->isEndOfWord || node->deleted))
             node = node->next;
         return node;
     }
     
-    FlashRadixTreeNode* _getMaximum() const  noexcept
+    FlashRadixTreeNode* _getMaximum(FlashRadixTreeNode* root) const  noexcept
     {
-        if(_root == nullptr)
+        if(root == nullptr)
             return nullptr;
         
-        auto* children = &_root->children;
+        auto* children = &root->children;
         auto it = children->rbegin();
         while( children != nullptr)
         {
@@ -720,7 +747,11 @@ private:
             it = check;
             children = &it->value->children;
         }
-        return it->value.get();
+        auto* node = it->value.get();
+        //hunt backwards for a node which is not deleted
+        while(node != nullptr && (!node->isEndOfWord || node->deleted))
+            node = node->prev;
+        return node;
     }
     
 };

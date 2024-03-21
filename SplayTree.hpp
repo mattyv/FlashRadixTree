@@ -264,7 +264,7 @@ public:
         return iterator(_root, this);
     }
     
-    iterator lower_bound(KeyType key) const
+    iterator find_predecessor(KeyType key) const
     {
         _root = _find(key, _root);
         if(_root == nullptr)
