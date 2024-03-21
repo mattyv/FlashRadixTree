@@ -333,6 +333,72 @@ int main(int argc, const char * argv[]) {
     
     std::cout << std::endl;
     
+    //iterate forwards and compare to unique keys
+    std::stringstream ssUniqueSymbolsForwards;
+    for (auto symbol : uniqueSymbols) {
+        ssUniqueSymbolsForwards << symbol << " ";
+    }
+    
+    std::stringstream ssTreeForwards;
+    for (auto it = tree.begin(); it != tree.end(); ++it) {
+        ssTreeForwards << it->getFullKey() << " ";
+    }
+    
+    std::string uniqueSymbolsForwards = ssUniqueSymbolsForwards.str();
+    std::string treeForwards = ssTreeForwards.str();
+    //compare
+    if (uniqueSymbolsForwards != treeForwards) {
+        std::cerr << "Tree forwards iterator does not match unique keys" << std::endl;
+        
+        //iterate again and stop at the difference
+        auto itUnique = uniqueSymbols.begin();
+        auto itTree = tree.begin();
+        while (itUnique != uniqueSymbols.end() && itTree != tree.end()) {
+            std::cout << *itUnique << " " << itTree->getFullKey() << std::endl;
+            if (*itUnique != itTree->getFullKey()) {
+                std::cerr << "Mismatch at " << *itUnique << " " << itTree->getFullKey() << std::endl;
+                break;
+            }
+            ++itUnique;
+            ++itTree;
+        }
+    }
+    else
+        std::cout << "Tree forwards iterator matches unique keys" << std::endl;
+    
+    //same test but in reverse
+    std::stringstream ssUniqueSymbolsReverse;
+    for (auto symbol = uniqueSymbols.rbegin(); symbol != uniqueSymbols.rend(); ++symbol) {
+        ssUniqueSymbolsReverse << *symbol << " ";
+    }
+    
+    std::stringstream ssTreeReverse;
+    for (auto it = tree.rbegin(); it != tree.rend(); ++it) {
+        ssTreeReverse << it->getFullKey() << " ";
+    }
+    
+    std::string uniqueSymbolsReverse = ssUniqueSymbolsReverse.str();
+    std::string treeReverse = ssTreeReverse.str();
+    //compare
+    if (uniqueSymbolsReverse != treeReverse) {
+        std::cerr << "Tree reverse iterator does not match unique keys" << std::endl;
+        
+        //iterate again and stop at the difference
+        auto itUnique = uniqueSymbols.rbegin();
+        auto itTree = tree.rbegin();
+        while (itUnique != uniqueSymbols.rend() && itTree != tree.rend()) {
+            std::cout << *itUnique << " " << itTree->getFullKey() << std::endl;
+            if (*itUnique != itTree->getFullKey()) {
+                std::cerr << "Mismatch at " << *itUnique << " " << itTree->getFullKey() << std::endl;
+                break;
+            }
+            ++itUnique;
+            ++itTree;
+        }
+    }
+    else
+        std::cout << "Tree reverse iterator matches unique keys" << std::endl;
+    
     //search for all symbols runNumber times
     agg_min_hash = 1e300;
     agg_avg_hash = 0.0;
