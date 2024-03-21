@@ -317,8 +317,7 @@ public:
     
     FlashRadixTree(const FlashRadixTree& ) = delete;
     FlashRadixTree(FlashRadixTree&& other) noexcept
-    : _root(other._root), _firstWord(other._firstWord), _size(other._size) {
-        other._root = nullptr;
+    : _root(std::move(other._root)), _firstWord(other._firstWord), _size(other._size) {
         other._firstWord = nullptr;
         other._size = 0;
     }
