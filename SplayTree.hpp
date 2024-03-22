@@ -232,6 +232,11 @@ public:
         other._root = nullptr;
         other._size = 0;
     }
+    
+    constexpr const SplayNodeAllocator& get_allocator() const noexcept
+    {
+        return _node_allocator;
+    }
     constexpr splay* root() const
     {
         return _root;

@@ -4,6 +4,51 @@
 #include <unordered_map>
 #include "FlashRadixTree.hpp"
 
+//custom allocator to limit construction to 1 element
+static int throwOnAllocCount = 1;
+template <typename T>
+class ThrowingAllocationAllocator {
+private:
+    static int count;
+public:
+    using value_type = T;
+    //bool has_allocated = false;
+
+    ThrowingAllocationAllocator() = default;
+
+    template <class U>
+    constexpr ThrowingAllocationAllocator(const ThrowingAllocationAllocator<U>&) noexcept {}
+
+    T* allocate(std::size_t n) {
+        //static int count = 0;
+        ++count;
+        std::cout << "Allocation count: " << count << std::endl;
+        if (count > throwOnAllocCount ){//|| has_allocated) {
+            throw std::bad_alloc();
+        }
+        //has_allocated = true;
+        return static_cast<T*>(::operator new(n * sizeof(T)));
+    }
+
+    void deallocate(T* p, std::size_t n) noexcept {
+        /*if (n != 1) {
+            std::cerr << "This allocator can only deallocate one element at a time" << std::endl;
+            return;
+        }*/
+        ::operator delete(p);
+       // has_allocated = false;
+    }
+};
+
+template <typename T>
+int ThrowingAllocationAllocator<T>::count = 0;
+
+template <class T, class U>
+bool operator==(const ThrowingAllocationAllocator<T>&, const ThrowingAllocationAllocator<U>&) { return true; }
+
+template <class T, class U>
+bool operator!=(const ThrowingAllocationAllocator<T>&, const ThrowingAllocationAllocator<U>&) { return false; }
+
 bool RunTests()
 {
     std::cout << "Testing out radix tree \n";
@@ -943,18 +988,56 @@ bool RunTests()
         return false;
     }
     
-
+    
+   
+    
+    //test out of memory
     bool okOOM = false;
-    FlashRadixTree<std::string, int, MatchMode::Exact> rTreeExactOOM;
+    FlashRadixTree<std::string, int, MatchMode::Exact, ThrowingAllocationAllocator<FlashRadixTree<string, int>::FlashRadixTreeNode>> rTreeExactOOM;
+    throwOnAllocCount = 3;
     try
     {
-        rTreeExactOOM.insert("A", 1);
-        rTreeExactOOM.insert("B", 2);
+        rTreeExactOOM.insert("AA", 1);
+        rTreeExactOOM.insert("AB", 2);
     }
     catch(const std::bad_alloc& e)
     {
         okOOM = true;
+        
+        //test not finding AB
+        auto valExpectOOM = rTreeExactOOM.find("AB");
+        if(valExpectOOM != rTreeExactOOM.end())
+        {
+            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+            return false;
+        }
+        
+        //test size ==1
+        if(rTreeExactOOM.size() != 1)
+        {
+            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+            return false;
+        }
+        //test serialization
+        FlashRadixTreeSerializer<std::string, int, MatchMode::Exact, ThrowingAllocationAllocator<FlashRadixTree<string, int>::FlashRadixTreeNode>> serializerOOM;
+        std::string got = serializerOOM.serialize(rTreeExactOOM);
+        std::string expected = "+[,0,*,<+[AA,1,√,<->]>]";
+        if(got != expected)
+        {
+            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+            std::cout << "Got:      " << got << "\nExpected: " << expected << std::endl;
+            return false;
+        }
+        //test find AA
+        valExpectOOM = rTreeExactOOM.find("AA");
+        if(valExpectOOM == rTreeExactOOM.end() || valExpectOOM->value != 1)
+        {
+            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+            return false;
+        }
     }
+        
+    
     if(!okOOM)
     {
         std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;

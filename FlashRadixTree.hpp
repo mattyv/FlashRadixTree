@@ -29,6 +29,34 @@
 #include <optional>
 
 
+
+template <typename T, typename Alloc, typename... Args>
+std::unique_ptr<T, std::function<void(T*)>> make_unique_alloc(Alloc alloc, Args&&... args)
+{
+    using AllocTraits = std::allocator_traits<Alloc>;
+    using pointer = typename AllocTraits::pointer;
+
+    // Allocate space for one object of type T
+    pointer ptr = AllocTraits::allocate(alloc, 1);
+
+    // Construct an object of type T with the provided arguments
+    AllocTraits::construct(alloc, ptr, std::forward<Args>(args)...);
+
+    // Create a custom deleter as a lambda function that captures the allocator by value
+    auto deleter = [alloc](T* ptr) mutable {
+        AllocTraits::destroy(alloc, ptr); // Call destructor
+        AllocTraits::deallocate(alloc, ptr, 1); // Deallocate memory
+    };
+
+    // Define the deleter type
+    using DeleterType = std::function<void(T*)>;
+
+    // Create and return a unique_ptr with the custom deleter
+    return std::unique_ptr<T, DeleterType>(ptr, deleter);
+}
+
+
+
 template<typename T>
 concept IsBasicString = requires {
     typename T::traits_type;
@@ -62,26 +90,14 @@ enum class MatchMode {
 };
 
 
-template <BasicStringOrBasicStringView Key, Streaming Value, MatchMode MatchMode = MatchMode::Exact, typename Allocator = std::allocator<Value>>
+template <BasicStringOrBasicStringView Key, Streaming Value, MatchMode MatchMode = MatchMode::Exact, typename Allocator = std::allocator<std::unique_ptr<Value>>>
 class FlashRadixTree {
     enum class Sentinal { END, REND, NONE };
 public:
     class FlashRadixTreeNode;
-    using TreeNodeAllocator = typename Allocator::template rebind<FlashRadixTreeNode>::other;
+    using TreeNodeAllocator = typename std::allocator_traits<Allocator>::template rebind_alloc<FlashRadixTreeNode>;
+    using UniquePtrAlloc = std::unique_ptr<FlashRadixTreeNode, std::function<void(FlashRadixTreeNode*)>>;
 private:
-    
-    struct Deleter {
-        TreeNodeAllocator& allocator;
-
-        Deleter(TreeNodeAllocator& allocator) noexcept : allocator(allocator) {}
-
-        void operator()(FlashRadixTreeNode* node) {
-            if (node != nullptr) {
-                node->~FlashRadixTreeNode();
-                allocator.deallocate(node, 1);
-            }
-        }
-    };
     
     enum class IteratorDirection { FORWARD, REVERSE};
     template<IteratorDirection Direction>
@@ -204,13 +220,13 @@ public:
     public:
         using TreeNodePtr = std::unique_ptr<FlashRadixTreeNode, std::function<void(FlashRadixTreeNode*)>>;
 #ifdef USE_SPLAY_TREE
-        using Children = SplayTree<typename Key::value_type, TreeNodePtr>;
+        using Children = SplayTree<typename Key::value_type, TreeNodePtr, Allocator>;
 #elif defined USE_CHAR_MAP
         using Children = CharMap<TreeNodePtr>;
 #else
         using Children = std::map<typename Key::value_type, TreeNodePtr>;
 #endif
-        Children children;
+        Children children = Children(Allocator());
         bool isEndOfWord = false;
         Value value = Value();
         Key prefix = Key();
@@ -220,23 +236,23 @@ public:
         FlashRadixTreeNode* parent = nullptr;
     private:
         mutable std::optional<std::string> fullKey;
-        TreeNodeAllocator _allocator;
+        //TreeNodeAllocator _allocator;
     public:
         
-        FlashRadixTreeNode(const Key& prefix, Value&& value, FlashRadixTreeNode* parent, const TreeNodeAllocator& allocator = TreeNodeAllocator())
-        : isEndOfWord(false), value(std::move(value)), prefix(prefix), parent(parent), _allocator(allocator)
+        FlashRadixTreeNode(const Key& prefix, Value&& value, FlashRadixTreeNode* parent)//, const TreeNodeAllocator& allocator = TreeNodeAllocator())
+        : isEndOfWord(false), value(std::move(value)), prefix(prefix), parent(parent)//, _allocator(allocator)
         {};
         
-        FlashRadixTreeNode(const Key& prefix, const Value& value, FlashRadixTreeNode* parent, const TreeNodeAllocator& allocator = TreeNodeAllocator() )
-        : isEndOfWord(false), value(value), prefix(prefix), parent(parent), _allocator(allocator)
+        FlashRadixTreeNode(const Key& prefix, const Value& value, FlashRadixTreeNode* parent)//, const TreeNodeAllocator& allocator = TreeNodeAllocator() )
+        : isEndOfWord(false), value(value), prefix(prefix), parent(parent)//, _allocator(allocator)
         {};
         
-        FlashRadixTreeNode(const Key& prefix, Value&& value, bool isEndOfWord, FlashRadixTreeNode* parent, const TreeNodeAllocator& allocator = TreeNodeAllocator() )
-        : isEndOfWord(isEndOfWord), value(std::move(value)), prefix(prefix), parent(parent), _allocator(allocator)
+        FlashRadixTreeNode(const Key& prefix, Value&& value, bool isEndOfWord, FlashRadixTreeNode* parent)//, const TreeNodeAllocator& allocator = TreeNodeAllocator() )
+        : isEndOfWord(isEndOfWord), value(std::move(value)), prefix(prefix), parent(parent)//, _allocator(allocator)
         {};
         
-        FlashRadixTreeNode(const Key& prefix, const Value& value, bool isEndOfWord, FlashRadixTreeNode* parent, const TreeNodeAllocator& allocator = TreeNodeAllocator() )
-        : isEndOfWord(isEndOfWord), value(value), prefix(prefix), parent(parent), _allocator(allocator)
+        FlashRadixTreeNode(const Key& prefix, const Value& value, bool isEndOfWord, FlashRadixTreeNode* parent)//, const TreeNodeAllocator& allocator = TreeNodeAllocator() )
+        : isEndOfWord(isEndOfWord), value(value), prefix(prefix), parent(parent)//, _allocator(allocator)
         {};
         
         FlashRadixTreeNode() = default;
@@ -286,6 +302,7 @@ public:
             return !(*this == other);
         }
         
+    
         Key getFullKey() const
         {
             if(fullKey.has_value())
@@ -320,17 +337,21 @@ public:
     using ValueType = Value;
 
 private:
+
     
-    std::unique_ptr<FlashRadixTreeNode, std::function<void(FlashRadixTreeNode*)>> _root;
+    TreeNodeAllocator _nodeAllocator;
+    UniquePtrAlloc _root;
     FlashRadixTreeNode* _firstWord = nullptr;
     iterator _endIt = iterator(nullptr, this);
     reverse_iterator _rendIt = reverse_iterator(nullptr, this);
     size_t _size = 0;
-    TreeNodeAllocator _allocator;
 public:
     
-    FlashRadixTree(const Allocator& alloc = Allocator())  noexcept 
-    : _root( nullptr, Deleter(_allocator)), _allocator(alloc) {}
+    FlashRadixTree(const Allocator& alloc = Allocator())  noexcept
+    : _nodeAllocator(alloc),
+    _root(make_unique_alloc<FlashRadixTreeNode>(_nodeAllocator))
+    {
+    }
     ~FlashRadixTree() {
         clear();
     }
@@ -388,7 +409,7 @@ public:
         
         if (_root == nullptr) {
             // If the root doesn't exist, create it.
-            _root = std::make_unique<FlashRadixTreeNode>();
+            _root = make_unique_alloc<FlashRadixTreeNode>(_nodeAllocator);
         }
         
         try
@@ -427,7 +448,7 @@ public:
                         
                         
                         // Create a new node for the common prefix
-                        auto newChild = std::make_unique<FlashRadixTreeNode>(commonPrefix, std::move((lineIsWholePrefix ? std::forward<Value>(value) : Value())), lineIsWholePrefix, currentNode);
+                        auto newChild = make_unique_alloc<FlashRadixTreeNode>(_nodeAllocator, commonPrefix, std::move((lineIsWholePrefix ? std::forward<Value>(value) : Value())), lineIsWholePrefix, currentNode);
                         inserted = newChild.get();
                         
                         //new node will take over location of old node in the list followed by existing split node
@@ -476,7 +497,7 @@ public:
                     remaining = remaining.substr(commonPrefixLength);
                 } else {
                     // No common prefix found, create a new edge for the remaining part of the key
-                    auto newNode = std::make_unique <FlashRadixTreeNode>(remaining, std::forward<Value>(value), currentNode);
+                    auto newNode = make_unique_alloc<FlashRadixTreeNode>(_nodeAllocator, remaining, std::forward<Value>(value), currentNode);
                     const char newKey = remaining[0];
                     typename FlashRadixTreeNode::Children::iterator lowerBound;
 #if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
@@ -811,11 +832,11 @@ private:
 
 
 
-template <Streaming Key, Streaming Value, MatchMode FindMode = MatchMode::Exact>
+template <Streaming Key, Streaming Value, MatchMode FindMode = MatchMode::Exact, typename Allocator = std::allocator<std::unique_ptr<Value>>>
 class FlashRadixTreeSerializer {
     
 public:
-    std::string serialize(const FlashRadixTree<Key, Value, FindMode>& tree) {
+    std::string serialize(const FlashRadixTree<Key, Value, FindMode, Allocator>& tree) {
         return serializeNode(tree.getRoot());
     }
     
@@ -846,7 +867,7 @@ public:
     }
 
 private:
-    std::string serializeNode(const typename FlashRadixTree<Key, Value, FindMode>::FlashRadixTreeNode* node) const  {
+    std::string serializeNode(const typename FlashRadixTree<Key, Value, FindMode, Allocator>::FlashRadixTreeNode* node) const  {
         if (node == nullptr) {
             return "";
         }
