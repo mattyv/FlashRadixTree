@@ -93,128 +93,9 @@ enum class MatchMode {
 template <BasicStringOrBasicStringView Key, Streaming Value, MatchMode MatchMode = MatchMode::Exact, typename Allocator = std::allocator<std::unique_ptr<Value>>>
 class FlashRadixTree {
     enum class Sentinal { END, REND, NONE };
+
 public:
-    class FlashRadixTreeNode;
-    using TreeNodeAllocator = typename std::allocator_traits<Allocator>::template rebind_alloc<FlashRadixTreeNode>;
-    using UniquePtrAlloc = std::unique_ptr<FlashRadixTreeNode, std::function<void(FlashRadixTreeNode*)>>;
-private:
     
-    enum class IteratorDirection { FORWARD, REVERSE};
-    template<IteratorDirection Direction>
-    class XFlashRadixTreeIterator
-    {
-    private:
-        FlashRadixTreeNode* _node;
-        const FlashRadixTree* _tree;
-        IteratorDirection _direction = Direction;
-        bool _end = true;
-        XFlashRadixTreeIterator(FlashRadixTreeNode* node, const FlashRadixTree* tree)
-        : _node(node), _tree(tree), _direction(Direction), _end(node == nullptr || tree == nullptr)
-        {}
-    public:
-        XFlashRadixTreeIterator() noexcept = default;
-        ~XFlashRadixTreeIterator() = default;
-        
-        // Default copy constructor - used for same type
-        XFlashRadixTreeIterator(const XFlashRadixTreeIterator& other) noexcept = default;
-
-        // Default copy assignment operator - used for same type
-        XFlashRadixTreeIterator& operator=(const XFlashRadixTreeIterator& other) noexcept = default;
-
-        // Prevent cross-direction copying and assignment using a deleted function template
-        template<IteratorDirection OtherDirection>
-        XFlashRadixTreeIterator(const XFlashRadixTreeIterator<OtherDirection>&) = delete;
-       
-        template<IteratorDirection OtherDirection>
-        XFlashRadixTreeIterator& operator=(const XFlashRadixTreeIterator<OtherDirection>&) = delete;
-        
-        //converter functions to convert form forward to reverse and vice versa
-        //template<IteratorDirection OtherDirection>
-        auto get_other_direction() const  noexcept {
-            if constexpr (Direction == IteratorDirection::FORWARD) {
-                return XFlashRadixTreeIterator<IteratorDirection::REVERSE>(_node, _tree);
-            } else {
-                return XFlashRadixTreeIterator<IteratorDirection::FORWARD>(_node, _tree);
-            }
-        }
-
-        
-        
-        XFlashRadixTreeIterator& operator++()  noexcept
-        {
-            if (_direction == IteratorDirection::FORWARD) {
-                do{
-                    _node = _node->next;
-                }while(_node != nullptr && (!_node->isEndOfWord || _node->deleted));
-            }
-            else {
-                do{
-                    _node = _node->prev;
-                }while(_node != nullptr && (!_node->isEndOfWord || _node->deleted));
-            }
-            _end = _node == nullptr;
-            return *this;
-        }
-        XFlashRadixTreeIterator& operator--()  noexcept
-        {
-            if (_direction == IteratorDirection::FORWARD) {
-                do{
-                    _node = _node->prev;
-                }while(_node != nullptr && (!_node->isEndOfWord || _node->deleted));
-            }
-            else {
-                do{
-                    _node = _node->next;
-                }while(_node != nullptr && (!_node->isEndOfWord || _node->deleted));
-            }
-            _end = _node == nullptr;
-            return *this;
-        }
-        
-        XFlashRadixTreeIterator operator++(int)  noexcept
-        {
-            XFlashRadixTreeIterator tmp = *this;
-            ++(*this);
-            return tmp;
-        }
-        
-        XFlashRadixTreeIterator operator--(int)  noexcept
-        {
-            XFlashRadixTreeIterator tmp = *this;
-            --(*this);
-            return tmp;
-        }
-        
-        bool operator==(const XFlashRadixTreeIterator& other) const
-        {
-            if(_tree != other._tree)
-                return false;
-            if(_end && other._end)
-                return true;
-            if(_node == nullptr && other._node == nullptr)
-                return true;
-            if(_node == nullptr || other._node == nullptr)
-                return false;
-            return *_node == *other._node;
-        }
-        bool operator!=(const XFlashRadixTreeIterator& other) const
-        {
-            return !(*this == other);
-        }
-        
-        constexpr FlashRadixTreeNode* operator->()
-        {
-            return _node;
-        }
-        constexpr FlashRadixTreeNode& operator*()
-        {
-            return *_node;
-        }
-        friend class FlashRadixTree;
-    };
-public:
-    using iterator = XFlashRadixTreeIterator<IteratorDirection::FORWARD>;
-    using reverse_iterator = XFlashRadixTreeIterator<IteratorDirection::REVERSE>;
 
     class FlashRadixTreeNode {
     public:
@@ -339,6 +220,126 @@ public:
 private:
 
     
+    enum class IteratorDirection { FORWARD, REVERSE};
+    template<IteratorDirection Direction>
+    class XFlashRadixTreeIterator
+    {
+    private:
+        FlashRadixTreeNode* _node;
+        const FlashRadixTree* _tree;
+        IteratorDirection _direction = Direction;
+        bool _end = true;
+        XFlashRadixTreeIterator(FlashRadixTreeNode* node, const FlashRadixTree* tree)
+        : _node(node), _tree(tree), _direction(Direction), _end(node == nullptr || tree == nullptr)
+        {}
+    public:
+        XFlashRadixTreeIterator() noexcept = default;
+        ~XFlashRadixTreeIterator() = default;
+        
+        // Default copy constructor - used for same type
+        XFlashRadixTreeIterator(const XFlashRadixTreeIterator& other) noexcept = default;
+
+        // Default copy assignment operator - used for same type
+        XFlashRadixTreeIterator& operator=(const XFlashRadixTreeIterator& other) noexcept = default;
+
+        // Prevent cross-direction copying and assignment using a deleted function template
+        template<IteratorDirection OtherDirection>
+        XFlashRadixTreeIterator(const XFlashRadixTreeIterator<OtherDirection>&) = delete;
+       
+        template<IteratorDirection OtherDirection>
+        XFlashRadixTreeIterator& operator=(const XFlashRadixTreeIterator<OtherDirection>&) = delete;
+        
+        //converter functions to convert form forward to reverse and vice versa
+        //template<IteratorDirection OtherDirection>
+        auto get_other_direction() const  noexcept {
+            if constexpr (Direction == IteratorDirection::FORWARD) {
+                return XFlashRadixTreeIterator<IteratorDirection::REVERSE>(_node, _tree);
+            } else {
+                return XFlashRadixTreeIterator<IteratorDirection::FORWARD>(_node, _tree);
+            }
+        }
+
+        
+        
+        XFlashRadixTreeIterator& operator++()  noexcept
+        {
+            if (_direction == IteratorDirection::FORWARD) {
+                do{
+                    _node = _node->next;
+                }while(_node != nullptr && (!_node->isEndOfWord || _node->deleted));
+            }
+            else {
+                do{
+                    _node = _node->prev;
+                }while(_node != nullptr && (!_node->isEndOfWord || _node->deleted));
+            }
+            _end = _node == nullptr;
+            return *this;
+        }
+        XFlashRadixTreeIterator& operator--()  noexcept
+        {
+            if (_direction == IteratorDirection::FORWARD) {
+                do{
+                    _node = _node->prev;
+                }while(_node != nullptr && (!_node->isEndOfWord || _node->deleted));
+            }
+            else {
+                do{
+                    _node = _node->next;
+                }while(_node != nullptr && (!_node->isEndOfWord || _node->deleted));
+            }
+            _end = _node == nullptr;
+            return *this;
+        }
+        
+        XFlashRadixTreeIterator operator++(int)  noexcept
+        {
+            XFlashRadixTreeIterator tmp = *this;
+            ++(*this);
+            return tmp;
+        }
+        
+        XFlashRadixTreeIterator operator--(int)  noexcept
+        {
+            XFlashRadixTreeIterator tmp = *this;
+            --(*this);
+            return tmp;
+        }
+        
+        bool operator==(const XFlashRadixTreeIterator& other) const
+        {
+            if(_tree != other._tree)
+                return false;
+            if(_end && other._end)
+                return true;
+            if(_node == nullptr && other._node == nullptr)
+                return true;
+            if(_node == nullptr || other._node == nullptr)
+                return false;
+            return *_node == *other._node;
+        }
+        bool operator!=(const XFlashRadixTreeIterator& other) const
+        {
+            return !(*this == other);
+        }
+        
+        constexpr FlashRadixTreeNode* operator->()
+        {
+            return _node;
+        }
+        constexpr FlashRadixTreeNode& operator*()
+        {
+            return *_node;
+        }
+        friend class FlashRadixTree;
+    };
+public:
+    
+    using iterator = XFlashRadixTreeIterator<IteratorDirection::FORWARD>;
+    using reverse_iterator = XFlashRadixTreeIterator<IteratorDirection::REVERSE>;
+    using TreeNodeAllocator = typename std::allocator_traits<Allocator>::template rebind_alloc<FlashRadixTreeNode>;
+    using UniquePtrAlloc = std::unique_ptr<FlashRadixTreeNode, std::function<void(FlashRadixTreeNode*)>>;
+private:
     TreeNodeAllocator _nodeAllocator;
     UniquePtrAlloc _root;
     FlashRadixTreeNode* _firstWord = nullptr;
