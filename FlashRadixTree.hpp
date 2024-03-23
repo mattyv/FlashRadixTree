@@ -95,53 +95,20 @@ class FlashRadixTree {
     enum class Sentinal { END, REND, NONE };
 
 public:
-    
-
-    class FlashRadixTreeNode {
-    public:
-        using TreeNodePtr = std::unique_ptr<FlashRadixTreeNode, std::function<void(FlashRadixTreeNode*)>>;
-#ifdef USE_SPLAY_TREE
-        using Children = SplayTree<typename Key::value_type, TreeNodePtr, Allocator>;
-#elif defined USE_CHAR_MAP
-        using Children = CharMap<TreeNodePtr>;
-#else
-        using Children = std::map<typename Key::value_type, TreeNodePtr>;
-#endif
-        Children children = Children(Allocator());
-        bool isEndOfWord = false;
-        Value value = Value();
-        Key prefix = Key();
-        bool deleted = false;
-        FlashRadixTreeNode* next = nullptr;
-        FlashRadixTreeNode* prev = nullptr;
-        FlashRadixTreeNode* parent = nullptr;
-    private:
-        mutable std::optional<std::string> fullKey;
-        //TreeNodeAllocator _allocator;
-    public:
-        
-        FlashRadixTreeNode(const Key& prefix, Value&& value, FlashRadixTreeNode* parent)//, const TreeNodeAllocator& allocator = TreeNodeAllocator())
-        : isEndOfWord(false), value(std::move(value)), prefix(prefix), parent(parent)//, _allocator(allocator)
+    template<class Parent>
+    struct FlashRadixTreeNodeBase
+    {
+        FlashRadixTreeNodeBase() = default;
+        FlashRadixTreeNodeBase(bool isEndOfWord, Value&& value, const Key& prefix, Parent* parent)
+        : isEndOfWord(isEndOfWord), value(std::move(value)), prefix(prefix), parent(parent)
+        {};
+        FlashRadixTreeNodeBase(bool isEndOfWord, const Value& value, const Key& prefix, Parent* parent)
+        : isEndOfWord(isEndOfWord), value(value), prefix(prefix), parent(parent)
         {};
         
-        FlashRadixTreeNode(const Key& prefix, const Value& value, FlashRadixTreeNode* parent)//, const TreeNodeAllocator& allocator = TreeNodeAllocator() )
-        : isEndOfWord(false), value(value), prefix(prefix), parent(parent)//, _allocator(allocator)
-        {};
-        
-        FlashRadixTreeNode(const Key& prefix, Value&& value, bool isEndOfWord, FlashRadixTreeNode* parent)//, const TreeNodeAllocator& allocator = TreeNodeAllocator() )
-        : isEndOfWord(isEndOfWord), value(std::move(value)), prefix(prefix), parent(parent)//, _allocator(allocator)
-        {};
-        
-        FlashRadixTreeNode(const Key& prefix, const Value& value, bool isEndOfWord, FlashRadixTreeNode* parent)//, const TreeNodeAllocator& allocator = TreeNodeAllocator() )
-        : isEndOfWord(isEndOfWord), value(value), prefix(prefix), parent(parent)//, _allocator(allocator)
-        {};
-        
-        FlashRadixTreeNode() = default;
-        ~FlashRadixTreeNode() = default;
-        FlashRadixTreeNode(const FlashRadixTreeNode& ) = delete;
-        FlashRadixTreeNode( FlashRadixTreeNode&& other) noexcept
+        //move and move assignment
+        FlashRadixTreeNodeBase(FlashRadixTreeNodeBase&& other) noexcept
         {
-            children = std::move(other.children);
             isEndOfWord = other.isEndOfWord;
             value = std::move(other.value);
             prefix = std::move(other.prefix);
@@ -151,14 +118,10 @@ public:
             other.next = nullptr;
             other.prev = nullptr;
         }
-        
-        //operators
-        FlashRadixTreeNode& operator=(const FlashRadixTreeNode& ) = delete;
-        FlashRadixTreeNode& operator=(FlashRadixTreeNode&& other) noexcept
+        FlashRadixTreeNodeBase& operator=(FlashRadixTreeNodeBase&& other) noexcept
         {
             if(this != &other)
             {
-                children = std::move(other.children);
                 isEndOfWord = other.isEndOfWord;
                 value = std::move(other.value);
                 prefix = std::move(other.prefix);
@@ -170,20 +133,16 @@ public:
             }
             return *this;
         }
-        
-        bool constexpr operator==(const FlashRadixTreeNode& other) const
+        bool constexpr operator==(const FlashRadixTreeNodeBase& other) const
         {
             return (isEndOfWord == other.isEndOfWord)
             && (prefix == other.prefix)
             && (deleted == other.deleted);
         }
-        
-        bool constexpr operator!=(const FlashRadixTreeNode& other) const
+        bool constexpr operator!=(const FlashRadixTreeNodeBase& other) const
         {
             return !(*this == other);
         }
-        
-    
         Key getFullKey() const
         {
             if(fullKey.has_value())
@@ -208,13 +167,129 @@ public:
         
         void clear()
         {
-            children.clear();
             isEndOfWord = false;
             value = Value();
             prefix = Key();
             deleted = false;
         }
+        
+        bool isEndOfWord = false;
+        Value value = Value();
+        Key prefix = Key();
+        bool deleted = false;
+        Parent* next = nullptr;
+        Parent* prev = nullptr;
+        Parent* parent = nullptr;
+    private:
+        mutable std::optional<std::string> fullKey;
     };
+    
+    class FlashRadixTreeNodeNoOwner;
+    
+    class FlashRadixTreeNode : public FlashRadixTreeNodeBase<FlashRadixTreeNode> {
+        using BaseType = FlashRadixTreeNodeBase<FlashRadixTreeNode>;
+    public:
+        using TreeNodePtr = std::unique_ptr<FlashRadixTreeNode, std::function<void(FlashRadixTreeNode*)>>;
+#ifdef USE_SPLAY_TREE
+        using Children = SplayTree<typename Key::value_type, TreeNodePtr, Allocator>;
+#elif defined USE_CHAR_MAP
+        using Children = CharMap<TreeNodePtr>;
+#else
+        using Children = std::map<typename Key::value_type, TreeNodePtr>;
+#endif
+        Children children = Children(Allocator());
+        
+        FlashRadixTreeNode(const Key& prefix, Value&& value, FlashRadixTreeNode* parent)
+        : BaseType(false, std::forward<Value>(value), prefix, parent)
+        {};
+        
+        FlashRadixTreeNode(const Key& prefix, Value&& value, bool isEndOfWord, FlashRadixTreeNode* parent)
+        : BaseType(isEndOfWord, std::forward<Value>(value), prefix, parent)
+        {};
+        
+        FlashRadixTreeNode() = default;
+        ~FlashRadixTreeNode() = default;
+        FlashRadixTreeNode(const FlashRadixTreeNodeNoOwner& ) = delete;
+        FlashRadixTreeNode( FlashRadixTreeNode&& other) noexcept
+        : BaseType(std::move(other))
+        {
+            children = std::move(other.children);
+        }
+        //operators
+        FlashRadixTreeNode& operator=(const FlashRadixTreeNode& ) = delete;
+        FlashRadixTreeNode& operator=(FlashRadixTreeNode&& other) noexcept
+        {
+            if(this != &other)
+            {
+                BaseType::operator=(std::move(other));
+                children = std::move(other.children);
+            }
+            return *this;
+        }
+
+        void clear()
+        {
+            children.clear();
+            FlashRadixTreeNodeBase<FlashRadixTreeNode>::clear();
+        }
+    };
+    
+    class FlashRadixTreeNodeNoOwner : public FlashRadixTreeNodeBase<FlashRadixTreeNode>
+    {
+        using BaseType = FlashRadixTreeNodeBase<FlashRadixTreeNode>;
+    public:
+        using TreeNodePtr = FlashRadixTreeNode*;
+#ifdef USE_SPLAY_TREE
+        using Children = SplayTree<typename Key::value_type, TreeNodePtr, Allocator>;
+#elif defined USE_CHAR_MAP
+        using Children = CharMap<TreeNodePtr>;
+#else
+        using Children = std::map<typename Key::value_type, TreeNodePtr>;
+#endif
+        Children children = Children(Allocator());
+        
+        FlashRadixTreeNodeNoOwner(const Key& prefix, Value&& value, FlashRadixTreeNode* parent)
+        : BaseType(false, std::forward<Value>(value), prefix, parent)
+        {};
+        
+        FlashRadixTreeNodeNoOwner(const Key& prefix, const Value& value, bool isEndOfWord, FlashRadixTreeNode* parent)
+        : BaseType(isEndOfWord, value, prefix, parent)
+        {};
+        
+        FlashRadixTreeNodeNoOwner() = default;
+        ~FlashRadixTreeNodeNoOwner() = default;
+        FlashRadixTreeNodeNoOwner(const FlashRadixTreeNodeNoOwner& other)
+        :BaseType(other)
+        {
+            children = other.children;
+        }
+        FlashRadixTreeNodeNoOwner( FlashRadixTreeNodeNoOwner&& other) noexcept
+        : BaseType(std::move(other))
+        {
+            children = std::move(other.children);
+        }
+        //operators
+        FlashRadixTreeNodeNoOwner& operator=(const FlashRadixTreeNodeNoOwner& other )
+        {
+            if(this != &other)
+            {
+                BaseType::operator=(other);
+                children = other.children;
+            }
+            return *this;
+        }
+        
+        FlashRadixTreeNodeNoOwner& operator=(FlashRadixTreeNodeNoOwner&& other) noexcept
+        {
+            if(this != &other)
+            {
+                BaseType::operator=(std::move(other));
+                children = std::move(other.children);
+            }
+            return *this;
+        }
+    };
+    
     using ValueType = Value;
 
 private:
@@ -398,15 +473,8 @@ public:
     
     iterator insert(const Key& key, Value&& value)
     {
-        //track any sucessfull changes made. if an allocaiton error exception occurs we can unwind
-        //at most we can expect three inserts to occur, two on the split split and one child.
-        //and one erase we need to undo
-        using ToErase = std::optional<std::pair<typename FlashRadixTreeNode::Children*, typename Key::value_type >>;
-        using ToRestore = Key;
-        ToErase erase1;
-        ToErase erase2;
-        ToErase erase3;
-        ToRestore restore1;
+        std::optional<FlashRadixTreeNodeNoOwner> rollback;
+        FlashRadixTreeNode* rollbackLocation = nullptr;
         
         if (_root == nullptr) {
             // If the root doesn't exist, create it.
@@ -460,15 +528,14 @@ public:
                         inserted->next = childNode;
                         
                         // The new node should adopt the existing child node
-                        restore1 = childNode->prefix;
+                        rollback = _copyFromOwnerNode(childNode);
+                        rollbackLocation = childNode;
                         childNode->prefix = suffixEdge;
 #if defined( USE_SPLAY_TREE)  || defined USE_CHAR_MAP
                         newChild->children.insert(suffixEdge[0], std::move(it->value));
 #else
                         newChild->children.emplace(suffixEdge[0], std::move(it->value));
 #endif
-                        //changes_made.push(std::make_pair(&currentNode->children, suffixEdge[0]));//save change made in case we run into bad alloc
-                        erase1 = std::make_pair(&newChild->children, suffixEdge[0]);
                         childNode->parent = newChild.get();
                         currentNode->children.erase(edgeKey); //delete current iterator as its been reinstered above with new key
                         
@@ -480,8 +547,6 @@ public:
                         auto itNewChild = currentNode->children.emplace(commonPrefix[0], std::move(newChild));
                         currentNode = itNewChild.first->second;
 #endif
-                        //changes_made.push(std::make_pair(&currentNode->children, commonPrefix[0]));//save change made in case we run into bad alloc
-                        erase2 = std::make_pair(&currentNode->children, commonPrefix[0]);
                     } else {
                         // Entire edge is a common prefix, proceed with the child node
                         currentNode = childNode;
@@ -506,8 +571,6 @@ public:
                         lowerBound = currentNode->children.find_predecessor(newKey);
                     
                     auto itNewNode = currentNode->children.insert(newKey, std::move(newNode));
-                    //changes_made.push(std::make_pair(&currentNode->children, newKey)); //save change made in case we run into bad alloc
-                    erase3 = std::make_pair(&currentNode->children, newKey);
                     inserted = itNewNode->value.get();
 #else
                     if(_firstWord)
@@ -563,28 +626,10 @@ public:
         }
         catch (const std::bad_alloc&)
         {
-            if(erase1.has_value())
+            if(rollback.has_value())
             {
-                auto it = erase1->first->find(erase1->second);
-                auto temp = std::move(it->value);
-                erase1->first->printInOrder();
-                this->print();
-                erase1->first->erase(erase1->second);
-                erase1->first->printInOrder();
-                this->print();
-                std::cout << "restore1: " << restore1 << std::endl;
-                //undo key change
-                std::cout << "temp->prefix: " << temp->prefix << std::endl;
-                temp->prefix = restore1;
-                std::cout << "temp->prefix: " << temp->prefix << std::endl;
-                erase1->first->insert(restore1[0], std::move(temp));
-                erase1->first->printInOrder();
-                this->print();
+                *rollbackLocation = _moveFromNoOwnerNode(rollback.value(), _nodeAllocator);
             }
-            if(erase2.has_value())
-                erase2->first->erase(erase2->second);
-            if(erase3.has_value())
-                erase3->first->erase(erase3->second);
             throw std::bad_alloc();
         }
     }
@@ -839,6 +884,29 @@ private:
         while(node != nullptr && (!node->isEndOfWord || node->deleted))
             node = node->prev;
         return node;
+    }
+    
+    
+    
+    FlashRadixTreeNodeNoOwner _copyFromOwnerNode( FlashRadixTreeNode* node)
+    {
+        FlashRadixTreeNodeNoOwner newNode(node->prefix, node->value, node->isEndOfWord, node->parent);
+        for(auto it : node->children)
+            newNode.children.insert(it->key, it->value.get());
+        
+        return newNode;
+    }
+    
+    FlashRadixTreeNode _moveFromNoOwnerNode( FlashRadixTreeNodeNoOwner& node, TreeNodeAllocator& allocator)
+    {
+        FlashRadixTreeNode newNode( node.prefix, std::move(node.value), node.isEndOfWord, node.parent);
+        for(auto it :  node.children)
+        {
+            auto childNode = make_unique_alloc<FlashRadixTreeNode>(_nodeAllocator, it->value->prefix, std::move(it->value->value), it->value->isEndOfWord, it->value->parent);
+            
+            newNode.children.insert(it->key, std::move(childNode));
+        }
+        return newNode;
     }
     
 };

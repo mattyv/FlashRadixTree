@@ -265,7 +265,6 @@ public:
             return end();
         return iterator(_root, this);
     }
-    
    
     
     iterator find(KeyType key) const
