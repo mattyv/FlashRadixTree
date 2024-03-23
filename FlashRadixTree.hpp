@@ -401,7 +401,7 @@ public:
         //at most we can expect three inserts to occur, two on the split split and one child.
         //and one erase we need to undo
         using ToErase = std::optional<std::pair<typename FlashRadixTreeNode::Children*, typename Key::value_type >>;
-        using ToRestore = typename Key::value_type;
+        using ToRestore = Key;
         ToErase erase1;
         ToErase erase2;
         ToErase erase3;
@@ -459,6 +459,7 @@ public:
                         inserted->next = childNode;
                         
                         // The new node should adopt the existing child node
+                        restore1 = childNode->prefix;
                         childNode->prefix = suffixEdge;
 #if defined( USE_SPLAY_TREE)  || defined USE_CHAR_MAP
                         newChild->children.insert(suffixEdge[0], std::move(it->value));
@@ -469,7 +470,6 @@ public:
                         erase1 = std::make_pair(&newChild->children, suffixEdge[0]);
                         childNode->parent = newChild.get();
                         currentNode->children.erase(edgeKey); //delete current iterator as its been reinstered above with new key
-                        restore1 = edgeKey;
                         
                         // Insert the new child with the common prefix in the current node's children
 #if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
@@ -565,8 +565,20 @@ public:
             if(erase1.has_value())
             {
                 auto it = erase1->first->find(erase1->second);
-                erase1->first->insert(it->key, std::move(it->value));
+                auto temp = std::move(it->value);
+                erase1->first->printInOrder();
+                this->print();
                 erase1->first->erase(erase1->second);
+                erase1->first->printInOrder();
+                this->print();
+                std::cout << "restore1: " << restore1 << std::endl;
+                //undo key change
+                std::cout << "temp->prefix: " << temp->prefix << std::endl;
+                temp->prefix = restore1;
+                std::cout << "temp->prefix: " << temp->prefix << std::endl;
+                erase1->first->insert(restore1[0], std::move(temp));
+                erase1->first->printInOrder();
+                this->print();
             }
             if(erase2.has_value())
                 erase2->first->erase(erase2->second);
