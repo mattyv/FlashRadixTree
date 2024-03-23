@@ -997,8 +997,8 @@ bool RunTests()
     throwOnAllocCount = 3;
     try
     {
-        rTreeExactOOM.insert("AA", 1);
-        rTreeExactOOM.insert("AB", 2);
+        rTreeExactOOM.insert("AB", 1);
+        rTreeExactOOM.insert("AC", 2);
     }
     catch(const std::bad_alloc& e)
     {

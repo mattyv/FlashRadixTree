@@ -537,11 +537,13 @@ public:
                         newChild->children.emplace(suffixEdge[0], std::move(it->value));
 #endif
                         childNode->parent = newChild.get();
-                        currentNode->children.erase(edgeKey); //delete current iterator as its been reinstered above with new key
+                        //currentNode->children.erase(edgeKey); //delete current iterator as its been reinstered above with new key
                         
                         // Insert the new child with the common prefix in the current node's children
 #if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
-                        auto itNewChild = currentNode->children.insert(commonPrefix[0], std::move(newChild));
+                        auto itNewChild = currentNode->children.find(edgeKey);//, std::move(newChild));
+                        itNewChild->value = std::move(newChild);
+                        rollbackLocation = itNewChild->value.get();
                         currentNode = itNewChild->value.get();
 #else
                         auto itNewChild = currentNode->children.emplace(commonPrefix[0], std::move(newChild));
@@ -628,7 +630,7 @@ public:
         {
             if(rollback.has_value())
             {
-                *rollbackLocation = _moveFromNoOwnerNode(rollback.value(), _nodeAllocator);
+                *rollbackLocation = std::move(_moveFromNoOwnerNode(rollback.value(), _nodeAllocator));
             }
             throw std::bad_alloc();
         }
