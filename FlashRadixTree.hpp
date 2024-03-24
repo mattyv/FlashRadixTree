@@ -643,7 +643,7 @@ public:
             if(rollback.has_value())
             {
                 //override the rollback location with the rollback node
-                *rollbackLocation = std::move(_mergeFromNoOwnerNode(rollback.value(), rollbackLocation));
+                *rollbackLocation = _mergeFromNoOwnerNode(rollback.value(), rollbackLocation);
             }
             throw std::bad_alloc();
         }
