@@ -1003,36 +1003,36 @@ bool RunTests()
     catch(const std::bad_alloc& e)
     {
         okOOM = true;
-        
-        //test not finding AB
-        auto valExpectOOM = rTreeExactOOM.find("AB");
-        if(valExpectOOM != rTreeExactOOM.end())
-        {
-            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
-            return false;
-        }
-        
         //test size ==1
         if(rTreeExactOOM.size() != 1)
         {
             std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
             return false;
         }
+        //test finding AB
+        auto valExpectOOM = rTreeExactOOM.find("AB");
+        if(valExpectOOM == rTreeExactOOM.end())
+        {
+            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+            return false;
+        }
+        
+        //test not finding AC
+        valExpectOOM = rTreeExactOOM.find("AC");
+        if(valExpectOOM != rTreeExactOOM.end())
+        {
+            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+            return false;
+        }
+        
         //test serialization
         FlashRadixTreeSerializer<std::string, int, MatchMode::Exact, ThrowingAllocationAllocator<FlashRadixTree<string, int>::FlashRadixTreeNode>> serializerOOM;
         std::string got = serializerOOM.serialize(rTreeExactOOM);
-        std::string expected = "+[,0,*,<+[AA,1,√,<->]>]";
+        std::string expected = "+[,0,*,<+[AB,1,√,<->]>]";
         if(got != expected)
         {
             std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
             std::cout << "Got:      " << got << "\nExpected: " << expected << std::endl;
-            return false;
-        }
-        //test find AA
-        valExpectOOM = rTreeExactOOM.find("AA");
-        if(valExpectOOM == rTreeExactOOM.end() || valExpectOOM->value != 1)
-        {
-            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
             return false;
         }
     }

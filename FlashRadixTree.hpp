@@ -630,7 +630,7 @@ public:
         {
             if(rollback.has_value())
             {
-                *rollbackLocation = std::move(_moveFromNoOwnerNode(rollback.value(), _nodeAllocator));
+                *rollbackLocation = std::move(_mergeFromNoOwnerNode(rollback.value(), rollbackLocation));
             }
             throw std::bad_alloc();
         }
@@ -658,14 +658,14 @@ public:
         }
         
         auto* currentNode = _root.get();
-        char keyPrefix = key[0];
+        auto keyPrefix = key[0];
         Key remaining = key;
         size_t seen = 0;
         while( currentNode != nullptr)
         {
             const auto& it = currentNode->children.find(keyPrefix);
 
-            if(it != currentNode->children.end())
+             if(it != currentNode->children.end())
             {
 #if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
                 currentNode = it->value.get();
@@ -899,14 +899,15 @@ private:
         return newNode;
     }
     
-    FlashRadixTreeNode _moveFromNoOwnerNode( FlashRadixTreeNodeNoOwner& node, TreeNodeAllocator& allocator)
+    FlashRadixTreeNode _mergeFromNoOwnerNode( FlashRadixTreeNodeNoOwner& node, FlashRadixTreeNode* current)
     {
         FlashRadixTreeNode newNode( node.prefix, std::move(node.value), node.isEndOfWord, node.parent);
         for(auto it :  node.children)
         {
-            auto childNode = make_unique_alloc<FlashRadixTreeNode>(_nodeAllocator, it->value->prefix, std::move(it->value->value), it->value->isEndOfWord, it->value->parent);
+            auto found = current->children.find(it->key);
+            if(found != current->children.end())
+                newNode.children.insert(it->key, std::move(found->value));
             
-            newNode.children.insert(it->key, std::move(childNode));
         }
         return newNode;
     }
