@@ -434,9 +434,22 @@ public:
     
     FlashRadixTree(const FlashRadixTree& ) = delete;
     FlashRadixTree(FlashRadixTree&& other) noexcept
-    : _root(std::move(other._root)), _firstWord(other._firstWord), _size(other._size) {
+    : _nodeAllocator(std::move(other._nodeAllocator)), _root(std::move(other._root)), _firstWord(other._firstWord), _size(other._size) {
         other._firstWord = nullptr;
         other._size = 0;
+    }
+    
+    FlashRadixTree& operator=(FlashRadixTree&& other) noexcept {
+        if(this != &other) {
+            clear();
+            _nodeAllocator = std::move(other._nodeAllocator);
+            _root = std::move(other._root);
+            _firstWord = other._firstWord;
+            _size = other._size;
+            other._firstWord = nullptr;
+            other._size = 0;
+        }
+        return *this;
     }
     
     constexpr FlashRadixTreeNode* getRoot() const  {
@@ -537,7 +550,6 @@ public:
                         newChild->children.emplace(suffixEdge[0], std::move(it->value));
 #endif
                         childNode->parent = newChild.get();
-                        //currentNode->children.erase(edgeKey); //delete current iterator as its been reinstered above with new key
                         
                         // Insert the new child with the common prefix in the current node's children
 #if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
@@ -630,6 +642,7 @@ public:
         {
             if(rollback.has_value())
             {
+                //override the rollback location with the rollback node
                 *rollbackLocation = std::move(_mergeFromNoOwnerNode(rollback.value(), rollbackLocation));
             }
             throw std::bad_alloc();
@@ -899,6 +912,7 @@ private:
         return newNode;
     }
     
+    //move from current node to rollback node if the child existed prior to the insert op
     FlashRadixTreeNode _mergeFromNoOwnerNode( FlashRadixTreeNodeNoOwner& node, FlashRadixTreeNode* current)
     {
         FlashRadixTreeNode newNode( node.prefix, std::move(node.value), node.isEndOfWord, node.parent);
