@@ -24,21 +24,35 @@ template <ComparableKeyType key_type, typename mapped_type, typename Allocator =
 class SplayTree
 {
 public:
-    struct value_type
+    class value_type
     {
+    public:
         value_type()  = default;
-        value_type( key_type key, mapped_type&& value)
-        : first(key), second(std::move(value))
+        value_type( key_type key, mapped_type&& val)
+        {
+            value.first = key;
+            value.second = std::move(val);
+        }
+        
+        value_type( key_type key, const mapped_type& val)
+        : first(key), second(val)
         {}
         
-        value_type( key_type key, const mapped_type& value)
-        : first(key), second(value)
+        value_type(const std::pair<key_type, mapped_type>& pair)
+        : value(pair)
+        {}
+        
+        value_type(std::pair<key_type, mapped_type>&& pair)
+        : value(std::move(pair))
         {}
         
         ~value_type() = default;
         
-        key_type first;
-        mapped_type second;
+    private:
+        std::pair<key_type, mapped_type> value;
+    public:
+        key_type& first = value.first;
+        mapped_type&  second = value.second;
         value_type* children[2] = {nullptr, nullptr};
         
         constexpr bool operator==(const value_type& rhs) const
@@ -285,6 +299,23 @@ public:
         return iterator(_root, this);
     }
    
+    //bit of a hack to take a pair but thats not what this class uses under the hood so we just convert.
+    //will be perfectly compatable
+    std::pair<iterator, bool> insert(const std::pair<key_type, mapped_type>& value) //untested
+    {
+        throw std::runtime_error("not tested");
+        auto it = find(value.first);
+        if(it != end())
+            return std::make_pair(it, false);
+        else
+        {
+            auto it = insert(value.first, value.second);
+            return std::make_pair(insert(value.first, value.second), true);
+        }
+    }
+    
+    
+    
     
     const_iterator find(key_type key) const
     {
@@ -319,15 +350,23 @@ public:
         return it;
     }
     
-    const_iterator find_predecessor(key_type key) const
+    iterator find_predecessor(key_type key)
     {
         _root = _find(key, _root);
         if(_root == nullptr)
             return end();
+        return iterator(_root, this);
+    }
+    
+    const_iterator find_predecessor(key_type key) const
+    {
+        _root = _find(key, _root);
+        if(_root == nullptr)
+            return cend();
         return const_iterator(_root, this);
     }
     
-    const_iterator lower_bound(key_type key) const //untested
+    iterator lower_bound(key_type key)  //untested
     {
         throw std::runtime_error("not tested");
         auto it = find_predecessor(key);
