@@ -4,6 +4,44 @@
 #include <unordered_map>
 #include "FlashRadixTree.hpp"
 
+//custom allocator to limit construction to 1 element
+static int throwOnAllocCount = 1;
+template <typename T>
+class ThrowingAllocationAllocator {
+private:
+    static int count;
+public:
+    using value_type = T;
+
+    ThrowingAllocationAllocator() = default;
+
+    template <class U>
+    constexpr ThrowingAllocationAllocator(const ThrowingAllocationAllocator<U>&) noexcept {}
+
+    T* allocate(std::size_t n) {
+        ++count;
+        if (count > throwOnAllocCount ){
+            throw std::bad_alloc();
+        }
+        return static_cast<T*>(::operator new(n * sizeof(T)));
+    }
+
+    void deallocate(T* p, std::size_t n) noexcept {
+        ::operator delete(p);
+    }
+    
+    static void resetCount() noexcept{ count = 0; }
+};
+
+template <typename T>
+int ThrowingAllocationAllocator<T>::count = 0;
+
+template <class T, class U>
+bool operator==(const ThrowingAllocationAllocator<T>&, const ThrowingAllocationAllocator<U>&) { return true; }
+
+template <class T, class U>
+bool operator!=(const ThrowingAllocationAllocator<T>&, const ThrowingAllocationAllocator<U>&) { return false; }
+
 bool RunTests()
 {
     std::cout << "Testing out radix tree \n";
@@ -943,7 +981,227 @@ bool RunTests()
         return false;
     }
     
-
+    
+   
+    
+    //test out of memory
+    bool okOOM = false;
+    FlashRadixTree<std::string, int, MatchMode::Exact, ThrowingAllocationAllocator<FlashRadixTree<string, int>::FlashRadixTreeNode>> rTreeExactOOM;
+    throwOnAllocCount = 3;
+    try
+    {
+        rTreeExactOOM.insert("AB", 1);
+        rTreeExactOOM.insert("AC", 2);
+    }
+    catch(const std::bad_alloc& e)
+    {
+        okOOM = true;
+        //test size ==1
+        if(rTreeExactOOM.size() != 1)
+        {
+            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+            return false;
+        }
+        //test finding AB
+        auto valExpectOOM = rTreeExactOOM.find("AB");
+        if(valExpectOOM == rTreeExactOOM.end())
+        {
+            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+            return false;
+        }
+        
+        //test not finding AC
+        valExpectOOM = rTreeExactOOM.find("AC");
+        if(valExpectOOM != rTreeExactOOM.end())
+        {
+            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+            return false;
+        }
+        
+        //test serialization
+        FlashRadixTreeSerializer<std::string, int, MatchMode::Exact, ThrowingAllocationAllocator<FlashRadixTree<string, int>::FlashRadixTreeNode>> serializerOOM;
+        std::string got = serializerOOM.serialize(rTreeExactOOM);
+        std::string expected = "+[,0,*,<+[AB,1,√,<->]>]";
+        if(got != expected)
+        {
+            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+            std::cout << "Got:      " << got << "\nExpected: " << expected << std::endl;
+            return false;
+        }
+    }
+        
+    
+    if(!okOOM)
+    {
+        std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        return false;
+    }
+    
+    //test out of memory
+    okOOM = false;
+    rTreeExactOOM.clear(); //after clear we have to also reallocate a new root on next insert
+    throwOnAllocCount += 3;
+    try
+    {
+        rTreeExactOOM.insert("A", 1);
+        rTreeExactOOM.insert("B", 2);
+    }
+    catch(const std::bad_alloc& e)
+    {
+        okOOM = true;
+        //test size ==1
+        if(rTreeExactOOM.size() != 1)
+        {
+            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+            return false;
+        }
+        
+        auto valExpectOOM = rTreeExactOOM.find("A");
+        if(valExpectOOM == rTreeExactOOM.end())
+        {
+            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+            return false;
+        }
+        
+        valExpectOOM = rTreeExactOOM.find("B");
+        if(valExpectOOM != rTreeExactOOM.end())
+        {
+            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+            return false;
+        }
+        
+        //test serialization
+        FlashRadixTreeSerializer<std::string, int, MatchMode::Exact, ThrowingAllocationAllocator<FlashRadixTree<string, int>::FlashRadixTreeNode>> serializerOOM;
+        std::string got = serializerOOM.serialize(rTreeExactOOM);
+        std::string expected = "+[,0,*,<+[A,1,√,<->]>]";
+        if(got != expected)
+        {
+            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+            std::cout << "Got:      " << got << "\nExpected: " << expected << std::endl;
+            return false;
+        }
+    }
+        
+    
+    if(!okOOM)
+    {
+        std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        return false;
+    }
+    
+    //test out of memory
+    okOOM = false;
+    rTreeExactOOM.clear(); //after clear we have to also reallocate a new root on next insert
+    throwOnAllocCount += 3;
+    try
+    {
+        rTreeExactOOM.insert("A", 1);
+        rTreeExactOOM.insert("AB", 2);
+    }
+    catch(const std::bad_alloc& e)
+    {
+        okOOM = true;
+        //test size ==1
+        if(rTreeExactOOM.size() != 1)
+        {
+            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+            return false;
+        }
+        
+        auto valExpectOOM = rTreeExactOOM.find("A");
+        if(valExpectOOM == rTreeExactOOM.end())
+        {
+            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+            return false;
+        }
+        
+        valExpectOOM = rTreeExactOOM.find("AB");
+        if(valExpectOOM != rTreeExactOOM.end())
+        {
+            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+            return false;
+        }
+        
+        //test serialization
+        FlashRadixTreeSerializer<std::string, int, MatchMode::Exact, ThrowingAllocationAllocator<FlashRadixTree<string, int>::FlashRadixTreeNode>> serializerOOM;
+        std::string got = serializerOOM.serialize(rTreeExactOOM);
+        std::string expected = "+[,0,*,<+[A,1,√,<->]>]";
+        if(got != expected)
+        {
+            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+            std::cout << "Got:      " << got << "\nExpected: " << expected << std::endl;
+            return false;
+        }
+    }
+        
+    
+    if(!okOOM)
+    {
+        std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        return false;
+    }
+    
+    //test out of memory
+    okOOM = false;
+    rTreeExactOOM.clear(); //after clear we have to also reallocate a new root on next insert
+    throwOnAllocCount += 4;
+    try
+    {
+        rTreeExactOOM.insert("A", 1);
+        rTreeExactOOM.insert("AB", 2);
+        rTreeExactOOM.insert("ABC", 3);
+    }
+    catch(const std::bad_alloc& e)
+    {
+        okOOM = true;
+        //test size ==1
+        if(rTreeExactOOM.size() != 2)
+        {
+            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+            return false;
+        }
+        
+        auto valExpectOOM = rTreeExactOOM.find("A");
+        if(valExpectOOM == rTreeExactOOM.end())
+        {
+            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+            return false;
+        }
+        
+        valExpectOOM = rTreeExactOOM.find("AB");
+        if(valExpectOOM == rTreeExactOOM.end())
+        {
+            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+            return false;
+        }
+        
+        
+        
+        valExpectOOM = rTreeExactOOM.find("ABC");
+        if(valExpectOOM != rTreeExactOOM.end())
+        {
+            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+            return false;
+        }
+        
+        //test serialization
+        FlashRadixTreeSerializer<std::string, int, MatchMode::Exact, ThrowingAllocationAllocator<FlashRadixTree<string, int>::FlashRadixTreeNode>> serializerOOM;
+        std::string got = serializerOOM.serialize(rTreeExactOOM);
+        std::string expected = "+[,0,*,<+[A,1,√,<+[B,2,√,<->]>]>]";
+        if(got != expected)
+        {
+            std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+            std::cout << "Got:      " << got << "\nExpected: " << expected << std::endl;
+            return false;
+        }
+    }
+        
+    
+    if(!okOOM)
+    {
+        std::cout << "Out of memory test failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
+        return false;
+    }
     
     std::cout << "Unit tests passed" << std::endl;
     return true;

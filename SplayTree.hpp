@@ -20,7 +20,7 @@ concept ComparableKeyType = requires(T a, T b)
 };
 
 
-template <ComparableKeyType KeyType, typename ValueType>
+template <ComparableKeyType KeyType, typename ValueType, typename Allocator = std::allocator<ValueType>>
 class SplayTree
 {
 public:
@@ -208,11 +208,14 @@ private:
         friend SplayTree;
     };
 public:
+    using SplayNodeAllocator = typename std::allocator_traits<Allocator>::template rebind_alloc<splay>;
     using iterator = Xiterator<IteratorDirection::FORWARD>;
     using reverse_iterator = Xiterator<IteratorDirection::REVERSE>;
     
     
-    SplayTree()  = default;
+    explicit SplayTree(const SplayNodeAllocator& allocator = SplayNodeAllocator())
+        : _node_allocator(allocator)
+    {}
     ~SplayTree()
     {
         clear();
@@ -228,6 +231,11 @@ public:
         _size = other._size;
         other._root = nullptr;
         other._size = 0;
+    }
+    
+    constexpr const SplayNodeAllocator& get_allocator() const noexcept
+    {
+        return _node_allocator;
     }
     constexpr splay* root() const
     {
@@ -257,7 +265,6 @@ public:
             return end();
         return iterator(_root, this);
     }
-    
    
     
     iterator find(KeyType key) const
@@ -334,6 +341,7 @@ private:
     //sentinal node for rend()
     const reverse_iterator _rendIt = reverse_iterator(nullptr, this);
     size_t _size = 0;
+    SplayNodeAllocator _node_allocator;
     
     splay* _insert(KeyType key, ValueType&& value, splay* root)
     {
@@ -351,6 +359,7 @@ private:
         }
         // Create a new node as we are sure we need to insert it.
         splay* new_node = _New_Node(key, std::forward<ValueType>(value));
+        //any bad alloc at this point have not made substantial changes so we're ok to let the go uncaught here
         if(! new_node)
             return nullptr;
         
@@ -390,7 +399,7 @@ private:
             root->children[RIGHT] = temp->children[RIGHT];
         }
         --_size;
-        delete temp;
+        _destroy_node( temp);
         return root;
     }
     splay* _find(KeyType key, splay* root) const
@@ -470,16 +479,18 @@ private:
 
     splay* _New_Node(KeyType key, ValueType&& value)
     {
-        try
+        splay* p_node = _node_allocator.allocate(1);
+        new (p_node) splay(key, std::forward<ValueType>(value));
+        ++_size;
+        return p_node;
+    }
+    
+    void _destroy_node(splay* node)
+    {
+        if (node != nullptr)
         {
-            splay* p_node = new splay(key, std::forward<ValueType>(value));
-            p_node->children[LEFT] = p_node->children[RIGHT] = nullptr;
-            ++_size;
-            return p_node;
-        }
-        catch (const std::bad_alloc& e)
-        {
-            return nullptr;
+            node->~splay();                     // Call the destructor for the node
+            _node_allocator.deallocate(node, 1); // Deallocate the node's memory
         }
     }
     
