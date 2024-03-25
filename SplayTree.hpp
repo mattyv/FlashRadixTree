@@ -357,7 +357,7 @@ public:
         }
     }
     
-    const_iterator find(key_type key) const
+    const_iterator find(const key_type& key) const
     {
         _root = _find(key, _root);
         if((_root == nullptr ) || (_root && _root->first != key))
@@ -365,7 +365,7 @@ public:
         return const_iterator(_root, this);
     }
     
-    iterator find(key_type key)
+    iterator find(const key_type& key)
     {
         _root = _find(key, _root);
         if((_root == nullptr ) || (_root && _root->first != key))
@@ -373,12 +373,12 @@ public:
         return iterator(_root, this);
     }
     
-    bool contains(key_type key) const
+    bool contains(const key_type& key) const
     {
         return find(key) != cend();
     }
     
-    iterator operator[](key_type key) //untested
+    iterator operator[](const key_type& key) //untested
     {
         throw std::runtime_error("not tested");
         auto it = find(key);
@@ -386,7 +386,7 @@ public:
             return insert(key, mapped_type());
     }
     
-    const_iterator operator[](key_type key) const //untested
+    const_iterator operator[](const key_type& key) const //untested
     {
         throw std::runtime_error("not tested");
         auto it = find(key);
@@ -395,7 +395,7 @@ public:
         return it;
     }
     
-    iterator find_predecessor(key_type key)
+    iterator find_predecessor(const key_type& key)
     {
         _root = _find(key, _root);
         if(_root == nullptr)
@@ -403,7 +403,7 @@ public:
         return iterator(_root, this);
     }
     
-    const_iterator find_predecessor(key_type key) const
+    const_iterator find_predecessor(const key_type& key) const
     {
         _root = _find(key, _root);
         if(_root == nullptr)
@@ -572,7 +572,7 @@ private:
         return new_node;
     }
     
-    value_type* _erase(key_type key, value_type* root)
+    value_type* _erase(const key_type& key, value_type* root)
     {
         if (!root)
             return nullptr;
@@ -596,7 +596,7 @@ private:
         _destroy_node( temp);
         return root;
     }
-    value_type* _find(key_type key, value_type* root) const
+    value_type* _find(const key_type& key, value_type* root) const
     {
         return _splay(key, root);
     }
@@ -619,7 +619,7 @@ private:
     }
     
     // An implementation of top-down value_type tree
-    value_type* _splay(key_type key, value_type* root) const
+    value_type* _splay(const key_type& key, value_type* root) const
     {
         if (!root)
             return nullptr;
