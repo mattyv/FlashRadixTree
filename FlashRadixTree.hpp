@@ -323,6 +323,17 @@ private:
         
         // Default copy constructor - used for same type
         XFlashRadixTreeIterator(const XFlashRadixTreeIterator& other) noexcept = default;
+        
+        XFlashRadixTreeIterator(XFlashRadixTreeIterator&& other) noexcept
+        {
+            _node = other._node;
+            _tree = other._tree;
+            _direction = other._direction;
+            _end = other._end;
+            other._node = nullptr;
+            other._tree = nullptr;
+            other._end = true;
+        }
 
         // Default copy assignment operator - used for same type
         XFlashRadixTreeIterator& operator=(const XFlashRadixTreeIterator& other) noexcept = default;

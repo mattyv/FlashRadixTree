@@ -29,9 +29,8 @@ public:
     public:
         value_type()  = default;
         value_type( key_type key, mapped_type&& val)
+        : first(key), second(std::move(val))
         {
-            value.first = key;
-            value.second = std::move(val);
         }
         
         value_type( key_type key, const mapped_type& val)
@@ -39,27 +38,27 @@ public:
         {}
         
         value_type(const std::pair<key_type, mapped_type>& pair)
-        : value(pair)
+        : first(pair.first), second(pair.second)
         {}
         
         value_type(std::pair<key_type, mapped_type>&& pair)
-        : value(std::move(pair))
+        : first(std::move(pair.first)), second(std::move(pair.second))
         {}
         
         ~value_type() = default;
         
     private:
-        std::pair<key_type, mapped_type> value;
         
         value_type(value_type&& other) noexcept
         {
-            value = std::move(other.value);
+            first = std::move(other.first);
+            second = std::move(other.second);
             children[LEFT] = other.children[LEFT];
             children[RIGHT] = other.children[RIGHT];
         }
     public:
-        key_type& first = value.first;
-        mapped_type&  second = value.second;
+        key_type first;
+        mapped_type  second;
         value_type* children[2] = {nullptr, nullptr};
         
         constexpr bool operator==(const value_type& rhs) const
@@ -107,6 +106,14 @@ private:
         Xiterator()  = default;
         // Default copy constructor - used for same type
         Xiterator(const Xiterator& other) noexcept = default;
+        
+        Xiterator(Xiterator&& other) noexcept
+        {
+            _node = std::move(other._node);
+            _tree = std::move(other._tree);
+            _isEnd = std::move(other._isEnd);
+            _direction = std::move(other._direction);
+        }
 
         // Default copy assignment operator - used for same type
         Xiterator& operator=(const Xiterator& other) noexcept = default;
@@ -275,11 +282,11 @@ public:
     {
         return _node_allocator;
     }
-    constexpr const_iterator root() const
+    constexpr const_iterator root() const noexcept
     {
         return iterator(_root, this);
     }
-    constexpr iterator root()
+    constexpr iterator root() noexcept
     {
         return iterator(_root, this);
     }
@@ -300,7 +307,7 @@ public:
         _size = 0;
     }
     
-    iterator insert(key_type key, mapped_type&& value)
+    iterator insert(const key_type& key, mapped_type&& value)
     {
         value_type val(key, std::forward<mapped_type>(value));
         _root = _insert(_root, std::move(val));
@@ -472,12 +479,12 @@ public:
         return _cendIt;
     }
     
-    constexpr const_iterator cend() const  noexcept
+    constexpr const const_iterator& cend() const  noexcept
     {
         return _cendIt;
     }
     
-    constexpr reverse_iterator& rend()  noexcept
+    constexpr const reverse_iterator& rend()  noexcept
     {
         return _rendIt;
     }
