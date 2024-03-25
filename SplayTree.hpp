@@ -87,7 +87,6 @@ private:
     {
     private:
         using tree_pointer = std::conditional_t<constness == IteratorConstness::CONST, const SplayTree*, SplayTree*>;
-        //return type being const or non const depending on the template parameter
         using value_type_pointer = std::conditional_t<constness == IteratorConstness::CONST, const value_type*, value_type*>;
         using value_type_reference = std::conditional_t<constness == IteratorConstness::CONST, const value_type&, value_type&>;
         using value = std::conditional_t<constness == IteratorConstness::CONST, const Xiterator, Xiterator>;
@@ -311,21 +310,7 @@ public:
     }
    
     //bit of a hack to take a pair but thats not what this class uses under the hood so we just convert.
-    //will be perfectly compatable
-    /*std::pair<iterator, bool> insert(const pair_type_reference& value) //untested
-    {
-        throw std::runtime_error("not tested");
-        auto it = find(value.first);
-        if(it != end())
-            return std::make_pair(it, false);
-        else
-        {
-            value_type val(value);
-            auto it = insert(std::move(val));
-            return std::make_pair(insert(value.first, value.second), true);
-        }
-    }*/
-    
+    //will be perfectly compatablere
     std::pair<iterator, bool> insert(pair_type&& value) //untested
     {
         throw std::runtime_error("not tested");
@@ -359,7 +344,7 @@ public:
     
     const_iterator find(const key_type& key) const
     {
-        _root = _find(key, _root);
+        _root = _splay(key, _root);
         if((_root == nullptr ) || (_root && _root->first != key))
             return _cendIt;
         return const_iterator(_root, this);
@@ -367,7 +352,7 @@ public:
     
     iterator find(const key_type& key)
     {
-        _root = _find(key, _root);
+        _root = _splay(key, _root);
         if((_root == nullptr ) || (_root && _root->first != key))
             return end();
         return iterator(_root, this);
@@ -397,7 +382,7 @@ public:
     
     iterator find_predecessor(const key_type& key)
     {
-        _root = _find(key, _root);
+        _root = _splay(key, _root);
         if(_root == nullptr)
             return end();
         return iterator(_root, this);
@@ -595,10 +580,6 @@ private:
         --_size;
         _destroy_node( temp);
         return root;
-    }
-    value_type* _find(const key_type& key, value_type* root) const
-    {
-        return _splay(key, root);
     }
     // RR(Y rotates to the right)
     value_type* _RR_Rotate(value_type* k2) const  noexcept
