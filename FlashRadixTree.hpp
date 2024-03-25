@@ -11,7 +11,6 @@
 #define FlashRadixTree_hpp
 
 #define USE_SPLAY_TREE
-//#define USE_CHAR_MAP
 
 #include <iostream>
 #include <map>
@@ -20,8 +19,6 @@
 #include <stack>
 #ifdef USE_SPLAY_TREE
 #include "SplayTree.hpp"
-#elif defined USE_CHAR_MAP
-#include "CharMap.hpp"
 #endif
 #include <concepts>
 #include <sstream>
@@ -192,12 +189,10 @@ public:
         using TreeNodePtr = std::unique_ptr<FlashRadixTreeNode, std::function<void(FlashRadixTreeNode*)>>;
 #ifdef USE_SPLAY_TREE
         using Children = SplayTree<typename Key::value_type, TreeNodePtr, Allocator>;
-#elif defined USE_CHAR_MAP
-        using Children = CharMap<TreeNodePtr>;
 #else
-        using Children = std::map<typename Key::value_type, TreeNodePtr>;
+        using Children = std::map<typename Key::value_type, TreeNodePtr, std::less<typename Key::value_type>>;//, Allocator>;
 #endif
-        Children children = Children(Allocator());
+        Children children;// = Children(Allocator());
         
         FlashRadixTreeNode(const Key& prefix, Value&& value, FlashRadixTreeNode* parent)
         : BaseType(false, std::forward<Value>(value), prefix, parent)
@@ -241,12 +236,10 @@ public:
         using TreeNodePtr = FlashRadixTreeNode*;
 #ifdef USE_SPLAY_TREE
         using Children = SplayTree<typename Key::value_type, TreeNodePtr, Allocator>;
-#elif defined USE_CHAR_MAP
-        using Children = CharMap<TreeNodePtr>;
 #else
         using Children = std::map<typename Key::value_type, TreeNodePtr>;
 #endif
-        Children children = Children(Allocator());
+        Children children;// = Children(Allocator());
         
         FlashRadixTreeNodeNoOwner(const Key& prefix, Value&& value, FlashRadixTreeNode* parent)
         : BaseType(false, std::forward<Value>(value), prefix, parent)
@@ -505,13 +498,8 @@ public:
                 
                 if( it != currentNode->children.end()) {
                     // Found a common prefix, split the edge if necessary
-#if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
-                    const typename Key::value_type edgeKey = it->key;
-                    FlashRadixTreeNode* childNode = it->value.get();
-#else
                     const typename Key::value_type edgeKey = it->first;
                     FlashRadixTreeNode* childNode = it->second.get();
-#endif
                     const Key& edge = childNode->prefix; // Assuming first is the key in the SplayTree
                     
                     // Determine the common prefix length
@@ -544,23 +532,18 @@ public:
                         rollback = _copyFromOwnerNode(childNode);
                         rollbackLocation = childNode;
                         childNode->prefix = suffixEdge;
-#if defined( USE_SPLAY_TREE)  || defined USE_CHAR_MAP
-                        newChild->children.insert(suffixEdge[0], std::move(it->value));
+#if defined( USE_SPLAY_TREE)
+                        newChild->children.insert(suffixEdge[0], std::move(it->second));
 #else
-                        newChild->children.emplace(suffixEdge[0], std::move(it->value));
+                        newChild->children.emplace(suffixEdge[0], std::move(it->second));
 #endif
                         childNode->parent = newChild.get();
                         
                         // Insert the new child with the common prefix in the current node's children
-#if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
-                        auto itNewChild = currentNode->children.find(edgeKey);//, std::move(newChild));
-                        itNewChild->value = std::move(newChild);
-                        rollbackLocation = itNewChild->value.get();
-                        currentNode = itNewChild->value.get();
-#else
-                        auto itNewChild = currentNode->children.emplace(commonPrefix[0], std::move(newChild));
-                        currentNode = itNewChild.first->second;
-#endif
+                        auto itNewChild = currentNode->children.find(edgeKey);
+                        itNewChild->second = std::move(newChild);
+                        rollbackLocation = itNewChild->second.get();
+                        currentNode = itNewChild->second.get();
                     } else {
                         // Entire edge is a common prefix, proceed with the child node
                         currentNode = childNode;
@@ -580,33 +563,29 @@ public:
                     auto newNode = make_unique_alloc<FlashRadixTreeNode>(_nodeAllocator, remaining, std::forward<Value>(value), currentNode);
                     const char newKey = remaining[0];
                     typename FlashRadixTreeNode::Children::iterator lowerBound;
-#if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
+#if defined( USE_SPLAY_TREE)
                     if(_firstWord)
                         lowerBound = currentNode->children.find_predecessor(newKey);
                     
                     auto itNewNode = currentNode->children.insert(newKey, std::move(newNode));
-                    inserted = itNewNode->value.get();
+                    inserted = itNewNode->second.get();
+                    itNewNode->second->isEndOfWord = true;
 #else
-                    if(_firstWord)
-                    {
-                        lowerBound = currentNode->children.lower_bound(newKey);
-                        if(lowerBound != currentNode->children.end())
-                        {
-                            if(lowerBound->first == newKey)
-                                --lowerBound;
-                        }
-                    }
+                    lowerBound = currentNode->children.lower_bound(newKey);
+                    if(_firstWord && !currentNode->children.empty() && (lowerBound->first == newKey || lowerBound == currentNode->children.end()))
+                        --lowerBound;
+                    
                     auto itNewNode = currentNode->children.emplace(newKey, std::move(newNode));
                     inserted = itNewNode.first->second.get();
+                    itNewNode.first->second->isEndOfWord = true;
+
 #endif
-                    itNewNode->value->isEndOfWord = true;
-                    
                     //update the firstword
                     if(_firstWord == nullptr)
                         _firstWord = inserted;
                     else if(lowerBound != currentNode->children.end())
                     {
-                        auto* lowerNode = lowerBound->value.get();
+                        auto* lowerNode = lowerBound->second.get();
                         if(!lowerNode->children.empty())
                             lowerNode = _getMaximum(lowerNode);
                         inserted->prev = lowerNode;
@@ -618,7 +597,7 @@ public:
                         auto* parent = currentNode->parent;
                         if(parent)
                         {
-                            auto* last = parent->children.rbegin()->value.get();
+                            auto* last = parent->children.rbegin()->second.get();
                             last->next = inserted;
                             inserted->prev = last;
                         }
@@ -680,11 +659,7 @@ public:
 
              if(it != currentNode->children.end())
             {
-#if defined( USE_SPLAY_TREE) || defined USE_CHAR_MAP
-                currentNode = it->value.get();
-#else
                 currentNode = it->second.get();
-#endif
                 if(MatchMode == MatchMode::Prefix && //if we are in prefix mode we can stop if we find the prefix
                    currentNode->isEndOfWord &&
                        (currentNode->children.empty() ||//if there are no children below this key we have our winner
@@ -740,16 +715,11 @@ private:
 #if defined( USE_SPLAY_TREE)
         for(const auto& it : node->children)
         {
-            _printRecursively(it->key, it->value.get(), level + 1);
+            _printRecursively(it.first, it.second.get(), level + 1);
         }
-#elif defined( USE_CHAR_MAP)
-        node->children.inOrderAndOp([&](const auto& node)->bool {
-            _printRecursively(node->key, node->value, level + 1);
-            return true;
-        });
 #else
         for (const auto& it : node->children) {
-            _printRecursively(it.first, it.second, level + 1);
+            _printRecursively(it.first, it.second.get(), level + 1);
         }
 #endif
     }
@@ -787,8 +757,8 @@ private:
                 return false; // Key not found
             }
 
-            const Key& nodePrefix = it->value->prefix;
-            FlashRadixTreeNode* childNode = it->value.get();
+            const Key& nodePrefix = it->second->prefix;
+            FlashRadixTreeNode* childNode = it->second.get();
 
             if (remainingKey.starts_with(nodePrefix)) {
                 // Prefix matches, move to the next node
@@ -839,7 +809,7 @@ private:
             }
             else if(currentNode->children.size() == 1 && !currentNode->isEndOfWord)
             {
-                auto remainingChild = std::move(currentNode->children.root()->value);
+                auto remainingChild = std::move(currentNode->children.begin()->second);
                 //tidy up linked list of end of words
                 if(remainingChild->prev)
                     remainingChild->prev->next = remainingChild->next;
@@ -854,7 +824,7 @@ private:
             //if the parent node has only one child we can compress (unless we're root. that makes no sense)
             else if(parentNode != _root.get() && parentNode->children.size() == 1 && !parentNode->isEndOfWord)
             {
-                auto remainingChild = std::move(parentNode->children.root()->value);
+                auto remainingChild = std::move(parentNode->children.begin()->second);
                 //tidy up linked list of end of words
                 if(remainingChild->prev)
                     remainingChild->prev->next = remainingChild->next;
@@ -892,9 +862,9 @@ private:
             if(check == children->rend())
                 break;
             it = check;
-            children = &it->value->children;
+            children = &it->second->children;
         }
-        auto* node = it->value.get();
+        auto* node = it->second.get();
         //hunt backwards for a node which is not deleted
         while(node != nullptr && (!node->isEndOfWord || node->deleted))
             node = node->prev;
@@ -906,8 +876,12 @@ private:
     FlashRadixTreeNodeNoOwner _copyFromOwnerNode( FlashRadixTreeNode* node)
     {
         FlashRadixTreeNodeNoOwner newNode(node->prefix, node->value, node->isEndOfWord, node->parent);
-        for(auto it : node->children)
-            newNode.children.insert(it->key, it->value.get());
+        for(auto& it : node->children)
+#if defined( USE_SPLAY_TREE)
+            newNode.children.insert(it.first, it.second.get());
+#else
+            newNode.children.emplace(it.first, it.second.get());
+#endif
         
         return newNode;
     }
@@ -916,11 +890,17 @@ private:
     FlashRadixTreeNode _mergeFromNoOwnerNode( FlashRadixTreeNodeNoOwner& node, FlashRadixTreeNode* current)
     {
         FlashRadixTreeNode newNode( node.prefix, std::move(node.value), node.isEndOfWord, node.parent);
-        for(auto it :  node.children)
+        for(auto& it :  node.children)
         {
-            auto found = current->children.find(it->key);
+#if defined( USE_SPLAY_TREE)
+            auto found = current->children.find(it.first);
             if(found != current->children.end())
-                newNode.children.insert(it->key, std::move(found->value));
+                newNode.children.insert(it.first, std::move(found->second));
+#else
+            auto found = current->children.find(it.first);
+            if(found != current->children.end())
+                newNode.children.emplace(it.first, std::move(found->second));
+#endif
             
         }
         return newNode;
@@ -984,24 +964,15 @@ private:
                 if (!first) {
                     ss << ",";
                 }
-                ss << serializeNode(it->value.get());
+                ss << serializeNode(it.second.get());
                 first = false;
             }
-#elif defined( USE_CHAR_MAP)
-            node->children.inOrderAndOp([&ss, &first](const auto& childPair) -> bool {
-                if (!first) {
-                    ss << ",";
-                }
-                ss << serializeNode(childPair.value);
-                first = false;
-                return true;
-            });
 #else
             for (const auto& childPair : node->children) {
                 if (!first) {
                     ss << ",";
                 }
-                ss << serializeNode(childPair.second);
+                ss << serializeNode(childPair.second.get());
                 first = false;
             }
 #endif

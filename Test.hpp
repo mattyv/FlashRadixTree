@@ -612,7 +612,7 @@ bool RunTests()
     ss.str("");
     for(auto& it : rTree)
     {
-        ss << it.prefix << "," << it.value << "," << it.getFullKey() << endl;
+        ss << it.prefix << "," << it.value << "," << it.getFullKey() << std::endl;
     }
     got = ss.str();
     expected = "A,0,AA\nB,1,AB\nBA,2,BA\n";
@@ -628,7 +628,7 @@ bool RunTests()
     ss.str("");
     for(auto it = rTree.rbegin(); it != rTree.rend(); ++it)
     {
-        ss << it->prefix << "," << it->value << "," << it->getFullKey() << endl;
+        ss << it->prefix << "," << it->value << "," << it->getFullKey() << std::endl;
     }
     got = ss.str();
     expected = "BA,2,BA\nB,1,AB\nA,0,AA\n";
@@ -986,7 +986,7 @@ bool RunTests()
     
     //test out of memory
     bool okOOM = false;
-    FlashRadixTree<std::string, int, MatchMode::Exact, ThrowingAllocationAllocator<FlashRadixTree<string, int>::FlashRadixTreeNode>> rTreeExactOOM;
+    FlashRadixTree<std::string, int, MatchMode::Exact, ThrowingAllocationAllocator<FlashRadixTree<std::string, int>::FlashRadixTreeNode>> rTreeExactOOM;
     throwOnAllocCount = 3;
     try
     {
@@ -1019,7 +1019,7 @@ bool RunTests()
         }
         
         //test serialization
-        FlashRadixTreeSerializer<std::string, int, MatchMode::Exact, ThrowingAllocationAllocator<FlashRadixTree<string, int>::FlashRadixTreeNode>> serializerOOM;
+        FlashRadixTreeSerializer<std::string, int, MatchMode::Exact, ThrowingAllocationAllocator<FlashRadixTree<std::string, int>::FlashRadixTreeNode>> serializerOOM;
         std::string got = serializerOOM.serialize(rTreeExactOOM);
         std::string expected = "+[,0,*,<+[AB,1,√,<->]>]";
         if(got != expected)
@@ -1071,7 +1071,7 @@ bool RunTests()
         }
         
         //test serialization
-        FlashRadixTreeSerializer<std::string, int, MatchMode::Exact, ThrowingAllocationAllocator<FlashRadixTree<string, int>::FlashRadixTreeNode>> serializerOOM;
+        FlashRadixTreeSerializer<std::string, int, MatchMode::Exact, ThrowingAllocationAllocator<FlashRadixTree<std::string, int>::FlashRadixTreeNode>> serializerOOM;
         std::string got = serializerOOM.serialize(rTreeExactOOM);
         std::string expected = "+[,0,*,<+[A,1,√,<->]>]";
         if(got != expected)
@@ -1123,7 +1123,7 @@ bool RunTests()
         }
         
         //test serialization
-        FlashRadixTreeSerializer<std::string, int, MatchMode::Exact, ThrowingAllocationAllocator<FlashRadixTree<string, int>::FlashRadixTreeNode>> serializerOOM;
+        FlashRadixTreeSerializer<std::string, int, MatchMode::Exact, ThrowingAllocationAllocator<FlashRadixTree<std::string, int>::FlashRadixTreeNode>> serializerOOM;
         std::string got = serializerOOM.serialize(rTreeExactOOM);
         std::string expected = "+[,0,*,<+[A,1,√,<->]>]";
         if(got != expected)
@@ -1185,7 +1185,7 @@ bool RunTests()
         }
         
         //test serialization
-        FlashRadixTreeSerializer<std::string, int, MatchMode::Exact, ThrowingAllocationAllocator<FlashRadixTree<string, int>::FlashRadixTreeNode>> serializerOOM;
+        FlashRadixTreeSerializer<std::string, int, MatchMode::Exact, ThrowingAllocationAllocator<FlashRadixTree<std::string, int>::FlashRadixTreeNode>> serializerOOM;
         std::string got = serializerOOM.serialize(rTreeExactOOM);
         std::string expected = "+[,0,*,<+[A,1,√,<+[B,2,√,<->]>]>]";
         if(got != expected)

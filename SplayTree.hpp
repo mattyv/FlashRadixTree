@@ -50,6 +50,13 @@ public:
         
     private:
         std::pair<key_type, mapped_type> value;
+        
+        value_type(value_type&& other) noexcept
+        {
+            value = std::move(other.value);
+            children[LEFT] = other.children[LEFT];
+            children[RIGHT] = other.children[RIGHT];
+        }
     public:
         key_type& first = value.first;
         mapped_type&  second = value.second;
@@ -80,22 +87,23 @@ private:
     {
     private:
         using tree_pointer = std::conditional_t<constness == IteratorConstness::CONST, const SplayTree*, SplayTree*>;
+        //return type being const or non const depending on the template parameter
+        using value_type_pointer = std::conditional_t<constness == IteratorConstness::CONST, const value_type*, value_type*>;
+        using value_type_reference = std::conditional_t<constness == IteratorConstness::CONST, const value_type&, value_type&>;
+        using value = std::conditional_t<constness == IteratorConstness::CONST, const Xiterator, Xiterator>;
+        using pointer = std::conditional_t<constness == IteratorConstness::CONST, const Xiterator*, Xiterator*>;
+        using reference = std::conditional_t<constness == IteratorConstness::CONST, const Xiterator&, Xiterator&>;
         
-        value_type* _node = nullptr;
+        value_type_pointer _node = nullptr;
         tree_pointer _tree = nullptr;
         bool _isEnd = true;
         IteratorDirection _direction = direction;
         
-        Xiterator(value_type* node, tree_pointer tree)
+        Xiterator(value_type_pointer node, tree_pointer tree)
         : _node(node), _tree(tree), _isEnd(node == nullptr || tree == nullptr)
         {
         }
         
-        //return type being const or non const depending on the template parameter
-        using value_pointer_type = std::conditional_t<constness == IteratorConstness::CONST, const value_type*, value_type*>;
-        using value = std::conditional_t<constness == IteratorConstness::CONST, const Xiterator, Xiterator>;
-        using pointer = std::conditional_t<constness == IteratorConstness::CONST, const Xiterator*, Xiterator*>;
-        using reference = std::conditional_t<constness == IteratorConstness::CONST, const Xiterator&, Xiterator&>;
     public:
         Xiterator()  = default;
         // Default copy constructor - used for same type
@@ -196,13 +204,13 @@ private:
             --(*this);
             return tmp;
         }
-        constexpr value_pointer_type operator->() const
+        constexpr value_type_pointer operator->() const
         {
             return _node;
         }
-        constexpr value_pointer_type operator*() const
+        constexpr value_type_reference operator*() const
         {
-            return _node;
+            return *_node;
         }
         constexpr bool operator==(const Xiterator& rhs) const
         {
@@ -235,6 +243,8 @@ public:
     using pointer = typename std::allocator_traits<allocator_type>::pointer;
     using const_pointer = typename std::allocator_traits<allocator_type>::const_pointer;
     using reference = value_type&;
+    using pair_type = std::pair<key_type, mapped_type>;
+    using pair_reference = pair_type&;
     using const_reference = const value_type&;
     using iterator = Xiterator<IteratorDirection::FORWARD>;
     using const_iterator = Xiterator<IteratorDirection::FORWARD, IteratorConstness::CONST>;
@@ -293,7 +303,8 @@ public:
     
     iterator insert(key_type key, mapped_type&& value)
     {
-        _root = _insert(key, std::forward<mapped_type>(value), _root);
+        value_type val(key, std::forward<mapped_type>(value));
+        _root = _insert(_root, std::move(val));
         if(_root == nullptr)
             return end();
         return iterator(_root, this);
@@ -301,7 +312,7 @@ public:
    
     //bit of a hack to take a pair but thats not what this class uses under the hood so we just convert.
     //will be perfectly compatable
-    std::pair<iterator, bool> insert(const std::pair<key_type, mapped_type>& value) //untested
+    /*std::pair<iterator, bool> insert(const pair_type_reference& value) //untested
     {
         throw std::runtime_error("not tested");
         auto it = find(value.first);
@@ -309,19 +320,48 @@ public:
             return std::make_pair(it, false);
         else
         {
-            auto it = insert(value.first, value.second);
+            value_type val(value);
+            auto it = insert(std::move(val));
+            return std::make_pair(insert(value.first, value.second), true);
+        }
+    }*/
+    
+    std::pair<iterator, bool> insert(pair_type&& value) //untested
+    {
+        throw std::runtime_error("not tested");
+        auto it = find(value.first);
+        if(it != end())
+            return std::make_pair(it, false);
+        else
+        {
+            value_type val(std::forward<value_type>(value));
+            auto it = insert(std::move(val));
             return std::make_pair(insert(value.first, value.second), true);
         }
     }
     
-    
-    
+    template<class... Args>
+    std::pair<iterator, bool> emplace(Args&&... args) //untested
+    {
+        throw std::runtime_error("not tested");
+        value_type val(std::forward<Args>(args)...);
+        auto it = find(val.first);
+        if(it != end())
+            return std::make_pair(it, false);
+        else
+        {
+            _root = _insert(_root, std::move(val));
+            if(_root == nullptr)
+                return std::make_pair(end() ,false);
+            return std::make_pair(it, true);
+        }
+    }
     
     const_iterator find(key_type key) const
     {
         _root = _find(key, _root);
         if((_root == nullptr ) || (_root && _root->first != key))
-            return _endIt;
+            return _cendIt;
         return const_iterator(_root, this);
     }
     
@@ -331,6 +371,11 @@ public:
         if((_root == nullptr ) || (_root && _root->first != key))
             return end();
         return iterator(_root, this);
+    }
+    
+    bool contains(key_type key) const
+    {
+        return find(key) != cend();
     }
     
     iterator operator[](key_type key) //untested
@@ -392,6 +437,14 @@ public:
         return iterator(_root, this);
     }
     
+    const_iterator begin() const  noexcept
+    {
+        if(_root == nullptr)
+            return end();
+        _root = _getMinimumAndSplay(_root);
+        return const_iterator(_root, this);
+    }
+    
     const_iterator cbegin() const  noexcept
     {
         if(_root == nullptr)
@@ -408,9 +461,30 @@ public:
         return const_reverse_iterator(_root, this);
     }
     
+    reverse_iterator rbegin()  noexcept
+    {
+        if(_root == nullptr)
+            return rend();
+        _root = _getMaximumAndSplay(_root);
+        return reverse_iterator(_root, this);
+    }
+    
+    const_reverse_iterator rbegin() const  noexcept
+    {
+        if(_root == nullptr)
+            return rend();
+        _root = _getMaximumAndSplay(_root);
+        return const_reverse_iterator(_root, this);
+    }
+    
     constexpr const iterator& end()  noexcept
     {
         return _endIt;
+    }
+    
+    constexpr const const_iterator& end() const  noexcept
+    {
+        return _cendIt;
     }
     
     constexpr const_iterator cend() const  noexcept
@@ -421,6 +495,11 @@ public:
     constexpr reverse_iterator& rend()  noexcept
     {
         return _rendIt;
+    }
+    
+    constexpr const const_reverse_iterator& rend() const  noexcept
+    {
+        return _crendIt;
     }
     
     constexpr const const_reverse_iterator& crend() const  noexcept
@@ -456,32 +535,34 @@ private:
     size_t _size = 0;
     allocator_type _node_allocator;
     
-    value_type* _insert(key_type key, mapped_type&& value, value_type* root)
+    template<typename... Args>
+    value_type* _insert(value_type* root, Args&&... args)
     {
         if (!root) {
             // If there is no root, create a new node and return it.
-            return _New_Node(key, std::forward<mapped_type>(value));
+            return _New_Node(std::forward<value_type>(args)...);
         }
-
+        
+        // Create a new node as we are sure we need to insert it.
+        value_type* new_node = _New_Node(std::forward<value_type>(args)...);
         // Splay the tree with the given key.
-        root = _splay(key, root);
+        root = _splay(new_node->first, root);
         
         // If the key is already in the tree, we return the splayed tree without inserting.
-        if (key == root->first) {
+        if (new_node->first == root->first) {
+            delete new_node;
             return root;
         }
-        // Create a new node as we are sure we need to insert it.
-        value_type* new_node = _New_Node(key, std::forward<mapped_type>(value));
         //any bad alloc at this point have not made substantial changes so we're ok to let the go uncaught here
         if(! new_node)
             return nullptr;
         
         // Calculate direction: 0 for LEFT, 1 for RIGHT
-        const Child dir = static_cast<Child>(key > root->first);
+        const Child dir = static_cast<Child>(new_node->first > root->first);
         const Child other_dir = static_cast<Child>(1 - dir);
 
         
-        if (root != nullptr && key != root->first)
+        if (root != nullptr && new_node->first != root->first)
         {
             new_node->children[dir] = root->children[dir];
             root->children[dir] = nullptr;
@@ -588,12 +669,11 @@ private:
         return root;
     }
     
-    
-
-    value_type* _New_Node(key_type key, mapped_type&& value)
+    template <typename... Args>
+    value_type* _New_Node(Args&&... args)
     {
         value_type* p_node = _node_allocator.allocate(1);
-        new (p_node) value_type(key, std::forward<mapped_type>(value));
+        new (p_node) value_type(std::forward<value_type>(args)...);
         ++_size;
         return p_node;
     }
