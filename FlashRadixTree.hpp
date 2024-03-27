@@ -10,7 +10,7 @@
 #ifndef FlashRadixTree_hpp
 #define FlashRadixTree_hpp
 
-//#define USE_SPLAY_TREE
+#define USE_SPLAY_TREE
 
 #include <iostream>
 #include <map>
@@ -88,9 +88,9 @@ enum class MatchMode {
 
 template <BasicStringOrBasicStringView Key, Streaming Value, MatchMode MatchMode = MatchMode::Exact,
 #ifdef USE_SPLAY_TREE
-                    typename Allocator = std::allocator<std::unique_ptr<Value>>>
+                    typename Allocator = std::allocator<Value>>
 #else
-                    typename Allocator = std::allocator<std::pair<const Key, std::unique_ptr<Value>>>>
+                    typename Allocator = std::allocator<std::pair<const Key, Value>>>
 #endif
 class FlashRadixTree {
     enum class Sentinal { END, REND, NONE };
@@ -190,12 +190,12 @@ private:
     class FlashRadixTreeNode : public FlashRadixTreeNodeBase<FlashRadixTreeNode> {
         using BaseType = FlashRadixTreeNodeBase<FlashRadixTreeNode>;
     public:
-        using TreeNodePtr = std::unique_ptr<FlashRadixTreeNode, std::function<void(FlashRadixTreeNode*)>>;
+        //using TreeNodePtr = std::unique_ptr<FlashRadixTreeNode, std::function<void(FlashRadixTreeNode*)>>;
 #ifdef USE_SPLAY_TREE
-        using Children = SplayTree<typename Key::value_type, TreeNodePtr, Allocator>;
+        using Children = SplayTree<typename Key::value_type, Value, Allocator>;
         Children children = Children(Allocator());
 #else
-        using Children = std::map<typename Key::value_type, TreeNodePtr, std::less<typename Key::value_type>>;//, Allocator>;
+        using Children = std::map<typename Key::value_type, Value, std::less<typename Key::value_type>>;//, Allocator>;
         Children children;
 #endif
         
@@ -443,7 +443,7 @@ public:
     using UniquePtrAlloc = std::unique_ptr<FlashRadixTreeNode, std::function<void(FlashRadixTreeNode*)>>;
 private:
     TreeNodeAllocator _nodeAllocator;
-    UniquePtrAlloc _root;
+    Value _root;
     FlashRadixTreeNode* _firstWord = nullptr;
     const iterator _endIt = iterator(nullptr, this);
     const const_iterator _cendIt = const_iterator(nullptr, this);
@@ -453,8 +453,8 @@ private:
 public:
     
     FlashRadixTree(const Allocator& alloc = Allocator())  noexcept
-    : _nodeAllocator(alloc),
-    _root(make_unique_alloc<FlashRadixTreeNode>(_nodeAllocator))
+    : _nodeAllocator(alloc)/*,
+    _root(make_unique_alloc<FlashRadixTreeNode>(_nodeAllocator))*/
     {
     }
     ~FlashRadixTree() {
@@ -463,7 +463,7 @@ public:
     
     FlashRadixTree(const FlashRadixTree& ) = delete;
     FlashRadixTree(FlashRadixTree&& other) noexcept
-    : _nodeAllocator(std::move(other._nodeAllocator)), _root(std::move(other._root)), _firstWord(other._firstWord), _size(other._size) {
+    : _nodeAllocator(std::move(other._nodeAllocator)), /*_root(std::move(other._root)),*/ _firstWord(other._firstWord), _size(other._size) {
         other._firstWord = nullptr;
         other._size = 0;
     }
@@ -482,11 +482,11 @@ public:
     }
     
     constexpr const_iterator getRoot() const noexcept {
-        return const_iterator(_root.get(), this);
+        return const_iterator(&_root, this);
     }
     
     constexpr iterator getRoot() noexcept{
-        return iterator(_root.get(), this);
+        return iterator(&_root/*.get()*/, this);
     }
     
     
@@ -527,7 +527,7 @@ public:
     }
     
     reverse_iterator rbegin()  noexcept {
-        const auto node =  _getMaximum(_root.get());
+        const auto node =  _getMaximum(&_root);
         if(node == nullptr) {
             return _rendIt;
         }
@@ -535,7 +535,7 @@ public:
     }
     
     const_reverse_iterator rbegin() const  noexcept {
-        const auto node =  _getMaximum(_root.get());
+        const auto node =  _getMaximum(&_root);
         if(node == nullptr) {
             return _rendIt;
         }
@@ -632,7 +632,7 @@ public:
     }
     
     void print() const  {
-        _printRecursively(' ', _root.get(), 0);
+        _printRecursively(' ', &_root, 0);
         std::cout << std::endl;
     }
 
@@ -642,9 +642,9 @@ public:
     
     //delete all items non recursively
     void clear()  {
-        if(_root != nullptr)
+        //if(_root != nullptr)
             _root->clear();
-        _root = nullptr;
+        //_root = nullptr;
         _size = 0;
         _firstWord = nullptr;
     }
@@ -655,14 +655,14 @@ private:
         std::optional<FlashRadixTreeNodeNoOwner> rollback;
         FlashRadixTreeNode* rollbackLocation = nullptr;
         
-        if (_root == nullptr) {
+        /*if (_root == nullptr) {
             // If the root doesn't exist, create it.
             _root = make_unique_alloc<FlashRadixTreeNode>(_nodeAllocator);
-        }
+        }*/
         
         try
         {
-            FlashRadixTreeNode* currentNode = _root.get();
+            FlashRadixTreeNode* currentNode = &_root;//.get();
             FlashRadixTreeNode* inserted = nullptr;
             Key remaining = key;
             
@@ -810,7 +810,7 @@ private:
             return nullptr; // An empty key cannot be found.
         }
         
-        value_type_pointer currentNode = _root.get();
+        value_type_pointer currentNode = &_root;//.get();
         auto keyPrefix = key[0];
         Key remaining = key;
         size_t seen = 0;
@@ -900,7 +900,7 @@ private:
             return false; // Cannot erase an empty key
         }
 
-        FlashRadixTreeNode* currentNode = _root.get();
+        FlashRadixTreeNode* currentNode = &_root;//.get();
         FlashRadixTreeNode* parentNode = nullptr;
         Key remainingKey = key;
 
@@ -987,7 +987,7 @@ private:
                 currentNode->children = std::move(remainingChild->children); //overrride children.
             }
             //if the parent node has only one child we can compress (unless we're root. that makes no sense)
-            else if(parentNode != _root.get() && parentNode->children.size() == 1 && !parentNode->isEndOfWord)
+            else if(parentNode != &_root && parentNode->children.size() == 1 && !parentNode->isEndOfWord)
             {
 #if defined( USE_SPLAY_TREE)
                 auto remainingChild = std::move(parentNode->children.getMinimum()->second);
@@ -1052,7 +1052,7 @@ private:
         
     FlashRadixTreeNode* _getMaximum() const noexcept
     {
-        return _getMaximum(_root.get());
+        return _getMaximum(&_root/*.get()*/);
     }
     
     
