@@ -28,7 +28,7 @@ unordered_map::find()
 
 ## Overview
 It's hard to beat STL's' unordered_map for raw speed. Especially lookup speed.
-But if you need ordered traversal then you lose the ability to hash and the penalty can be high. Typically the AVL tree implementation tries to balance, but it's trying to optimised against the average case. In the case of calling find() over a key set with non uniform distribution your average AVL tree is not optimised for this. 
+But if you need ordered traversal then you lose the ability to hash and the penalty can be high. Typically the AVL tree implementation tries to balance, but it's trying to optimised against the average case. In the case of calling find() over a key set with non uniform distribution of find() calls your average AVL tree is not optimised for this. 
 
 This project explores some ideas i've had regarding alternate data structures to the unorderd_map and map, and aiming the exploration to key sets with a non uniform distribution and key sets with common prefix's. Example of these can be found in many places. 
 
