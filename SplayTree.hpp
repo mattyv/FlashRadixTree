@@ -1,6 +1,6 @@
 /*
  *  C++ Program to Implement Splay Tree
- *  Adapted from https://www.sanfoundry.com/cpp-program-implement-splay-tree/ by Matthew Varendorff on 26/2/2024.
+ *  Adapted from https://www.sanfoundry.com/cpp-program-implement-value_type-tree/ by Matthew Varendorff on 26/2/2024.
  */
 #ifndef SPLAYTREE_HPP
 #define SPLAYTREE_HPP
@@ -20,34 +20,54 @@ concept ComparableKeyType = requires(T a, T b)
 };
 
 
-template <ComparableKeyType KeyType, typename ValueType, typename Allocator = std::allocator<ValueType>>
+template <ComparableKeyType key_type, typename mapped_type, typename Allocator = std::allocator<mapped_type>>
 class SplayTree
 {
 public:
-    struct splay
+    class value_type
     {
-        splay()  = default;
-        splay( KeyType key, ValueType&& value)
-        : key(key), value(std::move(value))
-        {}
-        
-        splay( KeyType key, const ValueType& value)
-        : key(key), value(value)
-        {}
-        
-        ~splay() = default;
-        
-        KeyType key;
-        ValueType value;
-        splay* children[2] = {nullptr, nullptr};
-        
-        constexpr bool operator==(const splay& rhs) const
+    public:
+        value_type()  = default;
+        value_type( const key_type& key, mapped_type&& val)
+        : first(key), second(std::move(val))
         {
-            return key == rhs.key;
+        }
+        
+        value_type( const key_type& key, const mapped_type& val)
+        : first(key), second(val)
+        {}
+        
+        value_type(const std::pair<key_type, mapped_type>& pair)
+        : first(pair.first), second(pair.second)
+        {}
+        
+        value_type(std::pair<key_type, mapped_type>&& pair)
+        : first(std::move(pair.first)), second(std::move(pair.second))
+        {}
+        
+        ~value_type() = default;
+        
+    private:
+        
+        value_type(value_type&& other) noexcept
+        {
+            first = std::move(other.first);
+            second = std::move(other.second);
+            children[LEFT] = other.children[LEFT];
+            children[RIGHT] = other.children[RIGHT];
+        }
+    public:
+        key_type first;
+        mapped_type  second;
+        value_type* children[2] = {nullptr, nullptr};
+        
+        constexpr bool operator==(const value_type& rhs) const
+        {
+            return first == rhs.first;
             //not checking children and value
         }
         
-        constexpr bool operator!=(const splay& rhs) const
+        constexpr bool operator!=(const value_type& rhs) const
         {
             return !(*this == rhs);
         }
@@ -55,28 +75,45 @@ public:
         friend SplayTree;
     };
     enum Child { LEFT = 0, RIGHT = 1};
-    
+    using size_type = size_t;
 
 private:
 
     enum class IteratorDirection { FORWARD, REVERSE};
-    template<IteratorDirection direction>
+    enum class IteratorConstness { CONST, NON_CONST};
+    template<IteratorDirection direction, IteratorConstness constness = IteratorConstness::NON_CONST>
     class Xiterator
     {
     private:
-        splay* _node = nullptr;
-        const SplayTree* _tree = nullptr;
+        using tree_pointer = std::conditional_t<constness == IteratorConstness::CONST, const SplayTree*, SplayTree*>;
+        using value_type_pointer = std::conditional_t<constness == IteratorConstness::CONST, const value_type*, value_type*>;
+        using value_type_reference = std::conditional_t<constness == IteratorConstness::CONST, const value_type&, value_type&>;
+        using value = std::conditional_t<constness == IteratorConstness::CONST, const Xiterator, Xiterator>;
+        using pointer = std::conditional_t<constness == IteratorConstness::CONST, const Xiterator*, Xiterator*>;
+        using reference = std::conditional_t<constness == IteratorConstness::CONST, const Xiterator&, Xiterator&>;
+        
+        value_type_pointer _node = nullptr;
+        tree_pointer _tree = nullptr;
         bool _isEnd = true;
         IteratorDirection _direction = direction;
         
-        Xiterator(splay* node, const SplayTree* tree)
+        Xiterator(value_type_pointer node, tree_pointer tree)
         : _node(node), _tree(tree), _isEnd(node == nullptr || tree == nullptr)
         {
         }
+        
     public:
         Xiterator()  = default;
         // Default copy constructor - used for same type
         Xiterator(const Xiterator& other) noexcept = default;
+        
+        Xiterator(Xiterator&& other) noexcept
+        {
+            _node = std::move(other._node);
+            _tree = std::move(other._tree);
+            _isEnd = std::move(other._isEnd);
+            _direction = std::move(other._direction);
+        }
 
         // Default copy assignment operator - used for same type
         Xiterator& operator=(const Xiterator& other) noexcept = default;
@@ -92,14 +129,14 @@ private:
         //template<IteratorDirection OtherDirection>
         auto get_other_direction() const  noexcept {
             if constexpr (direction == IteratorDirection::FORWARD) {
-                return Xiterator<IteratorDirection::REVERSE>(_node, _tree);
+                return Xiterator<IteratorDirection::REVERSE, constness>(_node, _tree);
             } else {
-                return Xiterator<IteratorDirection::FORWARD>(_node, _tree);
+                return Xiterator<IteratorDirection::FORWARD, constness>(_node, _tree);
             }
         }
                     
         
-        Xiterator& operator++()
+        reference operator++()
         {
             if(_isEnd || _node == nullptr || _tree == nullptr)
             {
@@ -107,29 +144,25 @@ private:
                 return *this;
             }
             
-            //splay tree to traverse
+            //value_type tree to traverse
             if (_direction == IteratorDirection::FORWARD)
             {
-                //make sure node is at the root
-                auto it = _tree->find(_node->key);
                 if(_node->children[RIGHT] == nullptr )
                     _node = nullptr;
-                else if(it != _tree->end())
+                else if(_tree->get(_node->first) != nullptr)//make sure node is at the root
                     _node = _tree->_rotateToNextLarger();
             }
             else
             {
-                //make sure node is at the root
-                auto it = _tree->find(_node->key);
                 if(_node->children[LEFT] == nullptr )
                     _node = nullptr;
-                else if(it != _tree->end())
+                else if(_tree->get(_node->first) != nullptr)
                     _node = _tree->_rotateToNextSmaller();
             }
             _isEnd = _node == nullptr;
             return *this;
         }
-        Xiterator& operator--()
+        reference operator--()
         {
             if(_isEnd || _node == nullptr || _tree == nullptr)
             {
@@ -137,49 +170,46 @@ private:
                 return *this;
             }
             
-            //splay tree to traverse
+            //value_type tree to traverse
             if (_direction == IteratorDirection::FORWARD)
             {
                 //make sure node is at the root
-                auto it = _tree->find(_node->key);
                 if(_node->children[LEFT] == nullptr )
                     _node = nullptr;
-                else if(it != _tree->end())
+                else if(_tree->get(_node->first) != nullptr)
                     _node = _tree->_rotateToNextSmaller();
             }
             else
             {
-                //make sure node is at the root
-                auto it = _tree->find(_node->key);
                 if(_node->children[RIGHT] == nullptr )
                     _node = nullptr;
-                else if(it != _tree->end())
+                else if(_tree->get(_node->first) != nullptr)
                     _node = _tree->_rotateToNextLarger();
             }
             _isEnd = _node == nullptr;
             return *this;
         }
         //pre-increment
-        Xiterator operator++(int)
+        value operator++(int)
         {
             Xiterator tmp = *this;
             ++(*this);
             return tmp;
         }
         //pre-decrement
-        Xiterator operator--(int)
+        value operator--(int)
         {
             Xiterator tmp = *this;
             --(*this);
             return tmp;
         }
-        constexpr splay* operator->() const
+        constexpr value_type_pointer operator->() const
         {
             return _node;
         }
-        constexpr splay* operator*() const
+        constexpr value_type_reference operator*() const
         {
-            return _node;
+            return *_node;
         }
         constexpr bool operator==(const Xiterator& rhs) const
         {
@@ -208,12 +238,23 @@ private:
         friend SplayTree;
     };
 public:
-    using SplayNodeAllocator = typename std::allocator_traits<Allocator>::template rebind_alloc<splay>;
+    using allocator_type = typename std::allocator_traits<Allocator>::template rebind_alloc<value_type>;
+    using pointer = typename std::allocator_traits<allocator_type>::pointer;
+    using const_pointer = typename std::allocator_traits<allocator_type>::const_pointer;
+    using reference = value_type&;
+    using pair_type = std::pair<key_type, mapped_type>;
+    using pair_reference = pair_type&;
+    using const_value_type_reference = const value_type&;
+    using value_type_reference = value_type&;
+    using const_value_type_pointer = const value_type*;
+    using value_type_pointer = value_type*;
     using iterator = Xiterator<IteratorDirection::FORWARD>;
+    using const_iterator = Xiterator<IteratorDirection::FORWARD, IteratorConstness::CONST>;
     using reverse_iterator = Xiterator<IteratorDirection::REVERSE>;
+    using const_reverse_iterator = Xiterator<IteratorDirection::REVERSE, IteratorConstness::CONST>;
     
     
-    explicit SplayTree(const SplayNodeAllocator& allocator = SplayNodeAllocator())
+    explicit SplayTree( const allocator_type& allocator = allocator_type())
         : _node_allocator(allocator)
     {}
     ~SplayTree()
@@ -231,21 +272,26 @@ public:
         _size = other._size;
         other._root = nullptr;
         other._size = 0;
+        _node_allocator = std::move(other._node_allocator);
     }
     
-    constexpr const SplayNodeAllocator& get_allocator() const noexcept
+    constexpr const allocator_type& get_allocator() const noexcept
     {
         return _node_allocator;
     }
-    constexpr splay* root() const
+    constexpr const_iterator root() const noexcept
     {
-        return _root;
+        return iterator(_root, this);
+    }
+    constexpr iterator root() noexcept
+    {
+        return iterator(_root, this);
     }
     constexpr bool empty() const  noexcept
     {
         return _root == nullptr;
     }
-    constexpr size_t size() const  noexcept
+    constexpr size_type size() const  noexcept
     {
         return _size;
     }
@@ -253,37 +299,159 @@ public:
     void clear()
     {
         while(_root != nullptr)
-            erase(_root->key);
+            erase(_root->first);
         _root = nullptr;
         _size = 0;
     }
     
-    iterator insert(KeyType key, ValueType&& value)
+    iterator insert(const key_type& key, mapped_type&& value)
     {
-        _root = _insert(key, std::forward<ValueType>(value), _root);
+        value_type val(key, std::forward<mapped_type>(value));
+        _root = _insert(_root, std::move(val));
         if(_root == nullptr)
             return end();
         return iterator(_root, this);
     }
    
-    
-    iterator find(KeyType key) const
+    //bit of a hack to take a pair but thats not what this class uses under the hood so we just convert.
+    //will be perfectly compatablere
+    std::pair<iterator, bool> insert(pair_type&& value) //untested
     {
-        _root = _find(key, _root);
-        if((_root == nullptr ) || (_root && _root->key != key))
-            return _endIt;
+        throw std::runtime_error("not tested");
+        auto it = get(value.first);
+        if(it != nullptr)
+            return std::make_pair(it, false);
+        else
+        {
+            value_type val(std::forward<value_type>(value));
+            auto it = insert(std::move(val));
+            return std::make_pair(insert(value.first, value.second), true);
+        }
+    }
+    
+    template<class... Args>
+    std::pair<iterator, bool> emplace(Args&&... args) //untested
+    {
+        throw std::runtime_error("not tested");
+        value_type val(std::forward<Args>(args)...);
+        auto it = get(val.first);
+        if(it != nullptr)
+            return std::make_pair(it, false);
+        else
+        {
+            _root = _insert(_root, std::move(val));
+            if(_root == nullptr)
+                return std::make_pair(end() ,false);
+            return std::make_pair(it, true);
+        }
+    }
+    
+    const_iterator find(const key_type& key) const
+    {
+        _root = _splay(key, _root);
+        if((_root == nullptr ) || (_root && _root->first != key))
+            return _cendIt;
+        return const_iterator(_root, this);
+    }
+    
+    iterator find(const key_type& key)
+    {
+        _root = _splay(key, _root);
+        if((_root == nullptr ) || (_root && _root->first != key))
+            return end();
         return iterator(_root, this);
     }
     
-    iterator find_predecessor(KeyType key) const
+    const_value_type_pointer get(const key_type& key) const
     {
-        _root = _find(key, _root);
+        _root = _splay(key, _root);
+        if((_root == nullptr ) || (_root && _root->first != key))
+            return nullptr;
+        return _root;
+    }
+    
+    value_type_pointer get(const key_type& key)
+    {
+        _root = _splay(key, _root);
+        if((_root == nullptr ) || (_root && _root->first != key))
+            return nullptr;
+        return _root;
+    }
+    
+    const_value_type_pointer getMinimum() const
+    {
+        return _getMinimumAndSplay(_root);
+    }
+    
+    value_type_pointer getMinimum()
+    {
+        return _getMinimumAndSplay(_root);
+    }
+     
+    const_value_type_pointer getMaximum() const
+    {
+        return _getMaximumAndSplay(_root);
+    }
+    
+    value_type_pointer getMaximum()
+    {
+        return _getMaximumAndSplay(_root);
+    }
+                                   
+    bool contains(const key_type& key) const
+    {
+        return get(key) != nullptr;
+    }
+    
+    iterator operator[]( key_type& key) //untested
+    {
+        throw std::runtime_error("not tested");
+        auto it = get(key);
+        if(it == nullptr)
+            return insert(key, mapped_type());
+    }
+    
+    const_iterator operator[]( key_type& key) const //untested
+    {
+        throw std::runtime_error("not tested");
+        auto it = find(key);
+        if(it == end())
+            return end();
+        return it;
+    }
+    
+    iterator find_predecessor(const key_type& key)
+    {
+        _root = _splay(key, _root);
         if(_root == nullptr)
             return end();
         return iterator(_root, this);
     }
     
-    iterator erase(KeyType key)
+    const_value_type_pointer get_predecessor(const key_type& key) const
+    {
+        return _splay(key, _root);
+    }
+    
+    const_iterator find_predecessor(const key_type& key) const
+    {
+        _root = _find(key, _root);
+        if(_root == nullptr)
+            return cend();
+        return const_iterator(_root, this);
+    }
+    
+    iterator lower_bound(key_type key)  //untested
+    {
+        throw std::runtime_error("not tested");
+        auto it = find_predecessor(key);
+        if(it == end())
+            return it;
+        else
+            return ++it;;
+    }
+    
+    iterator erase(key_type key)
     {
         _root = _erase(key, _root);
         if(_root == nullptr)
@@ -291,7 +459,7 @@ public:
         return iterator(_root, this);;
     }
     
-    iterator begin() const  noexcept
+    iterator begin()  noexcept
     {
         if(_root == nullptr)
             return end();
@@ -299,7 +467,31 @@ public:
         return iterator(_root, this);
     }
     
-    reverse_iterator rbegin() const  noexcept
+    const_iterator begin() const  noexcept
+    {
+        if(_root == nullptr)
+            return end();
+        _root = _getMinimumAndSplay(_root);
+        return const_iterator(_root, this);
+    }
+    
+    const_iterator cbegin() const  noexcept
+    {
+        if(_root == nullptr)
+            return end();
+        _root = _getMinimumAndSplay(_root);
+        return const_iterator(_root, this);
+    }
+    
+    const_reverse_iterator crbegin() const  noexcept
+    {
+        if(_root == nullptr)
+            return rend();
+        _root = _getMaximumAndSplay(_root);
+        return const_reverse_iterator(_root, this);
+    }
+    
+    reverse_iterator rbegin()  noexcept
     {
         if(_root == nullptr)
             return rend();
@@ -307,14 +499,42 @@ public:
         return reverse_iterator(_root, this);
     }
     
-    constexpr const iterator& end() const  noexcept
+    const_reverse_iterator rbegin() const  noexcept
+    {
+        if(_root == nullptr)
+            return rend();
+        _root = _getMaximumAndSplay(_root);
+        return const_reverse_iterator(_root, this);
+    }
+    
+    constexpr const iterator& end()  noexcept
     {
         return _endIt;
     }
     
-    constexpr const reverse_iterator& rend() const  noexcept
+    constexpr const const_iterator& end() const  noexcept
+    {
+        return _cendIt;
+    }
+    
+    constexpr const const_iterator& cend() const  noexcept
+    {
+        return _cendIt;
+    }
+    
+    constexpr const reverse_iterator& rend()  noexcept
     {
         return _rendIt;
+    }
+    
+    constexpr const const_reverse_iterator& rend() const  noexcept
+    {
+        return _crendIt;
+    }
+    
+    constexpr const const_reverse_iterator& crend() const  noexcept
+    {
+        return _crendIt;
     }
     
     void printInOrder()
@@ -335,40 +555,44 @@ public:
         return *this;
     }
 private:
-    mutable splay* _root = nullptr;
+    mutable value_type* _root = nullptr;
     //sentinal node for end()
-    const iterator _endIt = iterator(nullptr, this);
+    iterator _endIt = iterator(nullptr, this);
+    const_iterator _cendIt = const_iterator(nullptr, this);
     //sentinal node for rend()
-    const reverse_iterator _rendIt = reverse_iterator(nullptr, this);
+    reverse_iterator _rendIt = reverse_iterator(nullptr, this);
+    const_reverse_iterator _crendIt = const_reverse_iterator(nullptr, this);
     size_t _size = 0;
-    SplayNodeAllocator _node_allocator;
+    allocator_type _node_allocator;
     
-    splay* _insert(KeyType key, ValueType&& value, splay* root)
+    template<typename... Args>
+    value_type* _insert(value_type* root, Args&&... args)
     {
         if (!root) {
             // If there is no root, create a new node and return it.
-            return _New_Node(key, std::forward<ValueType>(value));
+            return _New_Node(std::forward<Args>(args)...);
         }
-
+        
+        // Create a new node as we are sure we need to insert it.
+        value_type* new_node = _New_Node(std::forward<value_type>(args)...);
         // Splay the tree with the given key.
-        root = _splay(key, root);
+        root = _splay(new_node->first, root);
         
         // If the key is already in the tree, we return the splayed tree without inserting.
-        if (key == root->key) {
+        if (new_node->first == root->first) {
+            delete new_node;
             return root;
         }
-        // Create a new node as we are sure we need to insert it.
-        splay* new_node = _New_Node(key, std::forward<ValueType>(value));
         //any bad alloc at this point have not made substantial changes so we're ok to let the go uncaught here
         if(! new_node)
             return nullptr;
         
         // Calculate direction: 0 for LEFT, 1 for RIGHT
-        const Child dir = static_cast<Child>(key > root->key);
+        const Child dir = static_cast<Child>(new_node->first > root->first);
         const Child other_dir = static_cast<Child>(1 - dir);
 
         
-        if (root != nullptr && key != root->key)
+        if (root != nullptr && new_node->first != root->first)
         {
             new_node->children[dir] = root->children[dir];
             root->children[dir] = nullptr;
@@ -378,79 +602,75 @@ private:
         return new_node;
     }
     
-    splay* _erase(KeyType key, splay* root)
+    value_type* _erase(const key_type& key, value_type* root)
     {
         if (!root)
             return nullptr;
         if(!(root = _splay(key, root)))
             return nullptr;
-        if (key != root->key)
+        if (key != root->first)
             return root;
         
-        splay* temp = root;
+        value_type* temp = root;
         if (!root->children[LEFT])
             root = root->children[RIGHT];
         else
         {
-            /*Note: Since key == root->key,
+            /*Note: Since key == root->first,
              so after Splay(key, root->children[LEFT]),
              the tree we get will have no right child tree.*/
             root = _splay(key, root->children[LEFT]);
             root->children[RIGHT] = temp->children[RIGHT];
         }
-        --_size;
+    
         _destroy_node( temp);
         return root;
     }
-    splay* _find(KeyType key, splay* root) const
-    {
-        return _splay(key, root);
-    }
     // RR(Y rotates to the right)
-    splay* _RR_Rotate(splay* k2) const  noexcept
+    value_type* _RR_Rotate(value_type* k2) const  noexcept
     {
-        splay* k1 = k2->children[LEFT];
+        value_type* k1 = k2->children[LEFT];
         k2->children[LEFT] = k1->children[RIGHT];
         k1->children[RIGHT] = k2;
         return k1;
     }
     
     // LL(Y rotates to the left)
-    splay* _LL_Rotate(splay* k2) const  noexcept
+    value_type* _LL_Rotate(value_type* k2) const  noexcept
     {
-        splay* k1 = k2->children[RIGHT];
+        value_type* k1 = k2->children[RIGHT];
         k2->children[RIGHT] = k1->children[LEFT];
         k1->children[LEFT] = k2;
         return k1;
     }
     
-    // An implementation of top-down splay tree
-    splay* _splay(KeyType key, splay* root) const
+    // An implementation of top-down value_type tree
+    value_type* _splay(const key_type& key, value_type* root) const
     {
         if (!root)
             return nullptr;
-        splay header;
+        value_type header;
         /* header.children[RIGHT] points to L tree;
          header.children[LEFT] points to R Tree */
         //header.children[LEFT] = header.children[RIGHT] = nullptr;
-        splay* treesMinOrMax[2] = { &header, &header };
+        value_type* treesMinOrMax[2] = { &header, &header };
         
         while (true) {
             // Calculate direction: 0 for LEFT, 1 for RIGHT
-            const Child dir = static_cast<Child>(key > root->key);
+            const Child dir = static_cast<Child>(key > root->first);
             const Child other_dir = static_cast<Child>(1 - dir);
-            if (key == root->key) {
+            if (key == root->first) {
                 break;
             }
             
             if(!root->children[dir] ) {
                 break;
             }
-            typedef splay* (SplayTree::*RotationFunc)(splay*) const;
+            typedef value_type* (SplayTree::*RotationFunc)(value_type*) const;
             const RotationFunc rotate[2] = { &SplayTree::_RR_Rotate, &SplayTree::_LL_Rotate };
             // Check for zig-zig or zag-zag case
-            if ((key < root->children[dir]->key && dir == LEFT) ||
-                (key > root->children[dir]->key && dir == RIGHT))
+            if ((key < root->children[dir]->first && dir == LEFT) ||
+                (key > root->children[dir]->first && dir == RIGHT))
             {
                 root = (this->*rotate[dir])(root);
                 if (!root->children[dir]) {
@@ -475,47 +695,47 @@ private:
         return root;
     }
     
-    
-
-    splay* _New_Node(KeyType key, ValueType&& value)
+    template <typename... Args>
+    value_type* _New_Node(Args&&... args)
     {
-        splay* p_node = _node_allocator.allocate(1);
-        new (p_node) splay(key, std::forward<ValueType>(value));
+        value_type* p_node = _node_allocator.allocate(1);
+        new (p_node) value_type(std::forward<Args>(args)...);
         ++_size;
         return p_node;
     }
     
-    void _destroy_node(splay* node)
+    void _destroy_node(value_type* node)
     {
         if (node != nullptr)
         {
-            node->~splay();                     // Call the destructor for the node
+            node->~value_type();                     // Call the destructor for the node
             _node_allocator.deallocate(node, 1); // Deallocate the node's memory
+            --_size;
         }
     }
     
 
-    void _printInOrder(splay* root)
+    void _printInOrder(value_type* root)
     {
         if (root)
         {
             _printInOrder(root->children[LEFT]);
-            cout<< "key: " <<root->key;
+            cout<< "key: " <<root->first;
             if(root->children[LEFT])
-                cout<< " | left child: "<< root->children[LEFT]->key;
+                cout<< " | left child: "<< root->children[LEFT]->first;
             if(root->children[RIGHT])
-                cout << " | right child: " << root->children[RIGHT]->key;
+                cout << " | right child: " << root->children[RIGHT]->first;
             cout<< "\n";
             _printInOrder(root->children[RIGHT]);
         }
     }
 
     
-    splay* _getMinimumAndSplay(splay* root) const  noexcept {
+    value_type* _getMinimumAndSplay(value_type* root) const  noexcept {
         //perfom zig-zig or zig to move the left most node to the root
         if(root == nullptr) return nullptr;
         
-        splay* x = root;
+        value_type* x = root;
         while (x->children[LEFT] != nullptr) {
             if (x->children[LEFT]->children[LEFT] != nullptr) {
                 // "Zig-zig" step: make two right rotations
@@ -532,11 +752,11 @@ private:
     }
     
     
-    splay* _getMaximumAndSplay(splay* root) const  noexcept {
+    value_type* _getMaximumAndSplay(value_type* root) const  noexcept {
         //perfom zag-zag or zag to move the right most node to the root
         if(root == nullptr) return nullptr;
         
-        splay* x = root;
+        value_type* x = root;
         while (x->children[RIGHT] != nullptr) {
             if (x->children[RIGHT]->children[RIGHT] != nullptr) {
                 // "Zig-zig" step: make two left rotations
@@ -553,7 +773,7 @@ private:
     }
     
     // Rotate the tree so that the next larger element becomes the root
-    splay* _rotateToNextLarger() const  noexcept {
+    value_type* _rotateToNextLarger() const  noexcept {
         // If there's no right subtree, there's no next larger element
         if (!_root || !_root->children[RIGHT])
             return _root;
@@ -569,7 +789,7 @@ private:
     }
     
     // Rotate the tree so that the next smaller element becomes the root
-    splay* _rotateToNextSmaller() const noexcept {
+    value_type* _rotateToNextSmaller() const noexcept {
         // If there's no left subtree, there's no next smaller element
         if (!_root || !_root->children[LEFT])
             return _root;
