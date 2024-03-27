@@ -28,12 +28,12 @@ public:
     {
     public:
         value_type()  = default;
-        value_type( key_type key, mapped_type&& val)
+        value_type( const key_type& key, mapped_type&& val)
         : first(key), second(std::move(val))
         {
         }
         
-        value_type( key_type key, const mapped_type& val)
+        value_type( const key_type& key, const mapped_type& val)
         : first(key), second(val)
         {}
         
@@ -244,7 +244,10 @@ public:
     using reference = value_type&;
     using pair_type = std::pair<key_type, mapped_type>;
     using pair_reference = pair_type&;
-    using const_reference = const value_type&;
+    using const_value_type_reference = const value_type&;
+    using value_type_reference = value_type&;
+    using const_value_type_pointer = const value_type*;
+    using value_type_pointer = value_type*;
     using iterator = Xiterator<IteratorDirection::FORWARD>;
     using const_iterator = Xiterator<IteratorDirection::FORWARD, IteratorConstness::CONST>;
     using reverse_iterator = Xiterator<IteratorDirection::REVERSE>;
@@ -359,7 +362,7 @@ public:
         return iterator(_root, this);
     }
     
-    const value_type* get(const key_type& key) const
+    const_value_type_pointer get(const key_type& key) const
     {
         _root = _splay(key, _root);
         if((_root == nullptr ) || (_root && _root->first != key))
@@ -367,7 +370,7 @@ public:
         return _root;
     }
     
-    value_type* get(const key_type& key)
+    value_type_pointer get(const key_type& key)
     {
         _root = _splay(key, _root);
         if((_root == nullptr ) || (_root && _root->first != key))
@@ -375,12 +378,32 @@ public:
         return _root;
     }
     
+    const_value_type_pointer getMinimum() const
+    {
+        return _getMinimumAndSplay(_root);
+    }
+    
+    value_type_pointer getMinimum()
+    {
+        return _getMinimumAndSplay(_root);
+    }
+     
+    const_value_type_pointer getMaximum() const
+    {
+        return _getMaximumAndSplay(_root);
+    }
+    
+    value_type_pointer getMaximum()
+    {
+        return _getMaximumAndSplay(_root);
+    }
+                                   
     bool contains(const key_type& key) const
     {
         return get(key) != nullptr;
     }
     
-    iterator operator[](const key_type& key) //untested
+    iterator operator[]( key_type& key) //untested
     {
         throw std::runtime_error("not tested");
         auto it = get(key);
@@ -388,7 +411,7 @@ public:
             return insert(key, mapped_type());
     }
     
-    const_iterator operator[](const key_type& key) const //untested
+    const_iterator operator[]( key_type& key) const //untested
     {
         throw std::runtime_error("not tested");
         auto it = find(key);
@@ -405,7 +428,7 @@ public:
         return iterator(_root, this);
     }
     
-    const value_type* get_predecessor(const key_type& key) const
+    const_value_type_pointer get_predecessor(const key_type& key) const
     {
         return _splay(key, _root);
     }
