@@ -26,3 +26,7 @@ jobs:
     - name: Run tests (Run the FlashRadixTree executable)
       run: ./FlashRadixTree
       working-directory: build
+
+    - name: Run tests (Run the FlashRadixTreeWithSplay executable)
+      run: ./FlashRadixTreeWithSplay
+      working-directory: build

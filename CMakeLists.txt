@@ -7,15 +7,18 @@ project(MyProject VERSION 1.0)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-# Add the executable
+# Add the executable without USE_SPLAY_TREE defined
 add_executable(FlashRadixTree main.cpp)
+# If there are other .cpp files, add them to the executable as well, e.g.:
+# add_executable(FlashRadixTree main.cpp SplayTree.cpp FlashRadixTree.cpp)
 
-# If you have other .cpp files, add them to the executable. For example:
-# add_executable(MyProject main.cpp SplayTree.cpp FlashRadixTree.cpp)
+# Add another executable with USE_SPLAY_TREE defined
+add_executable(FlashRadixTreeWithSplay main.cpp) # Use the same main.cpp file
+target_compile_definitions(FlashRadixTreeWithSplay PRIVATE USE_SPLAY_TREE=1)
 
-# To include header files, you can use the include_directories command if needed
+# Include header files if needed
 #include_directories(${PROJECT_SOURCE_DIR}/M1-Cycles)
 
-# If there are any libraries you need to link to, use the target_link_libraries command
-# target_link_libraries(MyProject PRIVATE some_library)
-
+# Link libraries if needed
+# target_link_libraries(FlashRadixTree PRIVATE some_library)
+# target_link_libraries(FlashRadixTreeWithSplay PRIVATE some_library)
