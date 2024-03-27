@@ -366,6 +366,14 @@ public:
         return iterator(_root, this);
     }
     
+    const value_type* get(const key_type& key) const
+    {
+        _root = _splay(key, _root);
+        if((_root == nullptr ) || (_root && _root->first != key))
+            return nullptr;
+        return _root;
+    }
+    
     bool contains(const key_type& key) const
     {
         return find(key) != cend();

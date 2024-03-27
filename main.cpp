@@ -488,9 +488,9 @@ int main(int argc, const char * argv[]) {
     {
         for (auto &symbol : symbols) {
             performance_counters start = get_counters();
-            const auto found = tree.find(symbol);
+            const auto found = tree.get(symbol);
             performance_counters end = get_counters();
-            if (found == tree.end()) {
+            if (found == nullptr) {
                 return 1;
             }
             performance_counters diff = end - start;

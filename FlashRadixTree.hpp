@@ -569,7 +569,15 @@ public:
         if(node == nullptr) {
             return end();
         }
-        return iterator(node, this);
+        return iterator(const_cast<value_type_pointer>(node), this);
+    }
+    
+    const_value_type_pointer get(const Key& key) const {
+        auto node = _find(key);
+        if(node == nullptr) {
+            return nullptr;
+        }
+        return node;
     }
     
     iterator insert(const Key& key, Value&& value)
@@ -753,20 +761,22 @@ public:
     }
         
 private:
-    value_type_pointer _find(const Key& key) const {
+    const_value_type_pointer _find(const Key& key) const {
         if (key.empty()) {
             return nullptr; // An empty key cannot be found.
         }
         
-        auto* currentNode = _root.get();
+        const_value_type_pointer currentNode = _root.get();
         auto keyPrefix = key[0];
         Key remaining = key;
         size_t seen = 0;
         while( currentNode != nullptr)
         {
-            const auto& it = currentNode->children.find(keyPrefix);
+            //const auto& it = currentNode->children.find(keyPrefix);
+            const auto it = currentNode->children.get(keyPrefix);
 
-             if(it != currentNode->children.end())
+            //if(it != currentNode->children.end())
+            if(it != nullptr)
             {
                 currentNode = it->second.get();
                 if(MatchMode == MatchMode::Prefix && //if we are in prefix mode we can stop if we find the prefix
