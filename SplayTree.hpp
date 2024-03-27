@@ -258,7 +258,7 @@ public:
     using const_reverse_iterator = Xiterator<IteratorDirection::REVERSE, IteratorConstness::CONST>;
     
     
-    explicit SplayTree(const allocator_type& allocator = allocator_type())
+    explicit SplayTree( const allocator_type& allocator = allocator_type())
         : _node_allocator(allocator)
     {}
     ~SplayTree()
@@ -276,6 +276,7 @@ public:
         _size = other._size;
         other._root = nullptr;
         other._size = 0;
+        _node_allocator = std::move(other._node_allocator);
     }
     
     constexpr const allocator_type& get_allocator() const noexcept
@@ -532,7 +533,7 @@ private:
     {
         if (!root) {
             // If there is no root, create a new node and return it.
-            return _New_Node(std::forward<value_type>(args)...);
+            return _New_Node(std::forward<Args>(args)...);
         }
         
         // Create a new node as we are sure we need to insert it.
@@ -584,7 +585,7 @@ private:
             root = _splay(key, root->children[LEFT]);
             root->children[RIGHT] = temp->children[RIGHT];
         }
-        --_size;
+    
         _destroy_node( temp);
         return root;
     }
@@ -661,7 +662,7 @@ private:
     value_type* _New_Node(Args&&... args)
     {
         value_type* p_node = _node_allocator.allocate(1);
-        new (p_node) value_type(std::forward<value_type>(args)...);
+        new (p_node) value_type(std::forward<Args>(args)...);
         ++_size;
         return p_node;
     }
@@ -672,6 +673,7 @@ private:
         {
             node->~value_type();                     // Call the destructor for the node
             _node_allocator.deallocate(node, 1); // Deallocate the node's memory
+            --_size;
         }
     }
     
