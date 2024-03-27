@@ -770,7 +770,11 @@ private:
                         auto* parent = currentNode->parent;
                         if(parent)
                         {
+#if defined( USE_SPLAY_TREE)
                             auto* last = parent->children.getMaximum()->second.get();
+#else
+                            auto* last = parent->children.rbegin()->second.get();
+#endif
                             last->next = inserted;
                             inserted->prev = last;
                         }
@@ -966,7 +970,11 @@ private:
             }
             else if(currentNode->children.size() == 1 && !currentNode->isEndOfWord)
             {
+#if defined( USE_SPLAY_TREE)
                 auto remainingChild = std::move(currentNode->children.getMinimum()->second);
+#else
+                auto remainingChild = std::move(currentNode->children.begin()->second);
+#endif
                 //tidy up linked list of end of words
                 if(remainingChild->prev)
                     remainingChild->prev->next = remainingChild->next;
@@ -981,7 +989,11 @@ private:
             //if the parent node has only one child we can compress (unless we're root. that makes no sense)
             else if(parentNode != _root.get() && parentNode->children.size() == 1 && !parentNode->isEndOfWord)
             {
+#if defined( USE_SPLAY_TREE)
                 auto remainingChild = std::move(parentNode->children.getMinimum()->second);
+#else
+                auto remainingChild = std::move(parentNode->children.begin()->second);
+#endif
                 //tidy up linked list of end of words
                 if(remainingChild->prev)
                     remainingChild->prev->next = remainingChild->next;
@@ -1013,12 +1025,21 @@ private:
             return nullptr;
         
         auto* children = &root->children;
+#ifdef USE_SPLAY_TREE
         auto it = children->getMaximum();
         while( children != nullptr)
         {
             const auto check = children->getMaximum();
             if(check == nullptr)
                 break;
+#else
+        auto it = children->rbegin();
+        while( children != nullptr)
+        {
+            const auto check = children->rbegin();
+            if(check == children->rend())
+                break;
+#endif
             it = check;
             children = &it->second->children;
         }
