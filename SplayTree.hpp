@@ -147,20 +147,16 @@ private:
             //value_type tree to traverse
             if (_direction == IteratorDirection::FORWARD)
             {
-                //make sure node is at the root
-                auto it = _tree->find(_node->first);
                 if(_node->children[RIGHT] == nullptr )
                     _node = nullptr;
-                else if(it != _tree->end())
+                else if(_tree->get(_node->first) != nullptr)//make sure node is at the root
                     _node = _tree->_rotateToNextLarger();
             }
             else
             {
-                //make sure node is at the root
-                auto it = _tree->find(_node->first);
                 if(_node->children[LEFT] == nullptr )
                     _node = nullptr;
-                else if(it != _tree->end())
+                else if(_tree->get(_node->first) != nullptr)
                     _node = _tree->_rotateToNextSmaller();
             }
             _isEnd = _node == nullptr;
@@ -178,19 +174,16 @@ private:
             if (_direction == IteratorDirection::FORWARD)
             {
                 //make sure node is at the root
-                auto it = _tree->find(_node->first);
                 if(_node->children[LEFT] == nullptr )
                     _node = nullptr;
-                else if(it != _tree->end())
+                else if(_tree->get(_node->first) != nullptr)
                     _node = _tree->_rotateToNextSmaller();
             }
             else
             {
-                //make sure node is at the root
-                auto it = _tree->find(_node->first);
                 if(_node->children[RIGHT] == nullptr )
                     _node = nullptr;
-                else if(it != _tree->end())
+                else if(_tree->get(_node->first) != nullptr)
                     _node = _tree->_rotateToNextLarger();
             }
             _isEnd = _node == nullptr;
@@ -322,8 +315,8 @@ public:
     std::pair<iterator, bool> insert(pair_type&& value) //untested
     {
         throw std::runtime_error("not tested");
-        auto it = find(value.first);
-        if(it != end())
+        auto it = get(value.first);
+        if(it != nullptr)
             return std::make_pair(it, false);
         else
         {
@@ -338,8 +331,8 @@ public:
     {
         throw std::runtime_error("not tested");
         value_type val(std::forward<Args>(args)...);
-        auto it = find(val.first);
-        if(it != end())
+        auto it = get(val.first);
+        if(it != nullptr)
             return std::make_pair(it, false);
         else
         {
@@ -374,16 +367,24 @@ public:
         return _root;
     }
     
+    value_type* get(const key_type& key)
+    {
+        _root = _splay(key, _root);
+        if((_root == nullptr ) || (_root && _root->first != key))
+            return nullptr;
+        return _root;
+    }
+    
     bool contains(const key_type& key) const
     {
-        return find(key) != cend();
+        return get(key) != nullptr;
     }
     
     iterator operator[](const key_type& key) //untested
     {
         throw std::runtime_error("not tested");
-        auto it = find(key);
-        if(it == end())
+        auto it = get(key);
+        if(it == nullptr)
             return insert(key, mapped_type());
     }
     
@@ -402,6 +403,11 @@ public:
         if(_root == nullptr)
             return end();
         return iterator(_root, this);
+    }
+    
+    const value_type* get_predecessor(const key_type& key) const
+    {
+        return _splay(key, _root);
     }
     
     const_iterator find_predecessor(const key_type& key) const

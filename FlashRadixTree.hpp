@@ -573,11 +573,11 @@ public:
     }
     
     const_value_type_pointer get(const Key& key) const {
-        auto node = _find(key);
-        if(node == nullptr) {
-            return nullptr;
-        }
-        return node;
+        return _find(key);
+    }
+    
+    value_type_pointer get(const Key& key) {
+        return _find(key);
     }
     
     iterator insert(const Key& key, Value&& value)
@@ -761,21 +761,19 @@ public:
     }
         
 private:
-    const_value_type_pointer _find(const Key& key) const {
+    value_type_pointer _find(const Key& key) const {
         if (key.empty()) {
             return nullptr; // An empty key cannot be found.
         }
         
-        const_value_type_pointer currentNode = _root.get();
+        value_type_pointer currentNode = _root.get();
         auto keyPrefix = key[0];
         Key remaining = key;
         size_t seen = 0;
         while( currentNode != nullptr)
         {
-            //const auto& it = currentNode->children.find(keyPrefix);
             const auto it = currentNode->children.get(keyPrefix);
 
-            //if(it != currentNode->children.end())
             if(it != nullptr)
             {
                 currentNode = it->second.get();
@@ -838,8 +836,8 @@ private:
         
     bool _mark_erase(const Key& key)
     {
-        auto found = find(key);
-        if (found == end()) {
+        auto found = get(key);
+        if (found == nullptr) {
             return false;
         }
         else
@@ -861,9 +859,9 @@ private:
         // Step 1: Find the node
         while (currentNode != nullptr && !remainingKey.empty()) {
             parentNode = currentNode;
-            auto it = currentNode->children.find(remainingKey[0]);
+            auto it = currentNode->children.get(remainingKey[0]);
             
-            if (it == currentNode->children.end()) {
+            if (it == nullptr) {
                 return false; // Key not found
             }
 
@@ -1003,12 +1001,12 @@ private:
         for(auto& it :  node.children)
         {
 #if defined( USE_SPLAY_TREE)
-            auto found = current->children.find(it.first);
-            if(found != current->children.end())
+            auto found = current->children.get(it.first);
+            if(found != nullptr)
                 newNode.children.insert(it.first, std::move(found->second));
 #else
-            auto found = current->children.find(it.first);
-            if(found != current->children.end())
+            auto found = current->children.get(it.first);
+            if(found != nullptr)
                 newNode.children.emplace(it.first, std::move(found->second));
 #endif
             
