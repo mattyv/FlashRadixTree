@@ -4,7 +4,7 @@
 # FlashRadixTree
 Fast key value pair data structure with ordered traversal. Faster than std::map with keys with common prefixes and asymmetric key distribution.
 
-If you have keys such as "google" "googles" "go" "googlies" and you need to keep them in an ordered container, it turns out the fastest way to search is to break the keys up into prefixes and store them in a tree structure. If you know you keys will be there 100% for sure i.e your keys space doesn't change after you fill the container, you can search even faster by checking the first letter of parts of the tree... see below for details.
+If you have keys such as "go" "google" "goggles", "hell", "hellow" "hollow" and you need to keep them in an ordered container, it turns out the fastest way to find the key is to break the keys up into prefixes and store them in a tree structure. If you know you keys will be there i.e your keys space doesn't change after you fill the container, you can search even faster by checking the first letter of parts of the tree... see below for details.
 
 ## Performance Overview
 ### 1.7KB key Apple M2 (ARM 64), Somoma 14.3.1 (23D60) CPU Cycles Comparison
