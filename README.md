@@ -443,3 +443,27 @@ Top 10% count of keys used (not printing keys as they can be long):
 55
 53
 ```
+
+## Usage
+
+The container comes with many standard map like functions. 
+For speed I recomend using value_type_pointer get(const Key& key) instead of iterator find(const Key& key) as find() returns an iterator and get() returns a pointer which is much faster. 
+
+The 'Key' type needs to be either std::basic_string or std::basic_string_view. You'll get an error if its not. You can replace they 'value_type' of the type as needed, but it needs to support less than, greater than, and equals operators.  
+
+I recomend using string_view unless you need to erase a lot. As erasing colapses tree nodes so its not possible to combine strig_views to form new string_views. So for the string_view variation it will 'mark as deleted', while string variation will actually erase. string_view will be a lot faster and avoids copying keys so use it if you can get away with it. 
+
+Example of creating a new object
+```
+FlashRadixTree<std::string, int, MatchMode::Exact> rTreeExact;
+FlashRadixTree<std::string_view, int, MatchMode::Prefix> rTreePrefix;
+
+auto itInsert = rTree.insert("AB", 1);
+auto valExpect = rTree.find("AB");
+std::stringstream ss;
+for( auto& it : rTree)
+{
+    ss << it.prefix << "," << it.value << "," << it.getFullKey() << std::endl;
+}
+rTree.erase("AB");
+```
