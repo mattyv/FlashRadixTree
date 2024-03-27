@@ -2,7 +2,9 @@
 ## Issue tracking
 [![Open Issues](https://img.shields.io/github/issues-raw/mattyv/FlashRadixTree.svg)](https://github.com/mattyv/FlashRadixTree/issues)
 # FlashRadixTree
-Fast key value pair data structure with ordered traversal. For use with keys with common prefixes and asymmetric key distribution.
+Fast key value pair data structure with ordered traversal. Faster than std::map with keys with common prefixes and asymmetric key distribution.
+
+If you have keys such as "google" "googles" "go" "googlies" and you need to keep them in an ordered container, it turns out the fastest way to search is to break the keys up into prefixes and store them in a tree structure. If you know you keys will be there 100% for sure i.e your keys space doesn't change after you fill the container, you can search even faster by checking the first letter of parts of the tree... see below for details.
 
 ## Performance Overview
 ### 1.7KB key Apple M2 (ARM 64), Somoma 14.3.1 (23D60) CPU Cycles Comparison
@@ -129,7 +131,7 @@ If you can pre-load the data structure ahead of time, and this may be an advanta
 In the case of our Radix tree this can give us an advantage. 
 
 ### How to search fast then using this advantage? 
-The children of the tree will always have a unique first character, so we can assume that if we have a match of the first character and the node in question is End-of-word with no children, then we have a match, and we can save the comparison on the remaining characters. Likewise if we find a node which is end of word with children, and the lengths of the key and prefix match we can also save a full comparison as this must be the key we're looking for. This may be an advantage, especially in situations with very long keys.
+The children of the tree will always have a unique first character, so we can assume that if we have a match of the first character and the node in question is 'End-of-word' with no children, then we have a match, and we can save the comparison on the remaining characters. Likewise if we find a node which is end of word with children, and the lengths of the key and prefix match we can also save a full comparison as this must be the key we're looking for. This is an advantage for most keys sizes, but especially in situations with very long keys.
 For this reason the FlashRadixTree has two match modes specified on construction, "Partial" and "Exact". Where partial assumes the case above, and Exact matches the entire key when required.
 
 The non uniform nature of keys is an interesting case which this structure tries to focus on. In many cases you may find that some keys are more active than others. this is probably very true of a lot of other scenarios. Can we optimise for this. Well..? this is a ticky one...
