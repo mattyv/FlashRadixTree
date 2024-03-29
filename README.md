@@ -37,7 +37,7 @@ Its a compressed form of a Trie. A Trie is a tree of nodes, where each node is a
 
 How does a Radix tree differ from a Trie? A Radix tree is a prefix flavour of a Trie. It compresses the trie by merging nodes with a single child to form strings of prefixes.
 
-Below is an example of a Trie containing the words "go" "google" "goggles", "hell", "hellow" "hollow".
+Below is an example of a Trie containing the words "go" "google" "goggles", "hell", "hello" "hollow".
 
 ```
 Root
@@ -84,9 +84,7 @@ Root
     |   |
     |   +-- l
     |       |
-    |       +-- o
-    |           |
-    |           +-- w (end of word "hellow")
+    |       +-- o  (end of word "hello")
     |
     +-- o
         |
@@ -117,7 +115,7 @@ Root
     |   |
     |   +-- (end of word "hell")
     |   |
-    |   +-- ow (end of word "hellow")
+    |   +-- o (end of word "hello")
     |
     +-- ollow (end of word "hollow")
 ```
@@ -133,6 +131,12 @@ In the case of our Radix tree this can give us an advantage.
 ### How to search fast then using this advantage? 
 The children of the tree will always have a unique first character, so we can assume that if we have a match of the first character and the node in question is 'End-of-word' with no children, then we have a match, and we can save the comparison on the remaining characters. Likewise if we find a node which is end of word with children, and the lengths of the key and prefix match we can also save a full comparison as this must be the key we're looking for. This is an advantage for most keys sizes, but especially in situations with very long keys.
 For this reason the FlashRadixTree has two match modes specified on construction, "Partial" and "Exact". Where partial assumes the case above, and Exact matches the entire key when required.
+
+Let’s run through 3 examples. 
+1. We're looking for the key "google" using prefix matching. First character is 'g', and we find a node with some children and the key is an end-of-word. We check the size of "google" to "go", they don't match so we continue... We deduce our next key will be 'o' after stripping off "go" and find a node with no children and the key is an end-of-word. We have our match with 3 actions: find 'g', size check, find 'o'.
+2. We're looking for the key "go" using prefix matching. First character is 'g', and we find a node with some children and the key is an end-of-word and the lengths match. We have our key with 2 actions: find 'g', and size check. 
+3. We're looking for the key "hello" using prefix matching. First character is 'h', and we find a node with some children and the key is not an end-of-word, so we continue... We deduce the next key is 'e' and we find "ell" which is a node with some children and is an end-of-word, but the key lengths of "ello" and "ell" don't match so we continue on to the last node "o". We have our key with 4 actions: find 'h', find 'e', size check, find 'o'.
+You can see that in many cases we make less comparisons than the key length (if you ignore slightly the cost of the find). And the longer the prefixes are the better the ratio of key length to comparison gets. Given the find on each lower child only searches for a single character, we also save the cost of repeated comparisons on the remaining portion of the key.  
 
 The non uniform nature of keys is an interesting case which this structure tries to focus on. In many cases you may find that some keys are more active than others. this is probably very true of a lot of other scenarios. Can we optimise for this. Well..? this is a ticky one...
 
