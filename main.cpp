@@ -58,6 +58,12 @@ void printResults(std::string op,performance_counters min, performance_counters 
     printf("\n");
 }
 
+
+std::string paddedString(const std::string& str, size_t minWidth) {
+    if (str.length() >= minWidth) return str;
+    return str + std::string(minWidth - str.length(), ' ');
+}
+
 void printResults(std::string op, performance_counters_holder& stats)
 {
     performance_counters min = stats.min();
@@ -66,21 +72,78 @@ void printResults(std::string op, performance_counters_holder& stats)
     performance_counters percentile90 = stats.percentile(0.9);
     performance_counters percentile50 = stats.percentile(0.5);
     performance_counters percentile10 = stats.percentile(0.1);
-    printf(" %8.2f instructions/%s min, %8.2f avg, %8.2f max, ", min.instructions, op.c_str(),
-           avg.instructions, max.instructions);
-    printf(" %8.2f 90th percentile, %8.2f 50th percentile, %8.2f 10th percentile", percentile90.instructions, percentile50.instructions, percentile10.instructions);
-    printf("\n");
-    printf(" %8.2f cycles/%s min, %8.2f avg, %8.2f max, ", min.cycles, op.c_str(), avg.cycles, max.cycles);
-    printf(" %8.2f 90th percentile, %8.2f 50th percentile, %8.2f 10th percentile", percentile90.cycles, percentile50.cycles, percentile10.cycles);
-    printf("\n");
-    printf(" %8.2f instructions/cycle ",
-           min.instructions / min.cycles);
-    printf("\n");
-    printf(" %8.2f branches/%s min, %8.2f avg, %8.2f max, ", min.branches, op.c_str(), avg.branches, max.branches);
-    printf(" %8.2f 90th percentile, %8.2f 50th percentile, %8.2f 10th percentile", percentile90.branches, percentile50.branches, percentile10.branches);
-    printf("\n");
-    printf(" %8.4f mis. branches/%s ", avg.missed_branches, op.c_str());
-    printf("\n");
+
+    // Determine the maximum width for each column
+    std::vector<size_t> columnWidths = {
+        24, // "Metric"
+        10, // "Min"
+        10, // "Average"
+        10, // "Max"
+        16, // "90th Percentile"
+        16, // "50th Percentile"
+        16  // "10th Percentile"
+    };
+
+    std::stringstream csvOutput;
+
+    // Helper lambda function to format and pad numbers
+    auto formatAndPadNumber = [&columnWidths](double number, size_t columnIndex) {
+        std::stringstream stream;
+        stream << std::fixed << std::setprecision(2) << number;
+        return paddedString(stream.str(), columnWidths[columnIndex]);
+    };
+
+    // Header
+    csvOutput << paddedString("\"Metric\"", columnWidths[0]) << ", ";
+    csvOutput << paddedString("\"Min\"", columnWidths[1]) << ", ";
+    csvOutput << paddedString("\"Average\"", columnWidths[2]) << ", ";
+    csvOutput << paddedString("\"Max\"", columnWidths[3]) << ", ";
+    csvOutput << paddedString("\"90th Percentile\"", columnWidths[4]) << ", ";
+    csvOutput << paddedString("\"50th Percentile\"", columnWidths[5]) << ", ";
+    csvOutput << paddedString("\"10th Percentile\"", columnWidths[6]) << "\n";
+
+    // Instructions
+    csvOutput << paddedString("\"Instructions/" + op + "\"", columnWidths[0]) << ", ";
+    csvOutput << formatAndPadNumber(min.instructions, 1) << ", ";
+    csvOutput << formatAndPadNumber(avg.instructions, 2) << ", ";
+    csvOutput << formatAndPadNumber(max.instructions, 3) << ", ";
+    csvOutput << formatAndPadNumber(percentile90.instructions, 4) << ", ";
+    csvOutput << formatAndPadNumber(percentile50.instructions, 5) << ", ";
+    csvOutput << formatAndPadNumber(percentile10.instructions, 6) << "\n";
+
+    // Cycles
+    csvOutput << paddedString("\"Cycles/" + op + "\"", columnWidths[0]) << ", ";
+    csvOutput << formatAndPadNumber(min.cycles, 1) << ", ";
+    csvOutput << formatAndPadNumber(avg.cycles, 2) << ", ";
+    csvOutput << formatAndPadNumber(max.cycles, 3) << ", ";
+    csvOutput << formatAndPadNumber(percentile90.cycles, 4) << ", ";
+    csvOutput << formatAndPadNumber(percentile50.cycles, 5) << ", ";
+    csvOutput << formatAndPadNumber(percentile10.cycles, 6) << "\n";
+
+    // Instructions per Cycle
+    csvOutput << paddedString("\"Instructions/Cycle\"", columnWidths[0]) << ", ";
+    csvOutput << formatAndPadNumber(min.instructions / (min.cycles ? min.cycles : 1), 1) << "\n";
+
+    // Branches
+    csvOutput << paddedString("\"Branches/" + op + "\"", columnWidths[0]) << ", ";
+    csvOutput << formatAndPadNumber(min.branches, 1) << ", ";
+    csvOutput << formatAndPadNumber(avg.branches, 2) << ", ";
+    csvOutput << formatAndPadNumber(max.branches, 3) << ", ";
+    csvOutput << formatAndPadNumber(percentile90.branches, 4) << ", ";
+    csvOutput << formatAndPadNumber(percentile50.branches, 5) << ", ";
+    csvOutput << formatAndPadNumber(percentile10.branches, 6) << "\n";
+
+    // Missed Branches
+    csvOutput << paddedString("\"Missed Branches/" + op + "\"", columnWidths[0]) << ", ";
+    csvOutput << formatAndPadNumber(min.missed_branches, 1) << ", ";
+    csvOutput << formatAndPadNumber(avg.missed_branches, 2) << ", ";
+    csvOutput << formatAndPadNumber(max.missed_branches, 3) << ", ";
+    csvOutput << formatAndPadNumber(percentile90.missed_branches, 4) << ", ";
+    csvOutput << formatAndPadNumber(percentile50.missed_branches, 5) << ", ";
+    csvOutput << formatAndPadNumber(percentile10.missed_branches, 6) << "\n";
+
+    // Output the formatted CSV data
+    std::cout << csvOutput.str();
 }
 #endif
 
