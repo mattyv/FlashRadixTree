@@ -826,7 +826,7 @@ private:
             const auto it = currentNode->children.get(keyPrefix);
             if(it != nullptr)
 #else
-                const auto it = currentNode->children.find(keyPrefix);
+            const auto it = currentNode->children.find(keyPrefix);
             if(it != currentNode->children.end())
 #endif
             {
