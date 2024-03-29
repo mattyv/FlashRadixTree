@@ -57,7 +57,73 @@ void printResults(std::string op,performance_counters min, performance_counters 
     printf(" %8.4f mis. branches/%s ", avg.missed_branches, op.c_str());
     printf("\n");
 }
+
+void printResults(std::string op, performance_counters_holder& stats)
+{
+    performance_counters min = stats.min();
+    performance_counters avg = stats.avg();
+    performance_counters max = stats.max();
+    performance_counters percentile90 = stats.percentile(0.9);
+    performance_counters percentile50 = stats.percentile(0.5);
+    performance_counters percentile10 = stats.percentile(0.1);
+    printf(" %8.2f instructions/%s min, %8.2f avg, %8.2f max, ", min.instructions, op.c_str(),
+           avg.instructions, max.instructions);
+    printf(" %8.2f 90th percentile, %8.2f 50th percentile, %8.2f 10th percentile", percentile90.instructions, percentile50.instructions, percentile10.instructions);
+    printf("\n");
+    printf(" %8.2f cycles/%s min, %8.2f avg, %8.2f max, ", min.cycles, op.c_str(), avg.cycles, max.cycles);
+    printf(" %8.2f 90th percentile, %8.2f 50th percentile, %8.2f 10th percentile", percentile90.cycles, percentile50.cycles, percentile10.cycles);
+    printf("\n");
+    printf(" %8.2f instructions/cycle ",
+           min.instructions / min.cycles);
+    printf("\n");
+    printf(" %8.2f branches/%s min, %8.2f avg, %8.2f max, ", min.branches, op.c_str(), avg.branches, max.branches);
+    printf(" %8.2f 90th percentile, %8.2f 50th percentile, %8.2f 10th percentile", percentile90.branches, percentile50.branches, percentile10.branches);
+    printf("\n");
+    printf(" %8.4f mis. branches/%s ", avg.missed_branches, op.c_str());
+    printf("\n");
+}
 #endif
+
+template< class Data>
+void runTest(int numOfRuns, performance_counters& min,
+             performance_counters& max, performance_counters& avg,
+             std::function<void(const typename Data::value_type&)> testFunction,
+             Data& data){
+    for (int i = 0; i < numOfRuns; ++i) {
+        for(auto& item : data)
+        {
+            performance_counters start = get_counters();
+            testFunction(item);
+            performance_counters end = get_counters();
+            
+            performance_counters diff = end - start;
+            min = min.min(diff);
+            max = max.max(diff);
+            avg += diff;
+        }
+    }
+    avg /= (data.size() * numOfRuns);
+}
+
+template< class Data, class DataTop10>
+bool runTest(int numOfRuns, performance_counters_holder& stats, performance_counters_holder& statsTop10,
+             std::function<bool(const typename Data::value_type&, performance_counters& start, performance_counters& end)> testFunction,
+             Data& data, DataTop10 top10){
+    for(unsigned int i = 0; i < numOfRuns; ++i)
+    {
+        for (auto &item :data) {
+            performance_counters start, end;
+            if(!testFunction(item, start, end))
+                return false;
+            performance_counters diff = end - start;
+            stats.push_back(diff);
+            
+            if(top10.find(item) != top10.end()) //look at top keys to get a closer look
+                statsTop10.push_back(diff);
+        }
+    }
+    return true;
+}
 
 int main(int argc, const char * argv[]) {
     
@@ -123,78 +189,43 @@ int main(int argc, const char * argv[]) {
     performance_counters agg_min_hash{1e300};
     performance_counters agg_avg_hash{0.0};
     performance_counters agg_max_hash{0.0};
-    for (auto &symbol : uniqueSymbols) {
-        performance_counters start = get_counters();
-        hash_map.emplace(symbol, Data());
-        performance_counters end = get_counters();
-        
-        performance_counters diff = end - start;
-        agg_min_hash = agg_min_hash.min(diff);
-        agg_max_hash = agg_max_hash.max(diff);
-        agg_avg_hash += diff;
-    }
-    agg_avg_hash /= uniqueSymbols.size() ;
+    auto emplaceHashMap = [&hash_map](const decltype(uniqueSymbols)::value_type& item){
+         hash_map.emplace(item, Data());
+    };
+    runTest<std::set<std::string>> (1, agg_min_hash, agg_max_hash, agg_avg_hash, emplaceHashMap, uniqueSymbols);
     
     performance_counters agg_min_map{1e300};
     performance_counters agg_avg_map{0.0};
     performance_counters agg_max_map{0.0};
-    for (auto &symbol : uniqueSymbols) {
-        performance_counters start = get_counters();
-        map.emplace(symbol, Data());
-        performance_counters end = get_counters();
-        
-        performance_counters diff = end - start;
-        agg_min_map = agg_min_map.min(diff);
-        agg_max_map = agg_max_map.max(diff);
-        agg_avg_map += diff;
-    }
-    agg_avg_map /= uniqueSymbols.size() ;
+    auto emplaceMap = [&map](const decltype(uniqueSymbols)::value_type& item){
+        map.emplace(item, Data());
+    };
+    runTest<std::set<std::string>> (1, agg_min_map, agg_max_map, agg_avg_map, emplaceMap, uniqueSymbols);
     
     performance_counters agg_min_tree{1e300};
     performance_counters agg_avg_tree{0.0};
     performance_counters agg_max_tree{0.0};
-    for (auto &symbol : uniqueSymbols) {
-        performance_counters start = get_counters();
-        tree.insert(symbol, Data());
-        performance_counters end = get_counters();
-        
-        performance_counters diff = end - start;
-        agg_min_tree = agg_min_tree.min(diff);
-        agg_max_tree = agg_max_tree.max(diff);
-        agg_avg_tree += diff;
-    }
-    agg_avg_tree /= uniqueSymbols.size() ;
+    auto insertTree = [&tree](const decltype(uniqueSymbols)::value_type& item){
+        tree.insert(item, Data());
+    };
+    runTest<std::set<std::string>> (1, agg_min_tree, agg_max_tree, agg_avg_tree, insertTree, uniqueSymbols);
     
     
     performance_counters agg_min_treeExact{1e300};
     performance_counters agg_avg_treeExact{0.0};
     performance_counters agg_max_treeExact{0.0};
-    for (auto &symbol : uniqueSymbols) {
-        performance_counters start = get_counters();
-        treeExactMatch.insert(symbol, Data());
-        performance_counters end = get_counters();
-        
-        performance_counters diff = end - start;
-        agg_min_treeExact = agg_min_treeExact.min(diff);
-        agg_max_treeExact = agg_max_treeExact.max(diff);
-        agg_avg_treeExact += diff;
-    }
-    agg_avg_treeExact /= uniqueSymbols.size() ;
+    auto insertTreeExact = [&treeExactMatch](const decltype(uniqueSymbols)::value_type& item){
+        treeExactMatch.insert(item, Data());
+    };
+    runTest<std::set<std::string>> (1, agg_min_treeExact, agg_max_treeExact, agg_avg_treeExact, insertTreeExact, uniqueSymbols);
     
     performance_counters agg_min_splay{1e300};
     performance_counters agg_avg_splay{0.0};
     performance_counters agg_max_splay{0.0};
-    for (auto &symbol : uniqueSymbols) {
-        performance_counters start = get_counters();
-        splay.insert(symbol, Data());
-        performance_counters end = get_counters();
-        
-        performance_counters diff = end - start;
-        agg_min_splay = agg_min_splay.min(diff);
-        agg_max_splay = agg_max_splay.max(diff);
-        agg_avg_splay += diff;
-    }
-    agg_avg_splay /= uniqueSymbols.size() ;
+    auto insertSplay = [&splay](const decltype(uniqueSymbols)::value_type& item){
+        splay.insert(item, Data());
+    };
+    runTest<std::set<std::string>> (1, agg_min_splay, agg_max_splay, agg_avg_splay, insertSplay, uniqueSymbols);
     
     
     std::cout << "hash map insert time" << std::endl;
@@ -404,74 +435,30 @@ int main(int argc, const char * argv[]) {
     agg_avg_hash = 0.0;
     agg_max_hash = 0.0;
     
-    performance_counters agg_min_hash_top10{1e300};
-    performance_counters agg_avg_hash_top10{0.0};
-    performance_counters agg_max_hash_top10{0.0};
     size_t topKeysCount = 0;
-    
-    for(unsigned int i = 0; i < runNumbers; ++i)
-    {
-        for (auto &symbol : symbols) {
-            performance_counters start = get_counters();
-            auto it = hash_map.find(symbol);
-            performance_counters end = get_counters();
-            
-            if (it == hash_map.end()) {
-                return 1;
-            }
-            performance_counters diff = end - start;
-            agg_min_hash = agg_min_hash.min(diff);
-            agg_max_hash = agg_max_hash.max(diff);
-            agg_avg_hash += diff;
-            
-            if(topKeys.find(symbol) != topKeys.end()) //look at top keys to get a closer look
-            {
-                agg_min_hash_top10 = agg_min_hash_top10.min(diff);
-                agg_max_hash_top10 = agg_max_hash_top10.max(diff);
-                agg_avg_hash_top10 += diff;
-                ++topKeysCount;
-            }
-        }
-    }
-    agg_avg_hash /= symbols.size() * runNumbers;
-    agg_avg_hash_top10 /= topKeysCount;
-    
+    performance_counters_holder hash_map_counters;
+    performance_counters_holder hash_map_countersTop10;
+    auto findHashMap = [&hash_map](const std::string &symbol, performance_counters& start, performance_counters& end) ->bool {
+        start = get_counters();
+        auto it = hash_map.find(symbol);
+        end = get_counters();
+        return it != hash_map.end();
+    };
+    runTest(runNumbers, hash_map_counters, hash_map_countersTop10, findHashMap, symbols, topKeys);
     
     agg_min_map = 1e300;
     agg_avg_map = 0.0;
     agg_max_map = 0.0;
-    
-    performance_counters agg_min_map_top10 = 1e300;
-    performance_counters agg_avg_map_top10 = 0.0;
-    performance_counters agg_max_map_top10 = 0.0;
-    topKeysCount = 0;
-    for(unsigned int i = 0; i < runNumbers; ++i)
-    {
-        
-        for (auto &symbol : symbols) {
-            performance_counters start = get_counters();
-            auto it = map.find(symbol);
-            performance_counters end = get_counters();
-            if (it == map.end()) {
-                return 1;
-            }
-            
-            performance_counters diff = end - start;
-            agg_min_map = agg_min_map.min(diff);
-            agg_max_map = agg_max_map.max(diff);
-            agg_avg_map += diff;
-            
-            if(topKeys.find(symbol) != topKeys.end()) //look at top keys to get a closer look
-            {
-                agg_min_map_top10 = agg_min_map_top10.min(diff);
-                agg_max_map_top10 = agg_max_map_top10.max(diff);
-                agg_avg_map_top10 += diff;
-                ++topKeysCount;
-            }
-        }
-    }
-    agg_avg_map /= symbols.size() * runNumbers;
-    agg_avg_map_top10 /= topKeysCount;
+ 
+    performance_counters_holder map_counters;
+    performance_counters_holder map_countersTop10;
+    auto findMap = [&map](const std::string &symbol, performance_counters& start, performance_counters& end) ->bool {
+        start = get_counters();
+        auto it = map.find(symbol);
+        end = get_counters();
+        return it != map.end();
+    };
+    runTest(runNumbers, map_counters, map_countersTop10, findMap, symbols, topKeys);
     
     
     
@@ -479,76 +466,35 @@ int main(int argc, const char * argv[]) {
     agg_avg_tree = 0.0;
     agg_max_tree = 0.0;
     
-    performance_counters agg_min_treeTop10 = 1e300;
-    performance_counters agg_avg_treeTop10 = 0.0;
-    performance_counters agg_max_treeTop10 = 0.0;
-    topKeysCount = 0;
-    
-    for(unsigned int i = 0; i < runNumbers; ++i)
-    {
-        for (auto &symbol : symbols) {
-            performance_counters start = get_counters();
-            const auto found = tree.get(symbol);
-            performance_counters end = get_counters();
-            if (found == nullptr) {
-                return 1;
-            }
-            performance_counters diff = end - start;
-            agg_min_tree = agg_min_tree.min(diff);
-            agg_max_tree = agg_max_tree.max(diff);
-            agg_avg_tree += diff;
-            
-            if(topKeys.find(symbol) != topKeys.end()) //look at top keys to get a closer look
-            {
-                agg_min_treeTop10 = agg_min_treeTop10.min(diff);
-                agg_max_treeTop10 = agg_max_treeTop10.max(diff);
-                agg_avg_treeTop10 += diff;
-                ++topKeysCount;
-            }
-        }
-    }
-    agg_avg_tree /= symbols.size() * runNumbers;
-    agg_avg_treeTop10 /= topKeysCount;
+    performance_counters_holder tree_counters;
+    performance_counters_holder tree_countersTop10;
+    auto findTree = [&tree](const std::string &symbol, performance_counters& start, performance_counters& end) ->bool {
+        start = get_counters();
+        const auto found = tree.get(symbol);
+        end = get_counters();
+        return found != nullptr;
+    };
+    runTest(runNumbers, tree_counters, tree_countersTop10, findTree, symbols, topKeys);
     
     agg_min_treeExact = 1e300;
     agg_avg_treeExact = 0.0;
     agg_max_treeExact = 0.0;
     
-    performance_counters agg_min_treeExactTop10 = 1e300;
-    performance_counters agg_avg_treeExactTop10 = 0.0;
-    performance_counters agg_max_treeExactTop10 = 0.0;
-    topKeysCount = 0;
-    for(unsigned int i = 0; i < runNumbers; ++i)
-    {
-        for (auto &symbol : symbols) {
-            performance_counters start = get_counters();
-            auto found = treeExactMatch.find(symbol);
-            performance_counters end = get_counters();
-            if (found == treeExactMatch.end()) {
-                return 1;
-            }
-            performance_counters diff = end - start;
-            agg_min_treeExact = agg_min_treeExact.min(diff);
-            agg_max_treeExact = agg_max_treeExact.max(diff);
-            agg_avg_treeExact += diff;
-            
-            if(topKeys.find(symbol) != topKeys.end()) //look at top keys to get a closer look
-            {
-                agg_min_treeExactTop10 = agg_min_treeExactTop10.min(diff);
-                agg_max_treeExactTop10 = agg_max_treeExactTop10.max(diff);
-                agg_avg_treeExactTop10 += diff;
-                ++topKeysCount;
-            }
-        }
-    }
-    agg_avg_treeExact /= symbols.size() * runNumbers;
-    agg_avg_treeExactTop10 /= topKeysCount;
+    performance_counters_holder treeExactMatch_counters;
+    performance_counters_holder treeExactMatch_countersTop10;
+    auto findTreeExactMatch = [&treeExactMatch](const std::string &symbol, performance_counters& start, performance_counters& end) ->bool {
+        start = get_counters();
+        auto found = treeExactMatch.find(symbol);
+        end = get_counters();
+        return found != treeExactMatch.end();
+    };
+    runTest(runNumbers, treeExactMatch_counters, treeExactMatch_countersTop10, findTreeExactMatch, symbols, topKeys);
     
     agg_min_splay = 1e300;
     agg_avg_splay = 0.0;
     agg_max_splay = 0.0;
     
-    performance_counters agg_min_splayTop10 = 1e300;
+    /* agg_min_splayTop10 = 1e300;
     performance_counters agg_avg_splayTop10 = 0.0;
     performance_counters agg_max_splayTop10 = 0.0;
     topKeysCount = 0;
@@ -577,37 +523,46 @@ int main(int argc, const char * argv[]) {
         }
     }
     agg_avg_splay /= symbols.size() * runNumbers;
-    agg_avg_splayTop10 /= topKeysCount;
+    agg_avg_splayTop10 /= topKeysCount;*/
+    performance_counters_holder splay_counters;
+    performance_counters_holder splay_countersTop10;
+    auto findSplay = [&splay](const std::string &symbol, performance_counters& start, performance_counters& end) ->bool {
+        start = get_counters();
+        auto found = splay.get(symbol);
+        end = get_counters();
+        return found != nullptr;
+    };
+    runTest(runNumbers, splay_counters, splay_countersTop10, findSplay, symbols, topKeys);
     
     std::cout << "hash map find time" << std::endl;
-    printResults("find()", agg_min_hash, agg_avg_hash, agg_max_hash);
+    printResults("find()", hash_map_counters);
     
     std::cout << "hash map top 10% find time" << std::endl;
-    printResults("find()", agg_min_hash_top10, agg_avg_hash_top10, agg_max_hash_top10);
+    printResults("find()", hash_map_countersTop10);
     
     std::cout << "map find time" << std::endl;
-    printResults("find()", agg_min_map, agg_avg_map, agg_max_map);
+    printResults("find()", map_counters);
     
     std::cout << "map top 10% find time" << std::endl;
-    printResults("find()", agg_min_map_top10, agg_avg_map_top10, agg_max_map_top10);
+    printResults("find()", map_countersTop10);
     
     std::cout << "tree prefix match find time" << std::endl;
-    printResults("find()", agg_min_tree, agg_avg_tree, agg_max_tree);
+    printResults("find()", tree_counters);
     
     std::cout << "tree top 10% prefix match find time" << std::endl;
-    printResults("find()", agg_min_treeTop10, agg_avg_treeTop10, agg_max_treeTop10);
+    printResults("find()", tree_countersTop10);
     
     std::cout << "tree exact match find time" << std::endl;
-    printResults("find()", agg_min_treeExact, agg_avg_treeExact, agg_max_treeExact);
+    printResults("find()", treeExactMatch_counters);
     
     std::cout << "tree exact match top 10% find time" << std::endl;
-    printResults("find()", agg_min_treeExactTop10, agg_avg_treeExactTop10, agg_max_treeExactTop10);
+    printResults("find()", treeExactMatch_countersTop10);
     
     std::cout << "splay find time" << std::endl;
-    printResults("find()", agg_min_splay, agg_avg_splay, agg_max_splay);
+    printResults("find()", splay_counters);
     
     std::cout << "splay top 10% find time" << std::endl;
-    printResults("find()", agg_min_splayTop10, agg_avg_splayTop10, agg_max_splayTop10);
+    printResults("find()", splay_countersTop10);
     
     agg_min_hash = 1e300;
     agg_avg_hash = 0.0;
