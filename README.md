@@ -10,20 +10,20 @@ If you have keys such as "go" "google" "goggles", "hell", "hello" "hollow" and y
 ### 1.7KB key Apple M2 (ARM 64), Somoma 14.3.1 (23D60) CPU Cycles Comparison
 ```
 FlashRadixTree::find() (using partial key match)
-355.00 cycles/find() min,753.93 avg, 38,146.00 max 
+181.00 cycles/find() min,   314.75 avg, 22,068.00 max   
 map::find()
-548.00 cycles/find() min, 714.92 avg, 15,022.00 max 
+546.00 cycles/find() min,   731.58 avg,  7,287.00 max 
 unordered_map::find()
-711.00 cycles/find() min, 824.49 avg, 13,226.00 max
+701.00 cycles/find() min,   808.13 avg,  3,624.00 max 
 ```
 ### 6byte key 
 ```
 FlashRadixTree::find() (using partial key match)
-136.00 cycles/find() min,   261.32 avg, 10,875.00 max 
+166.00 cycles/find() min,   289.63 avg, 16,319.00 max  
 map::find()
-201.00 cycles/find() min,   273.10 avg,  4,517.00 max   
+206.00 cycles/find() min,   275.71 avg,  4,841.00 max  
 unordered_map::find()
-154.00 cycles/find() min,   173.89 avg,   790.00 max 
+154.00 cycles/find() min,   170.39 avg, 33,652.00 max
 ```
 
 ## Overview
