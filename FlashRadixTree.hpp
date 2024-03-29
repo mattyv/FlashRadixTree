@@ -10,8 +10,6 @@
 #ifndef FlashRadixTree_hpp
 #define FlashRadixTree_hpp
 
-//#define USE_SPLAY_TREE
-
 #include <iostream>
 #include <map>
 #include <memory>
@@ -805,7 +803,15 @@ private:
         }
     }
     
-    value_type_pointer _find(const Key& key) const {
+    value_type_pointer _find(const Key& key) const
+    {
+        if constexpr( MatchMode == MatchMode::Exact)
+            return _findExact(key);
+        else
+            return _findPrefix(key);
+    }
+    
+    value_type_pointer _findExact(const Key& key) const {
         if (key.empty()) {
             return nullptr; // An empty key cannot be found.
         }
@@ -825,17 +831,11 @@ private:
 #endif
             {
                 currentNode = it->second.get();
-                if(MatchMode == MatchMode::Prefix && //if we are in prefix mode we can stop if we find the prefix
-                   currentNode->isEndOfWord &&
-                       (currentNode->children.empty() ||//if there are no children below this key we have our winner
-                        currentNode->prefix.size() == remaining.size())) //if the prefix is the same size as the remaining key we can match on that also
+                if(!remaining.starts_with(currentNode->prefix))
                 {
-                    if(currentNode->deleted)
-                        return nullptr;
-                    else
-                        return currentNode;
+                    return nullptr;
                 }
-                else if(currentNode->isEndOfWord && remaining == currentNode->prefix) //else we no choice but to check the whole word
+                else if(currentNode->isEndOfWord && remaining == currentNode->prefix)
                 {
                     if(currentNode->deleted)
                         return nullptr;
@@ -847,6 +847,48 @@ private:
                     //we look for children below looking at the next possible prefix
                     keyPrefix = key[seen];
                     remaining = key.substr(seen);
+                }
+            }
+            else
+                return nullptr; //assume doesn't exist
+            
+        }
+        return nullptr;
+    }
+    
+    value_type_pointer _findPrefix(const Key& key) const {
+        if (key.empty()) {
+            return nullptr; // An empty key cannot be found.
+        }
+        
+        value_type_pointer currentNode = _root.get();
+        auto keyPrefix = key[0];
+        size_t seen = 0;
+        while( currentNode != nullptr)
+        {
+#if defined( USE_SPLAY_TREE)
+            const auto it = currentNode->children.get(keyPrefix);
+            if(it != nullptr)
+#else
+            const auto it = currentNode->children.find(keyPrefix);
+            if(it != currentNode->children.end())
+#endif
+            {
+                currentNode = it->second.get();
+                const size_t remainingSize = key.size() - seen;
+                if(currentNode->isEndOfWord &&
+                   (currentNode->children.empty() ||//if there are no children below this key we have our winner
+                    currentNode->prefix.size() == remainingSize)) //if the prefix is the same size as the remaining key we can match on that also
+                {
+                    if(currentNode->deleted)
+                        return nullptr;
+                    else
+                        return currentNode;
+                }
+                else if( key.size() > (seen += currentNode->prefix.size()) )
+                {
+                    //we look for children below looking at the next possible prefix
+                    keyPrefix = key[seen];
                 }
             }
             else
