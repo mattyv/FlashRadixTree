@@ -632,6 +632,9 @@ private:
         value_type* k1 = k2->children[LEFT];
         k2->children[LEFT] = k1->children[RIGHT];
         k1->children[RIGHT] = k2;
+        //prefetch the left child of k2
+        if(k2->children[LEFT])
+            __builtin_prefetch(k2->children[LEFT]);
         return k1;
     }
     
@@ -641,6 +644,9 @@ private:
         value_type* k1 = k2->children[RIGHT];
         k2->children[RIGHT] = k1->children[LEFT];
         k1->children[LEFT] = k2;
+        //prefetch the right child of k2
+        if(k2->children[RIGHT])
+            __builtin_prefetch(k2->children[RIGHT]);
         return k1;
     }
     
@@ -684,6 +690,7 @@ private:
             treesMinOrMax[other_dir] = root;
             root = root->children[dir];
             treesMinOrMax[other_dir]->children[dir] = nullptr;
+        
         }
         
         // Assemble left and right trees with the new root
