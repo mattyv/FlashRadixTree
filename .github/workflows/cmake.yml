@@ -19,6 +19,9 @@ jobs:
       with:
         submodules: 'recursive' # Fetches all submodules recursively
 
+    - name: Print content of a file
+      run: cat M1-Cycles/m1cycles.h 
+        
     - name: Create Build Directory
       run: mkdir build
 
