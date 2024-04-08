@@ -128,7 +128,6 @@ void printResults(std::string op, performance_counters_holder& stats)
     // Output the formatted CSV data
     std::cout << csvOutput.str();
 }
-#endif
 
 template< class Data>
 void runTest(int numOfRuns, performance_counters_holder& stats,
@@ -181,6 +180,8 @@ bool runTest(int numOfRuns, performance_counters_holder& stats, performance_coun
     }
     return true;
 }
+
+#endif
 
 int main(int argc, const char * argv[]) {
     
