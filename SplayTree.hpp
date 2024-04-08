@@ -690,7 +690,7 @@ private:
             treesMinOrMax[other_dir] = root;
             root = root->children[dir];
             treesMinOrMax[other_dir]->children[dir] = nullptr;
-        
+            
         }
         
         // Assemble left and right trees with the new root
