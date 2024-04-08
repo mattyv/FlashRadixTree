@@ -1,6 +1,13 @@
 name: CMake Build
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - '*' # Run on any branch push
+  pull_request:
+    branches:
+      - '*' # Run on any pull request
+  workflow_dispatch: # Add this line
 
 jobs:
   build:
