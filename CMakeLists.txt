@@ -17,7 +17,7 @@ add_executable(FlashRadixTreeWithSplay main.cpp) # Use the same main.cpp file
 target_compile_definitions(FlashRadixTreeWithSplay PRIVATE USE_SPLAY_TREE=1)
 
 # Include header files if needed
-#include_directories(${PROJECT_SOURCE_DIR}/M1-Cycles)
+include_directories(${PROJECT_SOURCE_DIR}/M1-Cycles)
 
 # Link libraries if needed
 # target_link_libraries(FlashRadixTree PRIVATE some_library)
