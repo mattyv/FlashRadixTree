@@ -59,11 +59,12 @@ public:
         ioctl(fd, PERF_EVENT_IOC_ENABLE, 0);
     }
     
-    long perf_stop()
+    long long perf_stop()
     {
         ioctl(fd, PERF_EVENT_IOC_DISABLE, 0);
         long long count;
         read(fd, &count, sizeof(long long));
+	return count;
     }
 };
 
@@ -72,7 +73,7 @@ public:
 class perf_counter_holder
 {
 private:
-    std::vector<long> counters;
+    std::vector<long long> counters;
     bool sorted = false;
     
     void _sort()
@@ -83,14 +84,14 @@ private:
 public:
     perf_counter_holder() = default;
     
-    perf_counter_holder operator +=(long counter)
+    perf_counter_holder operator +=(long long counter)
     {
         counters.push_back(counter);
         sorted = false;
         return *this;
     }
     
-    long average() const
+    long long average() const
     {
         long sum = 0;
         for (auto counter : counters)
@@ -101,9 +102,9 @@ public:
         return sum / counters.size();
     }
     
-    long min() const
+    long long min() const
     {
-        long min = std::numeric_limits<long>::max();
+        long long min = std::numeric_limits<long long>::max();
         for (auto counter : counters)
         {
             if (counter < min)
@@ -115,9 +116,9 @@ public:
         return min;
     }
     
-    long max()
+    long long max()
     {
-        long max = std::numeric_limits<long>::min();
+        long long max = std::numeric_limits<long long>::min();
         for (auto counter : counters)
         {
             if (counter > max)
@@ -129,7 +130,7 @@ public:
         return max;
     }
     
-    long median()
+    long long median()
     {
         if (!sorted)
         {
@@ -139,7 +140,7 @@ public:
         return counters[counters.size() / 2];
     }
     
-    long percentile(double p)
+    long long percentile(double p)
     {
         if (!sorted)
         {
