@@ -632,9 +632,14 @@ private:
         value_type* k1 = k2->children[LEFT];
         k2->children[LEFT] = k1->children[RIGHT];
         k1->children[RIGHT] = k2;
+#ifdef __GNUC__
         //prefetch the left child of k2
         if(k2->children[LEFT])
-            __builtin_prefetch(k2->children[LEFT]);
+        {
+            //expect to read to this locaitoin with low locality
+            __builtin_prefetch(k2->children[LEFT], 0, 1);
+        }
+#endif
         return k1;
     }
     
@@ -644,9 +649,14 @@ private:
         value_type* k1 = k2->children[RIGHT];
         k2->children[RIGHT] = k1->children[LEFT];
         k1->children[LEFT] = k2;
+#ifdef __GNUC__
         //prefetch the right child of k2
         if(k2->children[RIGHT])
-            __builtin_prefetch(k2->children[RIGHT]);
+        {
+            //expect to read to this locaitoin with low locality
+            __builtin_prefetch(k2->children[RIGHT], 0, 1);
+        }
+#endif
         return k1;
     }
     
