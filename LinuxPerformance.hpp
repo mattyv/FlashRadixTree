@@ -7,6 +7,9 @@
 
 #ifndef LinuxPerformance_h
 #define LinuxPerformance_h
+#include <vector>
+//is linux
+#ifdef __linux__
 #include <linux/perf_event.h>
 #include <unistd.h>
 #include <asm/unistd.h>
@@ -14,8 +17,6 @@
 #include <iostream>
 #include <sys/ioctl.h>
 
-//is linux
-#ifndef __linux__
 
 class perf_counter
 {
@@ -67,4 +68,94 @@ public:
 };
 
 #endif
+
+class perf_counter_holder
+{
+private:
+    std::vector<long> counters;
+    bool sorted = false;
+    
+    void _sort()
+    {
+        std::sort(counters.begin(), counters.end());
+        sorted = true;
+    }
+public:
+    perf_counter_holder() = default;
+    
+    perf_counter_holder operator +=(long counter)
+    {
+        counters.push_back(counter);
+        sorted = false;
+        return *this;
+    }
+    
+    long average() const
+    {
+        long sum = 0;
+        for (auto counter : counters)
+        {
+            sum += counter;
+        }
+        
+        return sum / counters.size();
+    }
+    
+    long min() const
+    {
+        long min = std::numeric_limits<long>::max();
+        for (auto counter : counters)
+        {
+            if (counter < min)
+            {
+                min = counter;
+            }
+        }
+        
+        return min;
+    }
+    
+    long max()
+    {
+        long max = std::numeric_limits<long>::min();
+        for (auto counter : counters)
+        {
+            if (counter > max)
+            {
+                max = counter;
+            }
+        }
+        
+        return max;
+    }
+    
+    long median()
+    {
+        if (!sorted)
+        {
+            _sort();
+        }
+        
+        return counters[counters.size() / 2];
+    }
+    
+    long percentile(double p)
+    {
+        if (!sorted)
+        {
+            _sort();
+        }
+        
+        return counters[counters.size() * p];
+    }
+    
+    void clear()
+    {
+        counters.clear();
+        sorted = false;
+    }
+    
+    
+};
+
 #endif /* LinuxPerformance_h */

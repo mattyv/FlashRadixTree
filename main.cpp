@@ -24,6 +24,7 @@
 #ifdef __APPLE__
 #include "M1-Cycles/m1cycles.h"
 #endif
+#include "LinuxPerformance.hpp"
 
 //struct to simulate a payload
 struct Data
