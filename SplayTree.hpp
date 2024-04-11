@@ -634,7 +634,10 @@ private:
         k1->children[RIGHT] = k2;
         //prefetch the left child of k2
         if(k2->children[LEFT])
-            __builtin_prefetch(k2->children[LEFT]);
+        {
+            //expect to read to this locaitoin with low locality
+            __builtin_prefetch(k2->children[LEFT], 0, 1);
+        }
         return k1;
     }
     
@@ -646,7 +649,10 @@ private:
         k1->children[LEFT] = k2;
         //prefetch the right child of k2
         if(k2->children[RIGHT])
-            __builtin_prefetch(k2->children[RIGHT]);
+        {
+            //expect to read to this locaitoin with low locality
+            __builtin_prefetch(k2->children[RIGHT], 0, 1);
+        }
         return k1;
     }
     
