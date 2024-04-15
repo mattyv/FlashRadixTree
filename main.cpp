@@ -42,12 +42,12 @@ struct Data
 };
 
 
-#ifdef __APPLE__
 std::string paddedString(const std::string& str, size_t minWidth) {
     if (str.length() >= minWidth) return str;
     return str + std::string(minWidth - str.length(), ' ');
 }
 
+#ifdef __APPLE__
 void printResults(std::string op, performance_counters_holder& stats)
 {
     performance_counters min = stats.min();
@@ -181,15 +181,31 @@ bool runTest(int numOfRuns, performance_counters_holder& stats, performance_coun
     }
     return true;
 }
-
 #endif
+//#elif defined(__linux__)
+template< class Data>
+bool runTest(int numOfRuns, perf_counter& perf, perf_counter_holder& perfholder,
+             std::function<void( typename Data::iterator&)> testFunction,
+            Data& data)
+{
+    for (int i = 0; i < numOfRuns; ++i) {
+        for(auto& item : data)
+        {
+            perf.perf_start();
+            testFunction(item);
+            long long val = perf.perf_end();
+            
+            perfholder.push_back(val);
+        }
+    }
+}
+//#endif
 
 int main(int argc, const char * argv[]) {
     
     if(!RunTests())
         return 1;
     
-#ifdef __APPLE__
     std::vector<std::string> symbols;
     std::ifstream file;
     file.open("/Users/matthew/Documents/Code/CPP/FlashRadixTree/FlashRadixTree/sample_data.txt");
@@ -245,11 +261,17 @@ int main(int argc, const char * argv[]) {
     setup_performance_counters();
     unsigned int runNumbers = 10;
     
-    performance_counters_holder hash_map_counters;
     auto emplaceHashMap = [&hash_map](const decltype(uniqueSymbols)::value_type& item){
          hash_map.emplace(item, Data());
     };
+#ifdef __APPLE__
+    performance_counters_holder hash_map_counters;
     runTest<decltype(uniqueSymbols)> (1, hash_map_counters, emplaceHashMap, uniqueSymbols);
+//#elif defined(__linux__)
+#endif
+    perf_counter_holder hash_counters;
+    perf_counter perf;
+    runTest<decltype(uniqueSymbols)> (runNumbers, perf, hash_counters, emplaceHashMap, uniqueSymbols);
     
     performance_counters_holder map_counters;
     auto emplaceMap = [&map](const decltype(uniqueSymbols)::value_type& item){

@@ -16,6 +16,7 @@
 #include <cstring>
 #include <iostream>
 #include <sys/ioctl.h>
+#endif
 #include <limits>
 
 
@@ -25,14 +26,18 @@ private:
     int fd;
     
 public:
+#ifdef __linux__
     long perf_event_open(struct perf_event_attr *hw_event, pid_t pid,
                          int cpu, int group_fd, unsigned long flags) {
         int ret = syscall(__NR_perf_event_open, hw_event, pid, cpu, group_fd, flags);
         return ret;
     }
+#endif
     
     perf_counter()
     {
+        
+#ifdef __linux__
         struct perf_event_attr pe;
         memset(&pe, 0, sizeof(struct perf_event_attr));
         pe.type = PERF_TYPE_HARDWARE;
@@ -47,29 +52,37 @@ public:
             std::cerr << "Error opening leader " << strerror(errno) << std::endl;
             throw std::runtime_error("Error opening leader");
         }
+#endif
     }
     
     ~perf_counter()
     {
+#ifdef __linux__
         close(fd);
+#endif
     }
     
     void perf_start()
     {
+#ifdef __linux__
         ioctl(fd, PERF_EVENT_IOC_RESET, 0);
         ioctl(fd, PERF_EVENT_IOC_ENABLE, 0);
+#endif
     }
     
-    long long perf_stop()
+    long long perf_end()
     {
+#ifdef __linux__
         ioctl(fd, PERF_EVENT_IOC_DISABLE, 0);
         long long count;
         read(fd, &count, sizeof(long long));
-	return count;
+        return count;
+#else
+        return 0;
+#endif
     }
 };
 
-#endif
 
 class perf_counter_holder
 {
@@ -90,6 +103,12 @@ public:
         counters.push_back(counter);
         sorted = false;
         return *this;
+    }
+    
+    void push_back(long long counter)
+    {
+        counters.push_back(counter);
+        sorted = false;
     }
     
     long long average() const
