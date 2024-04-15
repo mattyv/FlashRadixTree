@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 from matplotlib.ticker import LogLocator
+import string
 
 def extract_message_size(lines):
     for line in lines:
@@ -31,12 +32,14 @@ def read_and_process_file(filepath):
             data.append((action, metric_name, message_size, min_val, avg_val, max_val, pct_90, pct_50, pct_10))
     return data
 
-
-import matplotlib.pyplot as plt
-import pandas as pd
-
+def sanitize_filename(text):
+    """Sanitize the filename to remove unwanted characters."""
+    valid_chars = "-_() %s%s" % (string.ascii_letters, string.digits)
+    cleaned_filename = ''.join(c for c in text if c in valid_chars)
+    return cleaned_filename
 
 def plot_data(data, title):
+    """Generate plots for the given data and save them with sanitized filenames."""
     df = pd.DataFrame(data, columns=['Action', 'Metric', 'Message Size', 'Min', 'Average', 'Max', '90th Percentile',
                                      '50th Percentile', '10th Percentile'])
     for action, action_df in df.groupby('Action'):
@@ -59,7 +62,9 @@ def plot_data(data, title):
         plt.legend(title='Percentiles and Values')
         plt.tight_layout()
 
-        plt.savefig(f"{title.replace(' ', '_').lower()}_{action}.png")
+        # Sanitize and format the filename
+        filename = f"{sanitize_filename(title).replace(' ', '_').lower()}_{sanitize_filename(action).lower()}.png"
+        plt.savefig(filename)
         plt.close()
 
 
