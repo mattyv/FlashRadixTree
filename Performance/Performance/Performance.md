@@ -1,2 +1,6 @@
-##Insert
+## Insert()
 ![Unordered_map](./hash_map_cycles_metrics_insert().png)
+![map](./map_cycles_metrics_insert().png)
+![tree](./tree_cycles_metrics_insert().png)
+![tree exact match](./tree_exact_match_cycles_metrics_insert().png)
+![splay](./splay_cycles_metrics_insert().png)
