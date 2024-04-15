@@ -184,7 +184,7 @@ bool runTest(int numOfRuns, performance_counters_holder& stats, performance_coun
 
 #endif
 
-int runPerformance(int messageSize, const std::string& sampled_data_file)
+bool runPerformance(int messageSize, const std::string& sampled_data_file)
 {
 #ifdef __APPLE__
     std::vector<std::string> symbols;
@@ -553,7 +553,7 @@ int runPerformance(int messageSize, const std::string& sampled_data_file)
         std::cout << sorted[i].second << std::endl;
     }
 #endif
-    return 0;
+    return true;
 }
 
 int main(int argc, const char * argv[]) {
