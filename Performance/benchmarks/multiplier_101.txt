@@ -1,0 +1,213 @@
+size of one line in bytes: 606b
+hash map insert time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"hash map/Instructions/insert()", 9106.00   , 9600.02   , 54575.00  , 9297.00         , 9285.00         , 9197.00         
+"hash map/Cycles/insert()", 2483.00   , 2917.35   , 16293.00  , 2982.00         , 2758.00         , 2641.00         
+"hash map/Instructions/Cycle", 3.67      
+"hash map/Branches/insert()", 1281.00   , 1389.22   , 11581.00  , 1324.00         , 1318.00         , 1300.00         
+"hash map/Missed Branches/insert()", 1.00      , 3.92      , 64.00     , 5.00            , 3.00            , 1.00            
+map insert time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"map/Instructions/insert()", 2321.00   , 19080.25  , 23841.00  , 23070.00        , 20331.00        , 13570.00        
+"map/Cycles/insert()"   , 2422.00   , 6054.51   , 7782.00   , 7064.00         , 6302.00         , 4499.00         
+"map/Instructions/Cycle", 0.96      
+"map/Branches/insert()" , 411.00    , 3804.88   , 4782.00   , 4589.00         , 4048.00         , 2715.00         
+"map/Missed Branches/insert()", 16.00     , 25.59     , 38.00     , 30.00           , 26.00           , 20.00           
+tree insert time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"tree/Instructions/insert()", 7877.00   , 71703.22  , 202160.00 , 114796.00       , 56773.00        , 56227.00        
+"tree/Cycles/insert()"  , 3975.00   , 18405.76  , 48750.00  , 28979.00        , 14673.00        , 13978.00        
+"tree/Instructions/Cycle", 1.98      
+"tree/Branches/insert()", 1400.00   , 15756.67  , 45497.00  , 25194.00        , 12505.00        , 12395.00        
+"tree/Missed Branches/insert()", 1.00      , 33.90     , 155.00    , 43.00           , 34.00           , 24.00           
+tree exact match insert time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"tree exact match/Instructions/insert()", 7900.00   , 71716.65  , 202144.00 , 114807.00       , 56777.00        , 56272.00        
+"tree exact match/Cycles/insert()", 4085.00   , 18485.18  , 48458.00  , 29123.00        , 14836.00        , 13990.00        
+"tree exact match/Instructions/Cycle", 1.93      
+"tree exact match/Branches/insert()", 1406.00   , 15759.86  , 45493.00  , 25198.00        , 12507.00        , 12401.00        
+"tree exact match/Missed Branches/insert()", 2.00      , 34.53     , 123.00    , 46.00           , 34.00           , 15.00           
+splay insert time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"splay/Instructions/insert()", 2458.00   , 5749.81   , 6688.00   , 5935.00         , 5696.00         , 5695.00         
+"splay/Cycles/insert()" , 1766.00   , 2252.85   , 3637.00   , 2620.00         , 2200.00         , 2011.00         
+"splay/Instructions/Cycle", 1.39      
+"splay/Branches/insert()", 446.00    , 1142.83   , 1380.00   , 1189.00         , 1129.00         , 1128.00         
+"splay/Missed Branches/insert()", 0.00      , 13.44     , 24.00     , 20.00           , 15.00           , 5.00            
+
+hash map iterate time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"hash map/Instructions/++it", 316.00    , 316.00    , 316.00    , 316.00          , 316.00          , 316.00          
+"hash map/Cycles/++it"  , 197.00    , 254.80    , 1084.00   , 274.00          , 253.00          , 214.00          
+"hash map/Instructions/Cycle", 1.60      
+"hash map/Branches/++it", 52.00     , 52.00     , 52.00     , 52.00           , 52.00           , 52.00           
+"hash map/Missed Branches/++it", 0.00      , 0.00      , 1.00      , 0.00            , 0.00            , 0.00            
+map iterate time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"map/Instructions/++it" , 352.00    , 370.26    , 679.00    , 404.00          , 354.00          , 352.00          
+"map/Cycles/++it"       , 235.00    , 327.10    , 965.00    , 388.00          , 306.00          , 263.00          
+"map/Instructions/Cycle", 1.50      
+"map/Branches/++it"     , 60.00     , 65.43     , 151.00    , 74.00           , 61.00           , 60.00           
+"map/Missed Branches/++it", 0.00      , 1.52      , 9.00      , 3.00            , 1.00            , 1.00            
+tree iterate time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"tree/Instructions/++it", 328.00    , 343.94    , 344.00    , 344.00          , 344.00          , 344.00          
+"tree/Cycles/++it"      , 201.00    , 272.32    , 1680.00   , 281.00          , 245.00          , 228.00          
+"tree/Instructions/Cycle", 1.63      
+"tree/Branches/++it"    , 56.00     , 60.98     , 61.00     , 61.00           , 61.00           , 61.00           
+"tree/Missed Branches/++it", 0.00      , 0.03      , 4.00      , 0.00            , 0.00            , 0.00            
+tree exact match iterate time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"tree exact match/Instructions/++it", 328.00    , 343.94    , 344.00    , 344.00          , 344.00          , 344.00          
+"tree exact match/Cycles/++it", 208.00    , 289.03    , 2448.00   , 282.00          , 256.00          , 236.00          
+"tree exact match/Instructions/Cycle", 1.58      
+"tree exact match/Branches/++it", 56.00     , 60.98     , 61.00     , 61.00           , 61.00           , 61.00           
+"tree exact match/Missed Branches/++it", 0.00      , 0.02      , 4.00      , 0.00            , 0.00            , 0.00            
+splay iterate time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"splay/Instructions/++it", 349.00    , 3284.72   , 3310.00   , 3310.00         , 3280.00         , 3280.00         
+"splay/Cycles/++it"     , 253.00    , 1126.41   , 4013.00   , 1316.00         , 1077.00         , 987.00          
+"splay/Instructions/Cycle", 1.38      
+"splay/Branches/++it"   , 63.00     , 718.21    , 722.00    , 722.00          , 719.00          , 719.00          
+"splay/Missed Branches/++it", 0.00      , 4.05      , 32.00     , 15.00           , 1.00            , 1.00            
+
+Tree forwards iterator matches unique keys
+Tree reverse iterator matches unique keys
+hash map find time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"hash map/Instructions/find()", 7914.00   , 7956.41   , 8262.00   , 8001.00         , 7914.00         , 7914.00         
+"hash map/Cycles/find()", 1963.00   , 2256.70   , 41748.00  , 2346.00         , 2242.00         , 2147.00         
+"hash map/Instructions/Cycle", 4.03      
+"hash map/Branches/find()", 1112.00   , 1123.21   , 1204.00   , 1135.00         , 1112.00         , 1112.00         
+"hash map/Missed Branches/find()", 1.00      , 3.97      , 14.00     , 7.00            , 4.00            , 1.00            
+hash map top 10% find time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"hash map top 10%/Instructions/find()", 7914.00   , 7943.00   , 8175.00   , 8001.00         , 7914.00         , 7914.00         
+"hash map top 10%/Cycles/find()", 2078.00   , 2315.18   , 4298.00   , 2422.00         , 2295.00         , 2208.00         
+"hash map top 10%/Instructions/Cycle", 3.81      
+"hash map top 10%/Branches/find()", 1112.00   , 1119.67   , 1181.00   , 1135.00         , 1112.00         , 1112.00         
+"hash map top 10%/Missed Branches/find()", 1.00      , 5.78      , 10.00     , 7.00            , 6.00            , 4.00            
+map find time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"map/Instructions/find()", 7122.00   , 8887.79   , 12162.00  , 10106.00        , 8692.00         , 7320.00         
+"map/Cycles/find()"     , 2303.00   , 3300.05   , 43105.00  , 3658.00         , 3306.00         , 2892.00         
+"map/Instructions/Cycle", 3.09      
+"map/Branches/find()"   , 1464.00   , 1824.92   , 2475.00   , 2068.00         , 1786.00         , 1514.00         
+"map/Missed Branches/find()", 6.00      , 19.26     , 61.00     , 22.00           , 19.00           , 16.00           
+map top 10% find time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"map top 10%/Instructions/find()", 7955.00   , 8554.17   , 9327.00   , 8746.00         , 8653.00         , 7958.00         
+"map top 10%/Cycles/find()", 2721.00   , 3346.04   , 8174.00   , 3599.00         , 3315.00         , 3084.00         
+"map top 10%/Instructions/Cycle", 2.92      
+"map top 10%/Branches/find()", 1637.00   , 1757.50   , 1909.00   , 1800.00         , 1777.00         , 1638.00         
+"map top 10%/Missed Branches/find()", 13.00     , 20.70     , 27.00     , 24.00           , 21.00           , 17.00           
+tree prefix match find time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"tree prefix match/Instructions/find()", 1055.00   , 2565.41   , 4262.00   , 3035.00         , 2719.00         , 1971.00         
+"tree prefix match/Cycles/find()", 455.00    , 1128.05   , 43180.00  , 1367.00         , 1129.00         , 858.00          
+"tree prefix match/Instructions/Cycle", 2.32      
+"tree prefix match/Branches/find()", 204.00    , 498.07    , 790.00    , 582.00          , 548.00          , 382.00          
+"tree prefix match/Missed Branches/find()", 0.00      , 4.13      , 41.00     , 9.00            , 3.00            , 1.00            
+tree top 10% prefix match find time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"tree top 10% prefix match/Instructions/find()", 1971.00   , 2626.18   , 3510.00   , 3167.00         , 2683.00         , 2055.00         
+"tree top 10% prefix match/Cycles/find()", 769.00    , 1239.65   , 3526.00   , 1525.00         , 1207.00         , 954.00          
+"tree top 10% prefix match/Instructions/Cycle", 2.56      
+"tree top 10% prefix match/Branches/find()", 382.00    , 490.52    , 631.00    , 594.00          , 455.00          , 388.00          
+"tree top 10% prefix match/Missed Branches/find()", 1.00      , 6.78      , 21.00     , 12.00           , 6.00            , 2.00            
+tree exact match find time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"tree exact match/Instructions/find()", 4026.00   , 9389.69   , 14500.00  , 10800.00        , 10471.00        , 7362.00         
+"tree exact match/Cycles/find()", 1195.00   , 2907.00   , 65660.00  , 3413.00         , 3112.00         , 2223.00         
+"tree exact match/Instructions/Cycle", 3.37      
+"tree exact match/Branches/find()", 798.00    , 1792.55   , 2707.00   , 2049.00         , 2012.00         , 1413.00         
+"tree exact match/Missed Branches/find()", 1.00      , 7.23      , 73.00     , 13.00           , 7.00            , 2.00            
+tree exact match top 10% find time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"tree exact match top 10%/Instructions/find()", 7337.00   , 9144.61   , 11327.00  , 10984.00        , 8049.00         , 7446.00         
+"tree exact match top 10%/Cycles/find()", 2079.00   , 3046.68   , 43050.00  , 3608.00         , 2961.00         , 2312.00         
+"tree exact match top 10%/Instructions/Cycle", 3.53      
+"tree exact match top 10%/Branches/find()", 1413.00   , 1729.12   , 2111.00   , 2074.00         , 1486.00         , 1419.00         
+"tree exact match top 10%/Missed Branches/find()", 2.00      , 9.71      , 21.00     , 15.00           , 9.00            , 4.00            
+splay find time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"splay/Instructions/find()", 3055.00   , 7966.66   , 146622.00 , 14861.00        , 6197.00         , 3055.00         
+"splay/Cycles/find()"   , 796.00    , 2601.05   , 228700.00 , 4861.00         , 1999.00         , 969.00          
+"splay/Instructions/Cycle", 3.84      
+"splay/Branches/find()" , 669.00    , 1679.07   , 29595.00  , 3082.00         , 1342.00         , 669.00          
+"splay/Missed Branches/find()", 0.00      , 8.95      , 61.00     , 22.00           , 7.00            , 0.00            
+splay top 10% find time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"splay top 10%/Instructions/find()", 3055.00   , 14858.13  , 27358.00  , 23521.00        , 15598.00        , 8990.00         
+"splay top 10%/Cycles/find()", 916.00    , 4939.53   , 10831.00  , 7473.00         , 5140.00         , 2637.00         
+"splay top 10%/Instructions/Cycle", 3.34      
+"splay top 10%/Branches/find()", 669.00    , 3087.51   , 5600.00   , 4841.00         , 3211.00         , 1923.00         
+"splay top 10%/Missed Branches/find()", 0.00      , 24.12     , 49.00     , 38.00           , 26.00           , 10.00           
+
+hash map erase time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"hash map/Instructions/erase()", 9764.00   , 9931.08   , 10244.00  , 9954.00         , 9933.00         , 9864.00         
+"hash map/Cycles/erase()", 2829.00   , 3343.91   , 16277.00  , 3823.00         , 3131.00         , 2973.00         
+"hash map/Instructions/Cycle", 3.45      
+"hash map/Branches/erase()", 1460.00   , 1500.20   , 1587.00   , 1507.00         , 1500.00         , 1484.00         
+"hash map/Missed Branches/erase()", 1.00      , 15.15     , 41.00     , 17.00           , 15.00           , 14.00           
+map erase time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"map/Instructions/erase()", 4209.00   , 8101.98   , 9462.00   , 9047.00         , 8310.00         , 6538.00         
+"map/Cycles/erase()"    , 1802.00   , 3054.50   , 12993.00  , 3409.00         , 3088.00         , 2534.00         
+"map/Instructions/Cycle", 2.34      
+"map/Branches/erase()"  , 853.00    , 1656.42   , 1985.00   , 1852.00         , 1708.00         , 1333.00         
+"map/Missed Branches/erase()", 5.00      , 22.76     , 63.00     , 25.00           , 23.00           , 20.00           
+tree erase time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"tree/Instructions/erase()", 6671.00   , 12541.80  , 18629.00  , 18365.00        , 10836.00        , 10009.00        
+"tree/Cycles/erase()"   , 2118.00   , 4226.70   , 18110.00  , 5999.00         , 3718.00         , 2990.00         
+"tree/Instructions/Cycle", 3.15      
+"tree/Branches/erase()" , 1299.00   , 2386.61   , 3498.00   , 3470.00         , 2059.00         , 1928.00         
+"tree/Missed Branches/erase()", 1.00      , 24.93     , 126.00    , 44.00           , 24.00           , 6.00            
+tree exact match erase time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"tree exact match/Instructions/erase()", 6660.00   , 11908.35  , 17248.00  , 17031.00        , 10246.00        , 9999.00         
+"tree exact match/Cycles/erase()", 2060.00   , 3791.55   , 10708.00  , 5295.00         , 3351.00         , 2834.00         
+"tree exact match/Instructions/Cycle", 3.23      
+"tree exact match/Branches/erase()", 1299.00   , 2278.36   , 3267.00   , 3241.00         , 1961.00         , 1926.00         
+"tree exact match/Missed Branches/erase()", 1.00      , 16.37     , 57.00     , 33.00           , 15.00           , 3.00            
+splay erase time
+"Metric"                , "Min"     , "Average" , "Max"     , "90th Percentile", "50th Percentile", "10th Percentile"
+"splay/Instructions/erase()", 5417.00   , 7523.69   , 14368.00  , 10395.00        , 7397.00         , 5427.00         
+"splay/Cycles/erase()"  , 1253.00   , 2067.26   , 6510.00   , 2890.00         , 2092.00         , 1356.00         
+"splay/Instructions/Cycle", 4.32      
+"splay/Branches/erase()", 1075.00   , 1517.73   , 2933.00   , 2118.00         , 1481.00         , 1077.00         
+"splay/Missed Branches/erase()", 0.00      , 5.06      , 46.00     , 15.00           , 3.00            , 0.00            
+Number of runs for insert() 288
+
+Number of runs for find() 103880
+Top 10% count of keys used (not printing keys as they can be long): 
+1965
+1718
+725
+689
+433
+290
+282
+202
+195
+170
+148
+146
+144
+142
+137
+129
+124
+116
+113
+107
+88
+83
+71
+66
+62
+60
+55
+53
