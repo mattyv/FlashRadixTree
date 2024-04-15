@@ -7,24 +7,9 @@ Fast key value pair data structure with ordered traversal. On par with std::map 
 If you have keys such as "go" "google" "goggles", "hell", "hello" "hollow" and you need to keep them in an ordered container, it turns out a nice way to find the key is to break the keys up into prefixes and store them in a tree structure. If you know you keys will be there i.e your keys space doesn't change after you fill the container, you can search even faster by checking the first letter of parts of the tree... see below for details.
 
 ## Performance Overview
-### 1.7KB key Apple M2 (ARM 64), Somoma 14.3.1 (23D60) CPU Cycles Comparison
-```
-FlashRadixTree::find() (using partial key match)
-181.00 cycles/find() min,   314.75 avg, 22,068.00 max   
-map::find()
-546.00 cycles/find() min,   731.58 avg,  7,287.00 max 
-unordered_map::find()
-701.00 cycles/find() min,   808.13 avg,  3,624.00 max 
-```
-### 6byte key 
-```
-FlashRadixTree::find() (using partial key match)
-166.00 cycles/find() min,   289.63 avg, 16,319.00 max  
-map::find()
-206.00 cycles/find() min,   275.71 avg,  4,841.00 max  
-unordered_map::find()
-154.00 cycles/find() min,   170.39 avg, 33,652.00 max
-```
+![Find() performance Flash Radix Tree](Performance/Performance/tree_prefix_match_cycles_metrics_find().png)
+![Find() performance map](Performance/Performance/map_cycles_metrics_find().png)
+![Find() performance unordered_map](Performance/Performance/hash_map_cycles_metrics_find().png)
 
 ## Overview
 It's hard to beat STL's' unordered_map for raw speed. Especially lookup speed.
@@ -157,12 +142,7 @@ So in the FlashRadixTree i offer two options. To use the use of the Splay tree o
 Large messages FlashRadixTree performs well against unordered_map and map for find() in these tests. (again i encourage your own testing).
 I also focus on the top 10% of keys used to find as typically you may want them to be performant.
 
-![Find() performance Flash Radix Tree](Performance/Performance/tree_prefix_match_cycles_metrics_find().png)
-![Find() performance map](Performance/Performance/map_cycles_metrics_find().png)
-![Find() performance unordered_map](Performance/Performance/hash_map_cycles_metrics_find().png)
-
-All other 
-[Benchmarks](./Performance/Performance/) and
+[Benchmark Graphs](./Performance/Performance/) and
 [Raw Benchmark Data](./Performance/benchmarks)
 
 ## Usage
