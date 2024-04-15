@@ -21,6 +21,7 @@
 #include <string>
 #include <optional>
 #include <memory>
+#include <string.h>
 #ifdef __APPLE__
 #include "M1-Cycles/m1cycles.h"
 #endif
