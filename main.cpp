@@ -47,7 +47,7 @@ std::string paddedString(const std::string& str, size_t minWidth) {
     return str + std::string(minWidth - str.length(), ' ');
 }
 
-void printResults(std::string op, performance_counters_holder& stats)
+void printResults(std::string structure, std::string op, performance_counters_holder& stats)
 {
     performance_counters min = stats.min();
     performance_counters avg = stats.avg();
@@ -86,7 +86,7 @@ void printResults(std::string op, performance_counters_holder& stats)
     csvOutput << paddedString("\"10th Percentile\"", columnWidths[6]) << "\n";
 
     // Instructions
-    csvOutput << paddedString("\"Instructions/" + op + "\"", columnWidths[0]) << ", ";
+    csvOutput << paddedString("\"" + structure +  "/Instructions/" + op + "\"", columnWidths[0]) << ", ";
     csvOutput << formatAndPadNumber(min.instructions, 1) << ", ";
     csvOutput << formatAndPadNumber(avg.instructions, 2) << ", ";
     csvOutput << formatAndPadNumber(max.instructions, 3) << ", ";
@@ -95,7 +95,7 @@ void printResults(std::string op, performance_counters_holder& stats)
     csvOutput << formatAndPadNumber(percentile10.instructions, 6) << "\n";
 
     // Cycles
-    csvOutput << paddedString("\"Cycles/" + op + "\"", columnWidths[0]) << ", ";
+    csvOutput << paddedString("\"" + structure + "/Cycles/" + op + "\"", columnWidths[0]) << ", ";
     csvOutput << formatAndPadNumber(min.cycles, 1) << ", ";
     csvOutput << formatAndPadNumber(avg.cycles, 2) << ", ";
     csvOutput << formatAndPadNumber(max.cycles, 3) << ", ";
@@ -104,11 +104,11 @@ void printResults(std::string op, performance_counters_holder& stats)
     csvOutput << formatAndPadNumber(percentile10.cycles, 6) << "\n";
 
     // Instructions per Cycle
-    csvOutput << paddedString("\"Instructions/Cycle\"", columnWidths[0]) << ", ";
+    csvOutput << paddedString("\"" + structure + "/Instructions/Cycle\"", columnWidths[0]) << ", ";
     csvOutput << formatAndPadNumber(min.instructions / (min.cycles ? min.cycles : 1), 1) << "\n";
 
     // Branches
-    csvOutput << paddedString("\"Branches/" + op + "\"", columnWidths[0]) << ", ";
+    csvOutput << paddedString("\"" + structure + "/Branches/" + op + "\"", columnWidths[0]) << ", ";
     csvOutput << formatAndPadNumber(min.branches, 1) << ", ";
     csvOutput << formatAndPadNumber(avg.branches, 2) << ", ";
     csvOutput << formatAndPadNumber(max.branches, 3) << ", ";
@@ -117,7 +117,7 @@ void printResults(std::string op, performance_counters_holder& stats)
     csvOutput << formatAndPadNumber(percentile10.branches, 6) << "\n";
 
     // Missed Branches
-    csvOutput << paddedString("\"Missed Branches/" + op + "\"", columnWidths[0]) << ", ";
+    csvOutput << paddedString("\"" + structure + "/Missed Branches/" + op + "\"", columnWidths[0]) << ", ";
     csvOutput << formatAndPadNumber(min.missed_branches, 1) << ", ";
     csvOutput << formatAndPadNumber(avg.missed_branches, 2) << ", ";
     csvOutput << formatAndPadNumber(max.missed_branches, 3) << ", ";
@@ -183,17 +183,14 @@ bool runTest(int numOfRuns, performance_counters_holder& stats, performance_coun
 
 #endif
 
-int main(int argc, const char * argv[]) {
-    
-    if(!RunTests())
-        return 1;
-    
+int runPerformance(int messageSize, const std::string& sampled_data_file)
+{
 #ifdef __APPLE__
     std::vector<std::string> symbols;
     std::ifstream file;
-    file.open("/Users/matthew/Documents/Code/CPP/FlashRadixTree/FlashRadixTree/sample_data.txt");
+    file.open(sampled_data_file);
     std::string line;
-    unsigned int n = 1; //defines message size. Each character in the string is duplicated n times
+    unsigned int n = messageSize; //defines message size. Each character in the string is duplicated n times
     while (std::getline(file, line)) {
         //dupliacate each character in the string n times
         std::string newLine;
@@ -277,19 +274,19 @@ int main(int argc, const char * argv[]) {
     
     
     std::cout << "hash map insert time" << std::endl;
-    printResults("insert()",hash_map_counters);
+    printResults("hash map", "insert()",hash_map_counters);
     
     std::cout << "map insert time" << std::endl;
-    printResults("insert()", map_counters);
+    printResults("map", "insert()", map_counters);
     
     std::cout << "tree insert time" << std::endl;
-    printResults("insert()", tree_counters);
+    printResults("tree", "insert()", tree_counters);
     
     std::cout << "tree exact match insert time" << std::endl;
-    printResults("insert()", treeExactMatch_counters);
+    printResults("tree exact match", "insert()", treeExactMatch_counters);
     
     std::cout << "splay insert time" << std::endl;
-    printResults("insert()", splay_counters);
+    printResults("splay", "insert()", splay_counters);
     
     std::cout << std::endl;
     
@@ -332,19 +329,19 @@ int main(int argc, const char * argv[]) {
     
     
     std::cout << "hash map iterate time" << std::endl;
-    printResults("++it", hash_map_counters);
+    printResults("hash map", "++it", hash_map_counters);
     
     std::cout << "map iterate time" << std::endl;
-    printResults("++it", map_counters);
+    printResults("map", "++it", map_counters);
     
     std::cout << "tree iterate time" << std::endl;
-    printResults("++it", tree_counters);
+    printResults("tree", "++it", tree_counters);
     
     std::cout << "tree exact match iterate time" << std::endl;
-    printResults("++it", treeExactMatch_counters);
+    printResults("tree exact match", "++it", treeExactMatch_counters);
     
     std::cout << "splay iterate time" << std::endl;
-    printResults("++it", splay_counters);
+    printResults("splay", "++it", splay_counters);
     
     std::cout << std::endl;
     
@@ -467,34 +464,34 @@ int main(int argc, const char * argv[]) {
     runTest(runNumbers, splay_counters, splay_countersTop10, findSplay, symbols, topKeys);
     
     std::cout << "hash map find time" << std::endl;
-    printResults("find()", hash_map_counters);
+    printResults("hash map", "find()", hash_map_counters);
     
     std::cout << "hash map top 10% find time" << std::endl;
-    printResults("find()", hash_map_countersTop10);
+    printResults("hash map top 10%", "find()", hash_map_countersTop10);
     
     std::cout << "map find time" << std::endl;
-    printResults("find()", map_counters);
+    printResults("map", "find()", map_counters);
     
     std::cout << "map top 10% find time" << std::endl;
-    printResults("find()", map_countersTop10);
+    printResults("map top 10%", "find()", map_countersTop10);
     
     std::cout << "tree prefix match find time" << std::endl;
-    printResults("find()", tree_counters);
+    printResults("tree prefix match", "find()", tree_counters);
     
     std::cout << "tree top 10% prefix match find time" << std::endl;
-    printResults("find()", tree_countersTop10);
+    printResults("tree top 10% prefix match", "find()", tree_countersTop10);
     
     std::cout << "tree exact match find time" << std::endl;
-    printResults("find()", treeExactMatch_counters);
+    printResults("tree exact match", "find()", treeExactMatch_counters);
     
     std::cout << "tree exact match top 10% find time" << std::endl;
-    printResults("find()", treeExactMatch_countersTop10);
+    printResults("tree exact match top 10%", "find()", treeExactMatch_countersTop10);
     
     std::cout << "splay find time" << std::endl;
-    printResults("find()", splay_counters);
+    printResults("splay", "find()", splay_counters);
     
     std::cout << "splay top 10% find time" << std::endl;
-    printResults("find()", splay_countersTop10);
+    printResults("splay top 10%", "find()", splay_countersTop10);
     
 
     hash_map_counters.clear();
@@ -531,19 +528,19 @@ int main(int argc, const char * argv[]) {
     std::cout << std::endl;
     
     std::cout << "hash map erase time" << std::endl;
-    printResults("erase()", hash_map_counters);
+    printResults("hash map", "erase()", hash_map_counters);
     
     std::cout << "map erase time" << std::endl;
-    printResults("erase()", map_counters);
+    printResults("map", "erase()", map_counters);
     
     std::cout << "tree erase time" << std::endl;
-    printResults("erase()", tree_counters);
+    printResults("tree", "erase()", tree_counters);
     
     std::cout << "tree exact match erase time" << std::endl;
-    printResults("erase()", treeExactMatch_counters);
+    printResults("tree exact match", "erase()", treeExactMatch_counters);
     
     std::cout << "splay erase time" << std::endl;
-    printResults("erase()", splay_counters);
+    printResults("splay", "erase()", splay_counters);
     
     
     std::cout << "Number of runs for insert() " << uniqueSymbols.size() << std::endl;
@@ -555,5 +552,48 @@ int main(int argc, const char * argv[]) {
         std::cout << sorted[i].second << std::endl;
     }
 #endif
+    return 0;
+}
+
+int main(int argc, const char * argv[]) {
+    
+    std::string sample_data_file = "/Users/matthew/Documents/Code/CPP/FlashRadixTree/FlashRadixTree/sample_data.txt";
+    int messageMultiplier = 1;
+    bool runUnitTests = true;
+    //parse out the sample data file and message size multiplier both are optional.
+    //1 is default for multiplier and sample data file defaults to above
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "-m") == 0) {
+            if (i + 1 < argc) {
+                i++;
+                messageMultiplier = std::stoi(argv[i]);
+            }
+        } else if (strcmp(argv[i], "-f") == 0) {
+            if (i + 1 < argc) {
+                i++;
+                sample_data_file = argv[i];
+            }
+        }
+        else if (strcmp(argv[i], "-t") == 0) {
+            runUnitTests = false;
+        }
+        else if (strcmp(argv[i], "-h") == 0) {
+            std::cout << "Usage: " << argv[0] << " [-m messageMultiplier] [-f sample_data_file] [-t] [-h]" << std::endl;
+            std::cout << "Options:" << std::endl;
+            std::cout << "-m messageMultiplier: The number of times to repeat the sample data file. Default is 1." << std::endl;
+            std::cout << "-f sample_data_file: The file to read the sample data from. Default is sample_data.txt." << std::endl;
+            std::cout << "-t: Do not run unit tests." << std::endl;
+            std::cout << "-h: Display this help message." << std::endl;
+            return 0;
+        }
+    }
+    
+    
+    if(runUnitTests && !RunTests())
+        return 1;
+    
+    if(!runPerformance(messageMultiplier, sample_data_file))
+        return 1;
+ 
     return 0;
 }
