@@ -143,7 +143,7 @@ So in the FlashRadixTree i offer two options. To use the use of the Splay tree o
 Large messages FlashRadixTree performs well against unordered_map and map for find() in these tests. (again i encourage your own testing).
 I also focus on the top 10% of keys used to find as typically you may want them to be performant.
 
-[Benchmark Graphs](./Performance/Performance/) and
+[Benchmark Graphs](./Performance/Performance/Performance.md) and
 [Raw Benchmark Data](./Performance/benchmarks)
 
 ## Usage
