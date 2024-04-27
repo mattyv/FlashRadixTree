@@ -23,7 +23,8 @@
 #include <algorithm>
 #include <optional>
 
-
+namespace Flash
+{
 
 template <typename T, typename Alloc, typename... Args>
 std::unique_ptr<T, std::function<void(T*)>> make_unique_alloc(Alloc alloc, Args&&... args)
@@ -941,11 +942,11 @@ private:
         if (key.empty()) {
             return false; // Cannot erase an empty key
         }
-
+        
         FlashRadixTreeNode* currentNode = _root.get();
         FlashRadixTreeNode* parentNode = nullptr;
         Key remainingKey = key;
-
+        
         // Step 1: Find the node
         while (currentNode != nullptr && !remainingKey.empty()) {
             parentNode = currentNode;
@@ -954,263 +955,264 @@ private:
             
             if (it == nullptr) {
 #else
-            auto it = currentNode->children.find(remainingKey[0]);
-            if (it == currentNode->children.end()) {
+                auto it = currentNode->children.find(remainingKey[0]);
+                if (it == currentNode->children.end()) {
 #endif
-                return false; // Key not found
+                    return false; // Key not found
+                }
+                
+                const Key& nodePrefix = it->second->prefix;
+                FlashRadixTreeNode* childNode = it->second.get();
+                
+                if (remainingKey.starts_with(nodePrefix)) {
+                    // Prefix matches, move to the next node
+                    const auto nodePrefixSize = nodePrefix.size();
+                    remainingKey = remainingKey.substr(nodePrefixSize);
+                    currentNode = childNode;
+                } else {
+                    // Prefix does not match the remaining key
+                    return false; // Key not found
+                }
             }
-
-            const Key& nodePrefix = it->second->prefix;
-            FlashRadixTreeNode* childNode = it->second.get();
-
-            if (remainingKey.starts_with(nodePrefix)) {
-                // Prefix matches, move to the next node
-                const auto nodePrefixSize = nodePrefix.size();
-                remainingKey = remainingKey.substr(nodePrefixSize);
-                currentNode = childNode;
-            } else {
-                // Prefix does not match the remaining key
-                return false; // Key not found
+            
+            // If the end of the key has been reached and it's not marked as an end of a word, the key does not exist
+            if (!currentNode->isEndOfWord) {
+                return false;
             }
-        }
-
-        // If the end of the key has been reached and it's not marked as an end of a word, the key does not exist
-        if (!currentNode->isEndOfWord) {
-            return false;
-        }
-
-        // Step 2: Delete the node or unmark the end of the word
-        currentNode->isEndOfWord = false; // Unmark as the end of a word
-
-        // If the current node has has more than one child then we're done
-        if (currentNode->children.size() > 1) {
+            
+            // Step 2: Delete the node or unmark the end of the word
+            currentNode->isEndOfWord = false; // Unmark as the end of a word
+            
+            // If the current node has has more than one child then we're done
+            if (currentNode->children.size() > 1) {
+                --_size;
+                return true;
+            }
+            
+            // Step 3: Clean up the tree
+            if ((parentNode != nullptr) && (currentNode->children.size() <= 1) && !currentNode->isEndOfWord) {
+                
+                // Remove the leaf node if it does not have any children
+                if(currentNode->children.empty())
+                {
+                    //tidy up linked list of end of words
+                    if(currentNode->prev)
+                        currentNode->prev->next = currentNode->next;
+                    if(currentNode->next)
+                        currentNode->next->prev = currentNode->prev;
+                    
+                    parentNode->children.erase(currentNode->prefix[0]);
+                }
+                
+                // If the parent node is now a leaf and is not an end-of-word node, set it as the current node for the next iteration
+                if (parentNode->children.empty() && !parentNode->isEndOfWord) {
+                    currentNode = parentNode;
+                    if (parentNode != nullptr) {
+                        remainingKey = parentNode->prefix;
+                    }
+                }
+                else if(currentNode->children.size() == 1 && !currentNode->isEndOfWord)
+                {
+#if defined( USE_SPLAY_TREE)
+                    auto remainingChild = std::move(currentNode->children.getMinimum()->second);
+#else
+                    auto remainingChild = std::move(currentNode->children.begin()->second);
+#endif
+                    //tidy up linked list of end of words
+                    if(remainingChild->prev)
+                        remainingChild->prev->next = remainingChild->next;
+                    if(remainingChild->next)
+                        remainingChild->next->prev = remainingChild->prev;
+                    
+                    currentNode->prefix.append(remainingChild->prefix);
+                    currentNode->value = remainingChild->value;
+                    currentNode->isEndOfWord = remainingChild->isEndOfWord;
+                    currentNode->children = std::move(remainingChild->children); //overrride children.
+                }
+                //if the parent node has only one child we can compress (unless we're root. that makes no sense)
+                else if(parentNode != _root.get() && parentNode->children.size() == 1 && !parentNode->isEndOfWord)
+                {
+#if defined( USE_SPLAY_TREE)
+                    auto remainingChild = std::move(parentNode->children.getMinimum()->second);
+#else
+                    auto remainingChild = std::move(parentNode->children.begin()->second);
+#endif
+                    //tidy up linked list of end of words
+                    if(remainingChild->prev)
+                        remainingChild->prev->next = remainingChild->next;
+                    if(remainingChild->next)
+                        remainingChild->next->prev = remainingChild->prev;
+                    
+                    parentNode->prefix.append(remainingChild->prefix);
+                    parentNode->value = remainingChild->value;
+                    parentNode->isEndOfWord = remainingChild->isEndOfWord;
+                    parentNode->children = std::move(remainingChild->children);
+                }
+            }
             --_size;
             return true;
         }
-
-        // Step 3: Clean up the tree
-        if ((parentNode != nullptr) && (currentNode->children.size() <= 1) && !currentNode->isEndOfWord) {
-
-            // Remove the leaf node if it does not have any children
-            if(currentNode->children.empty())
-            {
-                //tidy up linked list of end of words
-                if(currentNode->prev)
-                    currentNode->prev->next = currentNode->next;
-                if(currentNode->next)
-                    currentNode->next->prev = currentNode->prev;
-                    
-                parentNode->children.erase(currentNode->prefix[0]);
-            }
-
-            // If the parent node is now a leaf and is not an end-of-word node, set it as the current node for the next iteration
-            if (parentNode->children.empty() && !parentNode->isEndOfWord) {
-                currentNode = parentNode;
-                if (parentNode != nullptr) {
-                    remainingKey = parentNode->prefix;
-                }
-            }
-            else if(currentNode->children.size() == 1 && !currentNode->isEndOfWord)
-            {
-#if defined( USE_SPLAY_TREE)
-                auto remainingChild = std::move(currentNode->children.getMinimum()->second);
-#else
-                auto remainingChild = std::move(currentNode->children.begin()->second);
-#endif
-                //tidy up linked list of end of words
-                if(remainingChild->prev)
-                    remainingChild->prev->next = remainingChild->next;
-                if(remainingChild->next)
-                    remainingChild->next->prev = remainingChild->prev;
-                
-                currentNode->prefix.append(remainingChild->prefix);
-                currentNode->value = remainingChild->value;
-                currentNode->isEndOfWord = remainingChild->isEndOfWord;
-                currentNode->children = std::move(remainingChild->children); //overrride children.
-            }
-            //if the parent node has only one child we can compress (unless we're root. that makes no sense)
-            else if(parentNode != _root.get() && parentNode->children.size() == 1 && !parentNode->isEndOfWord)
-            {
-#if defined( USE_SPLAY_TREE)
-                auto remainingChild = std::move(parentNode->children.getMinimum()->second);
-#else
-                auto remainingChild = std::move(parentNode->children.begin()->second);
-#endif
-                //tidy up linked list of end of words
-                if(remainingChild->prev)
-                    remainingChild->prev->next = remainingChild->next;
-                if(remainingChild->next)
-                    remainingChild->next->prev = remainingChild->prev;
-                
-                parentNode->prefix.append(remainingChild->prefix);
-                parentNode->value = remainingChild->value;
-                parentNode->isEndOfWord = remainingChild->isEndOfWord;
-                parentNode->children = std::move(remainingChild->children);
-            }
+        
+        FlashRadixTreeNode* _getMinimum() const  noexcept
+        {
+            auto* node = _firstWord;
+            while(node != nullptr && (!node->isEndOfWord || node->deleted))
+                node = node->next;
+            return node;
         }
-        --_size;
-        return true;
-    }
-    
-    FlashRadixTreeNode* _getMinimum() const  noexcept
-    {
-        auto* node = _firstWord;
-        while(node != nullptr && (!node->isEndOfWord || node->deleted))
-            node = node->next;
-        return node;
-    }
-       
-    
-    FlashRadixTreeNode* _getMaximum(FlashRadixTreeNode* root) const  noexcept
-    {
-        if(root == nullptr)
-            return nullptr;
         
-        auto* children = &root->children;
-#ifdef USE_SPLAY_TREE
-        auto it = children->getMaximum();
-        while( children != nullptr)
-        {
-            const auto check = children->getMaximum();
-            if(check == nullptr)
-                break;
-#else
-        auto it = children->rbegin();
-        while( children != nullptr)
-        {
-            const auto check = children->rbegin();
-            if(check == children->rend())
-                break;
-#endif
-            it = check;
-            children = &it->second->children;
-        }
-        auto* node = it->second.get();
-        //hunt backwards for a node which is not deleted
-        while(node != nullptr && (!node->isEndOfWord || node->deleted))
-            node = node->prev;
-        return node;
-    }
         
-    FlashRadixTreeNode* _getMaximum() const noexcept
-    {
-        return _getMaximum(_root.get());
-    }
-    
-    
-    FlashRadixTreeNodeNoOwner _copyFromOwnerNode( FlashRadixTreeNode* node)
-    {
-        FlashRadixTreeNodeNoOwner newNode(node->prefix, node->value, node->isEndOfWord, node->parent);
-        for(auto& it : node->children)
-#if defined( USE_SPLAY_TREE)
-            newNode.children.insert(it.first, it.second.get());
-#else
-            newNode.children.emplace(it.first, it.second.get());
-#endif
-        
-        return newNode;
-    }
-    
-    //move from current node to rollback node if the child existed prior to the insert op
-    FlashRadixTreeNode _mergeFromNoOwnerNode( FlashRadixTreeNodeNoOwner& node, FlashRadixTreeNode* current)
-    {
-        FlashRadixTreeNode newNode( node.prefix, std::move(node.value), node.isEndOfWord, node.parent);
-        for(auto& it :  node.children)
+        FlashRadixTreeNode* _getMaximum(FlashRadixTreeNode* root) const  noexcept
         {
-#if defined( USE_SPLAY_TREE)
-            auto found = current->children.get(it.first);
-            if(found != nullptr)
-                newNode.children.insert(it.first, std::move(found->second));
-#else
-            auto found = current->children.find(it.first);
-            if(found != current->children.end())
-                newNode.children.emplace(it.first, std::move(found->second));
-#endif
+            if(root == nullptr)
+                return nullptr;
             
-        }
-        return newNode;
-    }
-    
-};
-
-
-
-template <Streaming Key, Streaming Value, MatchMode FindMode = MatchMode::Exact,
+            auto* children = &root->children;
 #ifdef USE_SPLAY_TREE
-            typename Allocator = std::allocator<std::unique_ptr<Value>>>
-#else
-            typename Allocator = std::allocator<std::pair<const Key, std::unique_ptr<Value>>>>
-#endif
-class FlashRadixTreeSerializer {
-    
-public:
-    std::string serialize(const FlashRadixTree<Key, Value, FindMode, Allocator>& tree) {
-        return serializeNode(&(*tree.getRoot()));
-    }
-    
-    std::string format(const std::string& serialized) {
-        //iterate though string and insert new lines and tabs to format according to grammar
-        std::string formatted;
-        int indent = 0;
-        for (auto c : serialized) {
-            if (c == '[') {
-                formatted += c;
-                formatted += '\n';
-                indent++;
-                for (int i = 0; i < indent; i++) {
-                    formatted += '\t';
-                }
-            } else if (c == ']') {
-                formatted += '\n';
-                indent--;
-                for (int i = 0; i < indent; i++) {
-                    formatted += '\t';
-                }
-                formatted += c;
-            } else {
-                formatted += c;
-            }
-        }
-        return formatted;
-    }
-
-private:
-    std::string serializeNode( typename FlashRadixTree<Key, Value, FindMode, Allocator>::const_value_type_pointer node) const  {
-        if(node == nullptr)
-            return "";
-
-        std::stringstream ss;
-        ss << "+[" << node->prefix << "," << node->value << "," << (node->isEndOfWord ? "√": "*")  << (node->deleted ? "X" : "") << ",<";
-
-        if(node->children.empty())
-            ss << "-";
-        else
-        {
-            bool first = true;
-#ifdef USE_SPLAY_TREE
-            for(const auto& it : node->children)
+            auto it = children->getMaximum();
+            while( children != nullptr)
             {
-                if (!first) {
-                    ss << ",";
-                }
-                ss << serializeNode(it.second.get());
-                first = false;
-            }
+                const auto check = children->getMaximum();
+                if(check == nullptr)
+                    break;
 #else
-            for (const auto& childPair : node->children) {
-                if (!first) {
-                    ss << ",";
-                }
-                ss << serializeNode(childPair.second.get());
-                first = false;
-            }
+                auto it = children->rbegin();
+                while( children != nullptr)
+                {
+                    const auto check = children->rbegin();
+                    if(check == children->rend())
+                        break;
 #endif
-        }
+                    it = check;
+                    children = &it->second->children;
+                }
+                auto* node = it->second.get();
+                //hunt backwards for a node which is not deleted
+                while(node != nullptr && (!node->isEndOfWord || node->deleted))
+                    node = node->prev;
+                return node;
+            }
+            
+            FlashRadixTreeNode* _getMaximum() const noexcept
+            {
+                return _getMaximum(_root.get());
+            }
+            
+            
+            FlashRadixTreeNodeNoOwner _copyFromOwnerNode( FlashRadixTreeNode* node)
+            {
+                FlashRadixTreeNodeNoOwner newNode(node->prefix, node->value, node->isEndOfWord, node->parent);
+                for(auto& it : node->children)
+#if defined( USE_SPLAY_TREE)
+                    newNode.children.insert(it.first, it.second.get());
+#else
+                newNode.children.emplace(it.first, it.second.get());
+#endif
+                
+                return newNode;
+            }
+            
+            //move from current node to rollback node if the child existed prior to the insert op
+            FlashRadixTreeNode _mergeFromNoOwnerNode( FlashRadixTreeNodeNoOwner& node, FlashRadixTreeNode* current)
+            {
+                FlashRadixTreeNode newNode( node.prefix, std::move(node.value), node.isEndOfWord, node.parent);
+                for(auto& it :  node.children)
+                {
+#if defined( USE_SPLAY_TREE)
+                    auto found = current->children.get(it.first);
+                    if(found != nullptr)
+                        newNode.children.insert(it.first, std::move(found->second));
+#else
+                    auto found = current->children.find(it.first);
+                    if(found != current->children.end())
+                        newNode.children.emplace(it.first, std::move(found->second));
+#endif
+                    
+                }
+                return newNode;
+            }
+            
+        };
         
-        ss << ">]";
-        return ss.str();
+        
+        
+        template <Streaming Key, Streaming Value, MatchMode FindMode = MatchMode::Exact,
+#ifdef USE_SPLAY_TREE
+        typename Allocator = std::allocator<std::unique_ptr<Value>>>
+#else
+        typename Allocator = std::allocator<std::pair<const Key, std::unique_ptr<Value>>>>
+#endif
+        class FlashRadixTreeSerializer {
+            
+        public:
+            std::string serialize(const FlashRadixTree<Key, Value, FindMode, Allocator>& tree) {
+                return serializeNode(&(*tree.getRoot()));
+            }
+            
+            std::string format(const std::string& serialized) {
+                //iterate though string and insert new lines and tabs to format according to grammar
+                std::string formatted;
+                int indent = 0;
+                for (auto c : serialized) {
+                    if (c == '[') {
+                        formatted += c;
+                        formatted += '\n';
+                        indent++;
+                        for (int i = 0; i < indent; i++) {
+                            formatted += '\t';
+                        }
+                    } else if (c == ']') {
+                        formatted += '\n';
+                        indent--;
+                        for (int i = 0; i < indent; i++) {
+                            formatted += '\t';
+                        }
+                        formatted += c;
+                    } else {
+                        formatted += c;
+                    }
+                }
+                return formatted;
+            }
+            
+        private:
+            std::string serializeNode( typename FlashRadixTree<Key, Value, FindMode, Allocator>::const_value_type_pointer node) const  {
+                if(node == nullptr)
+                    return "";
+                
+                std::stringstream ss;
+                ss << "+[" << node->prefix << "," << node->value << "," << (node->isEndOfWord ? "√": "*")  << (node->deleted ? "X" : "") << ",<";
+                
+                if(node->children.empty())
+                    ss << "-";
+                else
+                {
+                    bool first = true;
+#ifdef USE_SPLAY_TREE
+                    for(const auto& it : node->children)
+                    {
+                        if (!first) {
+                            ss << ",";
+                        }
+                        ss << serializeNode(it.second.get());
+                        first = false;
+                    }
+#else
+                    for (const auto& childPair : node->children) {
+                        if (!first) {
+                            ss << ",";
+                        }
+                        ss << serializeNode(childPair.second.get());
+                        first = false;
+                    }
+#endif
+                }
+                
+                ss << ">]";
+                return ss.str();
+            }
+            
+        };
     }
-   
-};
 
 #endif /* FlashRadixTree */

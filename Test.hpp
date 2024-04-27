@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include "FlashRadixTree.hpp"
 
+using namespace Flash;
+
 //custom allocator to limit construction to 1 element
 static int throwOnAllocCount = 1;
 template <typename T>

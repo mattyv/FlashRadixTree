@@ -9,7 +9,129 @@
 #include <cstdlib>
 #include <memory>
 #include <algorithm>
+
+namespace Flash
+{
 using namespace std;
+
+//non atomic single threaded version of shared_prt
+template <typename T>
+class reference_pointer
+{
+private:
+    T* _ptr;
+    size_t* _count;
+public:
+    
+    reference_pointer(T* ptr = nullptr)
+    : _ptr(ptr), _count(_ptr == nullptr ? nullptr : new size_t(1))
+    {
+    }
+    
+    reference_pointer(const reference_pointer& other)
+    : _ptr(other._ptr), _count(other._count)
+    {
+        if(_count)
+            ++(*_count);
+    }
+    
+    reference_pointer(reference_pointer&& other)
+    : _ptr(other._ptr), _count(other._count)
+    {
+        other._ptr = nullptr;
+        other._count = nullptr;
+    }
+    
+    ~reference_pointer()
+    {
+        if (_count && --(*_count) == 0)
+        {
+            delete _ptr;
+            delete _count;
+            _ptr = nullptr;
+            _count = nullptr;
+        }
+    }
+    
+    reference_pointer& operator=(const reference_pointer& other)
+    {
+        _ptr = other._ptr;
+        _count = other._count;
+        if(_count)
+            ++(*_count);
+        
+        return *this;
+    }
+    
+    constexpr T* operator->()
+    {
+        return _ptr;
+    }
+    
+    constexpr const T* operator->() const
+    {
+        return _ptr;
+    }
+    
+    constexpr T& operator*()
+    {
+        return *_ptr;
+    }
+    
+    constexpr const T& operator*() const
+    {
+        return *_ptr;
+    }
+    
+    constexpr size_t use_count() const
+    {
+        return *_count;
+    }
+    
+    constexpr bool operator==(const reference_pointer& other) const
+    {
+        return _ptr == other._ptr;
+    }
+    
+    constexpr bool operator==(const T* other) const
+    {
+        return _ptr == other;
+    }
+    
+    constexpr operator bool() const
+    {
+        return _ptr != nullptr;
+    }
+    
+    constexpr const T* get() const
+    {
+        return _ptr;
+    }
+    
+    constexpr T* get()
+    {
+        return _ptr;
+    }
+    
+    void reset()
+    {
+        if (--(*_count) == 0)
+        {
+            delete _ptr;
+            delete _count;
+            _ptr = nullptr;
+            _count = nullptr;
+        }
+        _ptr = nullptr;
+        _count = nullptr;
+    }
+};
+
+template <class T, class... Args>
+reference_pointer<T> make_reference_pointer(Args&&... args)
+{
+    return reference_pointer<T>(new T(std::forward<Args>(args)...));
+}
 
 template <typename T>
 concept ComparableKeyType = requires(T a, T b)
@@ -59,7 +181,9 @@ public:
     public:
         key_type first;
         mapped_type  second;
-        value_type* children[2] = {nullptr, nullptr};
+        using value_type_smart_prt = reference_pointer<value_type>;
+        //using value_type_smart_prt = std::shared_ptr<value_type>;
+        value_type_smart_prt children[2];// = {nullptr, nullptr};
         
         constexpr bool operator==(const value_type& rhs) const
         {
@@ -76,9 +200,9 @@ public:
     };
     enum Child { LEFT = 0, RIGHT = 1};
     using size_type = size_t;
-
+    
 private:
-
+    
     enum class IteratorDirection { FORWARD, REVERSE};
     enum class IteratorConstness { CONST, NON_CONST};
     template<IteratorDirection direction, IteratorConstness constness = IteratorConstness::NON_CONST>
@@ -88,16 +212,18 @@ private:
         using tree_pointer = std::conditional_t<constness == IteratorConstness::CONST, const SplayTree*, SplayTree*>;
         using value_type_pointer = std::conditional_t<constness == IteratorConstness::CONST, const value_type*, value_type*>;
         using value_type_reference = std::conditional_t<constness == IteratorConstness::CONST, const value_type&, value_type&>;
+        //using value_type_smart_prt = shared_ptr<value_type>;//std::conditional_t<constness == IteratorConstness::CONST, reference_pointer<value_type>, reference_pointer<const value_type>>;
+        using value_type_smart_prt = reference_pointer<value_type>;//std::conditional_t<constness == IteratorConstness::CONST, reference_pointer<value_type>, reference_pointer<const value_type>>;
         using value = std::conditional_t<constness == IteratorConstness::CONST, const Xiterator, Xiterator>;
         using pointer = std::conditional_t<constness == IteratorConstness::CONST, const Xiterator*, Xiterator*>;
         using reference = std::conditional_t<constness == IteratorConstness::CONST, const Xiterator&, Xiterator&>;
         
-        value_type_pointer _node = nullptr;
+        value_type_smart_prt _node = nullptr;
         tree_pointer _tree = nullptr;
         bool _isEnd = true;
         IteratorDirection _direction = direction;
         
-        Xiterator(value_type_pointer node, tree_pointer tree)
+        Xiterator(const value_type_smart_prt& node, tree_pointer tree)
         : _node(node), _tree(tree), _isEnd(node == nullptr || tree == nullptr)
         {
         }
@@ -114,14 +240,14 @@ private:
             _isEnd = std::move(other._isEnd);
             _direction = std::move(other._direction);
         }
-
+        
         // Default copy assignment operator - used for same type
         Xiterator& operator=(const Xiterator& other) noexcept = default;
-
+        
         // Prevent cross-direction copying and assignment using a deleted function template
         template<IteratorDirection OtherDirection>
         Xiterator(const Xiterator<OtherDirection>&) = delete;
-       
+        
         template<IteratorDirection OtherDirection>
         Xiterator& operator=(const Xiterator<OtherDirection>&) = delete;
         
@@ -134,7 +260,7 @@ private:
                 return Xiterator<IteratorDirection::FORWARD, constness>(_node, _tree);
             }
         }
-                    
+        
         
         reference operator++()
         {
@@ -148,7 +274,7 @@ private:
             if (_direction == IteratorDirection::FORWARD)
             {
                 if(_node->children[RIGHT] == nullptr )
-                    _node = nullptr;
+                    _node.reset();
                 else if(_tree->get(_node->first) != nullptr)//make sure node is at the root
                     _node = _tree->_rotateToNextLarger();
             }
@@ -203,11 +329,11 @@ private:
             --(*this);
             return tmp;
         }
-        constexpr value_type_pointer operator->() const
+        constexpr value_type_smart_prt operator->() const
         {
             return _node;
         }
-        constexpr value_type_reference operator*() const
+        constexpr value_type_reference operator*()
         {
             return *_node;
         }
@@ -246,6 +372,8 @@ public:
     using pair_reference = pair_type&;
     using const_value_type_reference = const value_type&;
     using value_type_reference = value_type&;
+    using value_type_smart_ptr = reference_pointer<value_type>;
+    //using value_type_smart_ptr = std::shared_ptr<value_type>;
     using const_value_type_pointer = const value_type*;
     using value_type_pointer = value_type*;
     using iterator = Xiterator<IteratorDirection::FORWARD>;
@@ -255,7 +383,7 @@ public:
     
     
     explicit SplayTree( const allocator_type& allocator = allocator_type())
-        : _node_allocator(allocator)
+    : _node_allocator(allocator)
     {}
     ~SplayTree()
     {
@@ -312,7 +440,7 @@ public:
             return end();
         return iterator(_root, this);
     }
-   
+    
     //bit of a hack to take a pair but thats not what this class uses under the hood so we just convert.
     //will be perfectly compatablere
     std::pair<iterator, bool> insert(pair_type&& value) //untested
@@ -362,7 +490,7 @@ public:
         return iterator(_root, this);
     }
     
-    const_value_type_pointer get(const key_type& key) const
+    const value_type_smart_ptr get(const key_type& key) const
     {
         _root = _splay(key, _root);
         if((_root == nullptr ) || (_root && _root->first != key))
@@ -370,7 +498,7 @@ public:
         return _root;
     }
     
-    value_type_pointer get(const key_type& key)
+    value_type_smart_ptr get(const key_type& key)
     {
         _root = _splay(key, _root);
         if((_root == nullptr ) || (_root && _root->first != key))
@@ -378,26 +506,26 @@ public:
         return _root;
     }
     
-    const_value_type_pointer getMinimum() const
+    const value_type_smart_ptr getMinimum() const
     {
         return _getMinimumAndSplay(_root);
     }
     
-    value_type_pointer getMinimum()
+    value_type_smart_ptr getMinimum()
     {
         return _getMinimumAndSplay(_root);
     }
-     
-    const_value_type_pointer getMaximum() const
+    
+    const value_type_smart_ptr getMaximum() const
     {
         return _getMaximumAndSplay(_root);
     }
     
-    value_type_pointer getMaximum()
+    const value_type_smart_ptr getMaximum()
     {
         return _getMaximumAndSplay(_root);
     }
-                                   
+    
     bool contains(const key_type& key) const
     {
         return get(key) != nullptr;
@@ -555,7 +683,7 @@ public:
         return *this;
     }
 private:
-    mutable value_type* _root = nullptr;
+    mutable value_type_smart_ptr _root = nullptr;
     //sentinal node for end()
     iterator _endIt = iterator(nullptr, this);
     const_iterator _cendIt = const_iterator(nullptr, this);
@@ -566,7 +694,7 @@ private:
     allocator_type _node_allocator;
     
     template<typename... Args>
-    value_type* _insert(value_type* root, Args&&... args)
+    value_type_smart_ptr _insert(value_type_smart_ptr& root, Args&&... args)
     {
         if (!root) {
             // If there is no root, create a new node and return it.
@@ -574,13 +702,13 @@ private:
         }
         
         // Create a new node as we are sure we need to insert it.
-        value_type* new_node = _New_Node(std::forward<value_type>(args)...);
+        auto new_node = _New_Node(std::forward<value_type>(args)...);
         // Splay the tree with the given key.
         root = _splay(new_node->first, root);
         
         // If the key is already in the tree, we return the splayed tree without inserting.
         if (new_node->first == root->first) {
-            delete new_node;
+            //delete new_node;
             return root;
         }
         //any bad alloc at this point have not made substantial changes so we're ok to let the go uncaught here
@@ -590,7 +718,7 @@ private:
         // Calculate direction: 0 for LEFT, 1 for RIGHT
         const Child dir = static_cast<Child>(new_node->first > root->first);
         const Child other_dir = static_cast<Child>(1 - dir);
-
+        
         
         if (root != nullptr && new_node->first != root->first)
         {
@@ -602,7 +730,7 @@ private:
         return new_node;
     }
     
-    value_type* _erase(const key_type& key, value_type* root)
+    value_type_smart_ptr _erase(const key_type& key, value_type_smart_ptr& root)
     {
         if (!root)
             return nullptr;
@@ -611,7 +739,7 @@ private:
         if (key != root->first)
             return root;
         
-        value_type* temp = root;
+        value_type_smart_ptr temp = root;
         if (!root->children[LEFT])
             root = root->children[RIGHT];
         else
@@ -622,14 +750,15 @@ private:
             root = _splay(key, root->children[LEFT]);
             root->children[RIGHT] = temp->children[RIGHT];
         }
-    
-        _destroy_node( temp);
+        
+        //_destroy_node( temp);
+        --_size;
         return root;
     }
     // RR(Y rotates to the right)
-    value_type* _RR_Rotate(value_type* k2) const  noexcept
+    value_type_smart_ptr _RR_Rotate(value_type_smart_ptr& k2) const  noexcept
     {
-        value_type* k1 = k2->children[LEFT];
+        auto k1 = k2->children[LEFT];
         k2->children[LEFT] = k1->children[RIGHT];
         k1->children[RIGHT] = k2;
 #ifdef __GNUC__
@@ -637,16 +766,16 @@ private:
         if(k2->children[LEFT])
         {
             //expect to read to this locaitoin with low locality
-            __builtin_prefetch(k2->children[LEFT], 0, 1);
+            __builtin_prefetch(k2->children[LEFT].get(), 0, 1);
         }
 #endif
         return k1;
     }
     
     // LL(Y rotates to the left)
-    value_type* _LL_Rotate(value_type* k2) const  noexcept
+    value_type_smart_ptr _LL_Rotate(value_type_smart_ptr& k2) const  noexcept
     {
-        value_type* k1 = k2->children[RIGHT];
+        auto k1 = k2->children[RIGHT];
         k2->children[RIGHT] = k1->children[LEFT];
         k1->children[LEFT] = k2;
 #ifdef __GNUC__
@@ -654,22 +783,23 @@ private:
         if(k2->children[RIGHT])
         {
             //expect to read to this locaitoin with low locality
-            __builtin_prefetch(k2->children[RIGHT], 0, 1);
+            __builtin_prefetch(k2->children[RIGHT].get(), 0, 1);
         }
 #endif
         return k1;
     }
     
     // An implementation of top-down value_type tree
-    value_type* _splay(const key_type& key, value_type* root) const
+    value_type_smart_ptr _splay(const key_type& key, value_type_smart_ptr& root) const
     {
         if (!root)
             return nullptr;
-        value_type header;
+        //auto header = std::make_shared<value_type>();
+        auto header = make_reference_pointer<value_type>();
         /* header.children[RIGHT] points to L tree;
          header.children[LEFT] points to R Tree */
         //header.children[LEFT] = header.children[RIGHT] = nullptr;
-        value_type* treesMinOrMax[2] = { &header, &header };
+        value_type_smart_ptr treesMinOrMax[2] = {header, header};
         
         while (true) {
             // Calculate direction: 0 for LEFT, 1 for RIGHT
@@ -682,7 +812,7 @@ private:
             if(!root->children[dir] ) {
                 break;
             }
-            typedef value_type* (SplayTree::*RotationFunc)(value_type*) const;
+            typedef value_type_smart_ptr (SplayTree::*RotationFunc)(value_type_smart_ptr&) const;
             const RotationFunc rotate[2] = { &SplayTree::_RR_Rotate, &SplayTree::_LL_Rotate };
             // Check for zig-zig or zag-zag case
             if ((key < root->children[dir]->first && dir == LEFT) ||
@@ -706,19 +836,20 @@ private:
         // Assemble left and right trees with the new root
         treesMinOrMax[LEFT]->children[RIGHT] = root->children[LEFT];
         treesMinOrMax[RIGHT]->children[LEFT] = root->children[RIGHT];
-        root->children[LEFT] = header.children[RIGHT];
-        root->children[RIGHT] = header.children[LEFT];
+        root->children[LEFT] = header->children[RIGHT];
+        root->children[RIGHT] = header->children[LEFT];
         
         return root;
     }
     
     template <typename... Args>
-    value_type* _New_Node(Args&&... args)
+    value_type_smart_ptr _New_Node(Args&&... args)
     {
         value_type* p_node = _node_allocator.allocate(1);
         new (p_node) value_type(std::forward<Args>(args)...);
         ++_size;
-        return p_node;
+        //return std::make_shared<value_type>(p_node);
+        return value_type_smart_ptr(p_node);
     }
     
     void _destroy_node(value_type* node)
@@ -731,7 +862,7 @@ private:
         }
     }
     
-
+    
     void _printInOrder(value_type* root)
     {
         if (root)
@@ -746,13 +877,13 @@ private:
             _printInOrder(root->children[RIGHT]);
         }
     }
-
     
-    value_type* _getMinimumAndSplay(value_type* root) const  noexcept {
+    
+    value_type_smart_ptr  _getMinimumAndSplay(value_type_smart_ptr& root) const  noexcept {
         //perfom zig-zig or zig to move the left most node to the root
         if(root == nullptr) return nullptr;
         
-        value_type* x = root;
+        auto x = root;
         while (x->children[LEFT] != nullptr) {
             if (x->children[LEFT]->children[LEFT] != nullptr) {
                 // "Zig-zig" step: make two right rotations
@@ -769,11 +900,11 @@ private:
     }
     
     
-    value_type* _getMaximumAndSplay(value_type* root) const  noexcept {
+    value_type_smart_ptr _getMaximumAndSplay(value_type_smart_ptr& root) const  noexcept {
         //perfom zag-zag or zag to move the right most node to the root
         if(root == nullptr) return nullptr;
         
-        value_type* x = root;
+        auto x = root;
         while (x->children[RIGHT] != nullptr) {
             if (x->children[RIGHT]->children[RIGHT] != nullptr) {
                 // "Zig-zig" step: make two left rotations
@@ -790,7 +921,7 @@ private:
     }
     
     // Rotate the tree so that the next larger element becomes the root
-    value_type* _rotateToNextLarger() const  noexcept {
+    value_type_smart_ptr _rotateToNextLarger() const  noexcept {
         // If there's no right subtree, there's no next larger element
         if (!_root || !_root->children[RIGHT])
             return _root;
@@ -806,7 +937,7 @@ private:
     }
     
     // Rotate the tree so that the next smaller element becomes the root
-    value_type* _rotateToNextSmaller() const noexcept {
+    value_type_smart_ptr _rotateToNextSmaller() const noexcept {
         // If there's no left subtree, there's no next smaller element
         if (!_root || !_root->children[LEFT])
             return _root;
@@ -821,5 +952,6 @@ private:
         return _root;
     }
 };
+}
 #endif /* SplayTree_h */
 
