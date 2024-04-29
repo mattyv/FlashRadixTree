@@ -175,9 +175,9 @@ private:
                 next = other.next;
                 prev = other.prev;
                 parent = other.parent;
-                fullKey = std::move(other.fullKey);
+                //fullKey = std::move(other.fullKey);
                 
-                other.clear();
+                //other.clear();
             }
         }
     private:
