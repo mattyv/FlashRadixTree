@@ -105,22 +105,11 @@ private:
         
         FlashRadixTreeNodeBase(FlashRadixTreeNodeBase&& other) noexcept
         {
-            _swap(other);
+            _move(other);
         }
-    private:
-        FlashRadixTreeNodeBase(const FlashRadixTreeNodeBase& other)
-        : isEndOfWord(other.isEndOfWord),
-        value(other.value),
-        prefix(other.prefix),
-        deleted(other.deleted),
-        next(other.next),
-        prev(other.prev),
-        parent(other.parent)
-        {}
-    public:
         FlashRadixTreeNodeBase& operator=(FlashRadixTreeNodeBase&& other) noexcept
         {
-            _swap(other);
+            _move(other);
             return *this;
         }
         bool constexpr operator==(const FlashRadixTreeNodeBase& other) const
@@ -161,6 +150,10 @@ private:
             value = Value();
             prefix = Key();
             deleted = false;
+            next = nullptr;
+            prev = nullptr;
+            parent = nullptr;
+            fullKey.reset();
         }
         
         bool isEndOfWord = false;
@@ -171,15 +164,21 @@ private:
         Parent* prev = nullptr;
         Parent* parent = nullptr;
     protected:
-        //try as i might i couldn't get the freind version of this functon to compile outside of the class. so i gave up for now.
-        void _swap( FlashRadixTreeNodeBase& other) noexcept
+        void _move( FlashRadixTreeNodeBase&& other) noexcept
         {
-            std::swap(isEndOfWord, other.isEndOfWord);
-            std::swap(value, other.value);
-            std::swap(prefix, other.prefix);
-            std::swap(deleted, other.deleted);
-            std::swap(next, other.next);
-            std::swap(prev, other.prev);
+            if(this != &other)
+            {
+                isEndOfWord = other.isEndOfWord;
+                value = std::move(other.value);
+                prefix = std::move(other.prefix);
+                deleted = other.deleted;
+                next = other.next;
+                prev = other.prev;
+                parent = other.parent;
+                fullKey = std::move(other.fullKey);
+                
+                other.clear();
+            }
         }
     private:
         
@@ -210,28 +209,17 @@ private:
         
         FlashRadixTreeNode() = default;
         ~FlashRadixTreeNode() = default;
-    private:
-        FlashRadixTreeNode(const FlashRadixTreeNodeNoOwner& other )
-        : BaseType(other),
-        children(other.children)
-        {}
+        FlashRadixTreeNode(const FlashRadixTreeNodeNoOwner&  ) = delete;
         
-        //try as i might i couldn't get the freind version of this functon to compile outside of the class. so i gave up for now.
-        void _swap(FlashRadixTreeNode& other) noexcept
-        {
-            BaseType::_swap(other);
-            std::swap(children, other.children);
-        }
-    public:
         FlashRadixTreeNode( FlashRadixTreeNode&& other) noexcept
         {
-            _swap(other);
+            _move(std::move(other));
         }
         
         FlashRadixTreeNode& operator=(const FlashRadixTreeNode& ) = delete;
         FlashRadixTreeNode& operator=(FlashRadixTreeNode&& other) noexcept
         {
-            _swap(other);
+            _move(std::move(other));
             return *this;
         }
 
@@ -239,6 +227,16 @@ private:
         {
             children.clear();
             FlashRadixTreeNodeBase<FlashRadixTreeNode>::clear();
+        }
+        
+    private:
+        void _move(FlashRadixTreeNode&& other) noexcept
+        {
+            BaseType::_move(std::move(other));
+            if(this != &other)
+            {
+                children = std::move(other.children);
+            }
         }
     };
     
@@ -265,27 +263,26 @@ private:
         
         FlashRadixTreeNodeNoOwner() = default;
         ~FlashRadixTreeNodeNoOwner() = default;
-        FlashRadixTreeNodeNoOwner(const FlashRadixTreeNodeNoOwner& other)
-        :BaseType(other),
-        children(other.children)
-        {
-        }
+        FlashRadixTreeNodeNoOwner(const FlashRadixTreeNodeNoOwner&) = delete;
         FlashRadixTreeNodeNoOwner( FlashRadixTreeNodeNoOwner&& other) noexcept
         {
-            _swap(other);
+            _move(std::move(other));
         }
         
-        FlashRadixTreeNodeNoOwner& operator=( FlashRadixTreeNodeNoOwner other )
+        FlashRadixTreeNodeNoOwner& operator=( FlashRadixTreeNodeNoOwner&& other )
         {
-            _swap(other);
+            _move(std::move(other));
             return *this;
         }
     private:
         //try as i might i couldn't get the freind version of this functon to compile outside of the class. so i gave up for now.
-        void _swap(FlashRadixTreeNodeNoOwner& other) noexcept
+        void _move(FlashRadixTreeNodeNoOwner&& other) noexcept
         {
-            BaseType::_swap(other);
-            std::swap(children, other.children);
+            BaseType::_move(std::move(other));
+            if(this != &other)
+            {
+                children = std::move(other.children);
+            }
         }
     };
 public:
