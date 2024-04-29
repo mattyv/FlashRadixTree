@@ -32,32 +32,25 @@ std::unique_ptr<T, std::function<void(T*)>> make_unique_alloc(Alloc alloc, Args&
     using AllocTraits = std::allocator_traits<Alloc>;
     using pointer = typename AllocTraits::pointer;
 
-    // Allocate space for one object of type T
     pointer ptr = AllocTraits::allocate(alloc, 1);
 
-    // Construct an object of type T with the provided arguments
     AllocTraits::construct(alloc, ptr, std::forward<Args>(args)...);
 
-    // Create a custom deleter as a lambda function that captures the allocator by value
     auto deleter = [alloc](T* ptr) mutable {
-        AllocTraits::destroy(alloc, ptr); // Call destructor
-        AllocTraits::deallocate(alloc, ptr, 1); // Deallocate memory
+        AllocTraits::destroy(alloc, ptr);
+        AllocTraits::deallocate(alloc, ptr, 1);
     };
 
-    // Define the deleter type
     using DeleterType = std::function<void(T*)>;
 
-    // Create and return a unique_ptr with the custom deleter
     return std::unique_ptr<T, DeleterType>(ptr, deleter);
 }
-
 
 
 template<typename T>
 concept IsBasicString = requires {
     typename T::traits_type;
     typename T::allocator_type;
-    // Check if T is an instantiation of std::basic_string
     requires std::is_same_v<T, std::basic_string<typename T::value_type,
                                                  typename T::traits_type,
                                                  typename T::allocator_type>>;
@@ -66,7 +59,6 @@ concept IsBasicString = requires {
 template<typename T>
 concept IsBasicStringView = requires {
     typename T::traits_type;
-    // Check if T is an instantiation of std::basic_string_view
     requires std::is_same_v<T, std::basic_string_view<typename T::value_type,
                                                       typename T::traits_type>>;
 };
@@ -74,7 +66,6 @@ concept IsBasicStringView = requires {
 template<typename T>
 concept BasicStringOrBasicStringView = IsBasicString<T> || IsBasicStringView<T>;
 
-// Concept to check if a type supports streaming with '<<'
 template<typename T>
 concept Streaming = requires(std::ostream& os, const T& t) {
     { os << t } -> std::convertible_to<std::ostream&>;
@@ -100,37 +91,36 @@ private:
     {
         FlashRadixTreeNodeBase() = default;
         FlashRadixTreeNodeBase(bool isEndOfWord, Value&& value, const Key& prefix, Parent* parent)
-        : isEndOfWord(isEndOfWord), value(std::move(value)), prefix(prefix), parent(parent)
+        : isEndOfWord(isEndOfWord),
+        value(std::move(value)),
+        prefix(prefix),
+        parent(parent)
         {};
         FlashRadixTreeNodeBase(bool isEndOfWord, const Value& value, const Key& prefix, Parent* parent)
-        : isEndOfWord(isEndOfWord), value(value), prefix(prefix), parent(parent)
+        : isEndOfWord(isEndOfWord),
+        value(value),
+        prefix(prefix),
+        parent(parent)
         {};
         
-        //move and move assignment
         FlashRadixTreeNodeBase(FlashRadixTreeNodeBase&& other) noexcept
         {
-            isEndOfWord = other.isEndOfWord;
-            value = std::move(other.value);
-            prefix = std::move(other.prefix);
-            deleted = other.deleted;
-            next = other.next;
-            prev = other.prev;
-            other.next = nullptr;
-            other.prev = nullptr;
+            _swap(other);
         }
+    private:
+        FlashRadixTreeNodeBase(const FlashRadixTreeNodeBase& other)
+        : isEndOfWord(other.isEndOfWord),
+        value(other.value),
+        prefix(other.prefix),
+        deleted(other.deleted),
+        next(other.next),
+        prev(other.prev),
+        parent(other.parent)
+        {}
+    public:
         FlashRadixTreeNodeBase& operator=(FlashRadixTreeNodeBase&& other) noexcept
         {
-            if(this != &other)
-            {
-                isEndOfWord = other.isEndOfWord;
-                value = std::move(other.value);
-                prefix = std::move(other.prefix);
-                deleted = other.deleted;
-                next = other.next;
-                prev = other.prev;
-                other.next = nullptr;
-                other.prev = nullptr;
-            }
+            _swap(other);
             return *this;
         }
         bool constexpr operator==(const FlashRadixTreeNodeBase& other) const
@@ -180,7 +170,19 @@ private:
         Parent* next = nullptr;
         Parent* prev = nullptr;
         Parent* parent = nullptr;
+    protected:
+        //try as i might i couldn't get the freind version of this functon to compile outside of the class. so i gave up for now.
+        void _swap( FlashRadixTreeNodeBase& other) noexcept
+        {
+            std::swap(isEndOfWord, other.isEndOfWord);
+            std::swap(value, other.value);
+            std::swap(prefix, other.prefix);
+            std::swap(deleted, other.deleted);
+            std::swap(next, other.next);
+            std::swap(prev, other.prev);
+        }
     private:
+        
         mutable std::optional<std::string> fullKey;
     };
     
@@ -208,21 +210,28 @@ private:
         
         FlashRadixTreeNode() = default;
         ~FlashRadixTreeNode() = default;
-        FlashRadixTreeNode(const FlashRadixTreeNodeNoOwner& ) = delete;
-        FlashRadixTreeNode( FlashRadixTreeNode&& other) noexcept
-        : BaseType(std::move(other))
+    private:
+        FlashRadixTreeNode(const FlashRadixTreeNodeNoOwner& other )
+        : BaseType(other),
+        children(other.children)
+        {}
+        
+        //try as i might i couldn't get the freind version of this functon to compile outside of the class. so i gave up for now.
+        void _swap(FlashRadixTreeNode& other) noexcept
         {
-            children = std::move(other.children);
+            BaseType::_swap(other);
+            std::swap(children, other.children);
         }
-        //operators
+    public:
+        FlashRadixTreeNode( FlashRadixTreeNode&& other) noexcept
+        {
+            _swap(other);
+        }
+        
         FlashRadixTreeNode& operator=(const FlashRadixTreeNode& ) = delete;
         FlashRadixTreeNode& operator=(FlashRadixTreeNode&& other) noexcept
         {
-            if(this != &other)
-            {
-                BaseType::operator=(std::move(other));
-                children = std::move(other.children);
-            }
+            _swap(other);
             return *this;
         }
 
@@ -257,34 +266,26 @@ private:
         FlashRadixTreeNodeNoOwner() = default;
         ~FlashRadixTreeNodeNoOwner() = default;
         FlashRadixTreeNodeNoOwner(const FlashRadixTreeNodeNoOwner& other)
-        :BaseType(other)
+        :BaseType(other),
+        children(other.children)
         {
-            children = other.children;
         }
         FlashRadixTreeNodeNoOwner( FlashRadixTreeNodeNoOwner&& other) noexcept
-        : BaseType(std::move(other))
         {
-            children = std::move(other.children);
-        }
-        //operators
-        FlashRadixTreeNodeNoOwner& operator=(const FlashRadixTreeNodeNoOwner& other )
-        {
-            if(this != &other)
-            {
-                BaseType::operator=(other);
-                children = other.children;
-            }
-            return *this;
+            _swap(other);
         }
         
-        FlashRadixTreeNodeNoOwner& operator=(FlashRadixTreeNodeNoOwner&& other) noexcept
+        FlashRadixTreeNodeNoOwner& operator=( FlashRadixTreeNodeNoOwner other )
         {
-            if(this != &other)
-            {
-                BaseType::operator=(std::move(other));
-                children = std::move(other.children);
-            }
+            _swap(other);
             return *this;
+        }
+    private:
+        //try as i might i couldn't get the freind version of this functon to compile outside of the class. so i gave up for now.
+        void _swap(FlashRadixTreeNodeNoOwner& other) noexcept
+        {
+            BaseType::_swap(other);
+            std::swap(children, other.children);
         }
     };
 public:
@@ -326,10 +327,10 @@ private:
         XFlashRadixTreeIterator(const XFlashRadixTreeIterator& other) noexcept = default;
         
         XFlashRadixTreeIterator(XFlashRadixTreeIterator&& other) noexcept
+        : _node(other._node),
+        _tree(other._tree),
+        _end(other._end)
         {
-            _node = other._node;
-            _tree = other._tree;
-            _end = other._end;
             other._node = nullptr;
             other._tree = nullptr;
             other._end = true;
@@ -462,7 +463,10 @@ public:
     
     FlashRadixTree(const FlashRadixTree& ) = delete;
     FlashRadixTree(FlashRadixTree&& other) noexcept
-    : _nodeAllocator(std::move(other._nodeAllocator)), _root(std::move(other._root)), _firstWord(other._firstWord), _size(other._size) {
+    : _nodeAllocator(std::move(other._nodeAllocator)),
+    _root(std::move(other._root)),
+    _firstWord(other._firstWord),
+    _size(other._size) {
         other._firstWord = nullptr;
         other._size = 0;
     }
@@ -632,7 +636,7 @@ public:
     
     void print() const  {
         _printRecursively(' ', _root.get(), 0);
-        std::cout << std::endl;
+        std::cout << "\n";
     }
 
     constexpr bool empty() const noexcept{
@@ -800,7 +804,7 @@ private:
                 //override the rollback location with the rollback node
                 *rollbackLocation = _mergeFromNoOwnerNode(rollback.value(), rollbackLocation);
             }
-            throw std::bad_alloc();
+            throw;
         }
     }
     
@@ -909,7 +913,7 @@ private:
             std::cout << "  ";
         }
         
-        std::cout << "K: " << key << " P: " << node->prefix << " (" << node->value << ")" << " is EOW " << (node->isEndOfWord ? "Yes" : "No") << std::endl;
+        std::cout << "K: " << key << " P: " << node->prefix << " (" << node->value << ")" << " is EOW " << (node->isEndOfWord ? "Yes" : "No") << "\n";
         
 #if defined( USE_SPLAY_TREE)
         for(const auto& it : node->children)
@@ -1134,8 +1138,6 @@ private:
             
         };
         
-        
-        
         template <Streaming Key, Streaming Value, MatchMode FindMode = MatchMode::Exact,
 #ifdef USE_SPLAY_TREE
         typename Allocator = std::allocator<std::unique_ptr<Value>>>
@@ -1213,6 +1215,9 @@ private:
             }
             
         };
-    }
+        
+        
+        
+    } //namespace Flash
 
 #endif /* FlashRadixTree */
