@@ -91,9 +91,11 @@ Root
 |   |
 |   +-- (end of word "go")
 |   |
-|   +-- ogle (end of word "google")
-|   |
-|   +-- oggles (end of word "goggles")
+|   +-- ogle
+|       |
+|       +-- (end of word "google")
+|       |
+|       +-- s (end of word "goggles")
 |
 +-- h
     |
