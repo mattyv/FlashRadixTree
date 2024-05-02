@@ -31,22 +31,17 @@ std::unique_ptr<T, std::function<void(T*)>> make_unique_alloc(Alloc alloc, Args&
     using AllocTraits = std::allocator_traits<Alloc>;
     using pointer = typename AllocTraits::pointer;
 
-    // Allocate space for one object of type T
     pointer ptr = AllocTraits::allocate(alloc, 1);
 
-    // Construct an object of type T with the provided arguments
     AllocTraits::construct(alloc, ptr, std::forward<Args>(args)...);
 
-    // Create a custom deleter as a lambda function that captures the allocator by value
     auto deleter = [alloc](T* ptr) mutable {
-        AllocTraits::destroy(alloc, ptr); // Call destructor
-        AllocTraits::deallocate(alloc, ptr, 1); // Deallocate memory
+        AllocTraits::destroy(alloc, ptr);
+        AllocTraits::deallocate(alloc, ptr, 1);
     };
 
-    // Define the deleter type
     using DeleterType = std::function<void(T*)>;
 
-    // Create and return a unique_ptr with the custom deleter
     return std::unique_ptr<T, DeleterType>(ptr, deleter);
 }
 
@@ -56,7 +51,6 @@ template<typename T>
 concept IsBasicString = requires {
     typename T::traits_type;
     typename T::allocator_type;
-    // Check if T is an instantiation of std::basic_string
     requires std::is_same_v<T, std::basic_string<typename T::value_type,
                                                  typename T::traits_type,
                                                  typename T::allocator_type>>;
@@ -65,7 +59,6 @@ concept IsBasicString = requires {
 template<typename T>
 concept IsBasicStringView = requires {
     typename T::traits_type;
-    // Check if T is an instantiation of std::basic_string_view
     requires std::is_same_v<T, std::basic_string_view<typename T::value_type,
                                                       typename T::traits_type>>;
 };
@@ -73,7 +66,7 @@ concept IsBasicStringView = requires {
 template<typename T>
 concept BasicStringOrBasicStringView = IsBasicString<T> || IsBasicStringView<T>;
 
-// Concept to check if a type supports streaming with '<<'
+
 template<typename T>
 concept Streaming = requires(std::ostream& os, const T& t) {
     { os << t } -> std::convertible_to<std::ostream&>;
@@ -99,10 +92,16 @@ private:
     {
         FlashRadixTreeNodeBase() = default;
         FlashRadixTreeNodeBase(bool isEndOfWord, Value&& value, const Key& prefix, Parent* parent)
-        : isEndOfWord(isEndOfWord), value(std::move(value)), prefix(prefix), parent(parent)
+        : isEndOfWord(isEndOfWord), 
+        value(std::move(value)),
+        prefix(prefix),
+        parent(parent)
         {};
         FlashRadixTreeNodeBase(bool isEndOfWord, const Value& value, const Key& prefix, Parent* parent)
-        : isEndOfWord(isEndOfWord), value(value), prefix(prefix), parent(parent)
+        : isEndOfWord(isEndOfWord), 
+        value(value),
+        prefix(prefix),
+        parent(parent)
         {};
         
         //move and move assignment
@@ -461,7 +460,11 @@ public:
     
     FlashRadixTree(const FlashRadixTree& ) = delete;
     FlashRadixTree(FlashRadixTree&& other) noexcept
-    : _nodeAllocator(std::move(other._nodeAllocator)), _root(std::move(other._root)), _firstWord(other._firstWord), _size(other._size) {
+    : _nodeAllocator(std::move(other._nodeAllocator)), 
+    _root(std::move(other._root)),
+    _firstWord(other._firstWord),
+    _size(other._size)
+    {
         other._firstWord = nullptr;
         other._size = 0;
     }
@@ -631,7 +634,7 @@ public:
     
     void print() const  {
         _printRecursively(' ', _root.get(), 0);
-        std::cout << std::endl;
+        std::cout << "\n";
     }
 
     constexpr bool empty() const noexcept{
@@ -799,7 +802,7 @@ private:
                 //override the rollback location with the rollback node
                 *rollbackLocation = _mergeFromNoOwnerNode(rollback.value(), rollbackLocation);
             }
-            throw std::bad_alloc();
+            throw;
         }
     }
     
@@ -908,7 +911,7 @@ private:
             std::cout << "  ";
         }
         
-        std::cout << "K: " << key << " P: " << node->prefix << " (" << node->value << ")" << " is EOW " << (node->isEndOfWord ? "Yes" : "No") << std::endl;
+        std::cout << "K: " << key << " P: " << node->prefix << " (" << node->value << ")" << " is EOW " << (node->isEndOfWord ? "Yes" : "No") << "\n";
         
 #if defined( USE_SPLAY_TREE)
         for(const auto& it : node->children)
