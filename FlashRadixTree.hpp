@@ -92,45 +92,51 @@ private:
     {
         FlashRadixTreeNodeBase() = default;
         FlashRadixTreeNodeBase(bool isEndOfWord, Value&& value, const Key& prefix, Parent* parent)
-        : isEndOfWord(isEndOfWord), 
+        : isEndOfWord(isEndOfWord),
         value(std::move(value)),
         prefix(prefix),
         parent(parent)
         {};
         FlashRadixTreeNodeBase(bool isEndOfWord, const Value& value, const Key& prefix, Parent* parent)
-        : isEndOfWord(isEndOfWord), 
+        : isEndOfWord(isEndOfWord),
         value(value),
         prefix(prefix),
         parent(parent)
         {};
         
         //move and move assignment
+        FlashRadixTreeNodeBase(const FlashRadixTreeNodeBase& other)
+        : isEndOfWord(other.isEndOfWord),
+        value(other.value),
+        prefix(other.prefix),
+        parent(other.parent),
+        deleted(other.deleted),
+        fullKey(other.fullKey),
+        next(other.next),
+        prev(other.prev)
+        {}
+        
         FlashRadixTreeNodeBase(FlashRadixTreeNodeBase&& other) noexcept
+        : isEndOfWord(other.isEndOfWord),
+        value(std::move(other.value)),
+        prefix(std::move(other.prefix)),
+        parent(other.parent),
+        deleted(other.deleted),
+        fullKey(std::move(other.fullKey)),
+        next(other.next),
+        prev(other.prev)
         {
-            isEndOfWord = other.isEndOfWord;
-            value = std::move(other.value);
-            prefix = std::move(other.prefix);
-            deleted = other.deleted;
-            next = other.next;
-            prev = other.prev;
             other.next = nullptr;
             other.prev = nullptr;
         }
-        FlashRadixTreeNodeBase& operator=(FlashRadixTreeNodeBase&& other) noexcept
+        
+        FlashRadixTreeNodeBase& operator=(FlashRadixTreeNodeBase&& other)
         {
-            if(this != &other)
-            {
-                isEndOfWord = other.isEndOfWord;
-                value = std::move(other.value);
-                prefix = std::move(other.prefix);
-                deleted = other.deleted;
-                next = other.next;
-                prev = other.prev;
-                other.next = nullptr;
-                other.prev = nullptr;
-            }
+            auto tmp(std::forward<FlashRadixTreeNodeBase<Parent>>(other));
+            swap(*this, tmp);
             return *this;
         }
+        
         bool constexpr operator==(const FlashRadixTreeNodeBase& other) const
         {
             return (isEndOfWord == other.isEndOfWord)
@@ -169,6 +175,18 @@ private:
             value = Value();
             prefix = Key();
             deleted = false;
+            fullKey.reset();
+        }
+        
+        friend void swap(FlashRadixTreeNodeBase& lhs, FlashRadixTreeNodeBase& rhs)
+        {
+            using std::swap;
+            swap(lhs.isEndOfWord, rhs.isEndOfWord);
+            swap(lhs.value, rhs.value);
+            swap(lhs.prefix, rhs.prefix);
+            swap(lhs.deleted, rhs.deleted);
+            swap(lhs.next, rhs.next);
+            swap(lhs.prev, rhs.prev);
         }
         
         bool isEndOfWord = false;
@@ -208,20 +226,24 @@ private:
         ~FlashRadixTreeNode() = default;
         FlashRadixTreeNode(const FlashRadixTreeNodeNoOwner& ) = delete;
         FlashRadixTreeNode( FlashRadixTreeNode&& other) noexcept
-        : BaseType(std::move(other))
+        : BaseType(std::move(other)),
+        children(std::move(other.children))
         {
-            children = std::move(other.children);
         }
         //operators
         FlashRadixTreeNode& operator=(const FlashRadixTreeNode& ) = delete;
         FlashRadixTreeNode& operator=(FlashRadixTreeNode&& other) noexcept
         {
-            if(this != &other)
-            {
-                BaseType::operator=(std::move(other));
-                children = std::move(other.children);
-            }
+            auto tmp(std::forward<FlashRadixTreeNode>(other));
+            swap(*this, tmp);
             return *this;
+        }
+        
+        friend void swap(FlashRadixTreeNode& lhs, FlashRadixTreeNode& rhs)
+        {
+            using std::swap;
+            swap(static_cast<BaseType&>(lhs), static_cast<BaseType&>(rhs));
+            swap(lhs.children, rhs.children);
         }
 
         void clear()
@@ -255,17 +277,18 @@ private:
         FlashRadixTreeNodeNoOwner() = default;
         ~FlashRadixTreeNodeNoOwner() = default;
         FlashRadixTreeNodeNoOwner(const FlashRadixTreeNodeNoOwner& other)
-        :BaseType(other)
+        :BaseType(other),
+        children(other.children)
         {
-            children = other.children;
         }
         FlashRadixTreeNodeNoOwner( FlashRadixTreeNodeNoOwner&& other) noexcept
-        : BaseType(std::move(other))
+        : BaseType(std::move(other)),
+        children(std::move(other.children))
         {
-            children = std::move(other.children);
         }
+        
         //operators
-        FlashRadixTreeNodeNoOwner& operator=(const FlashRadixTreeNodeNoOwner& other )
+        /*FlashRadixTreeNodeNoOwner& operator=(const FlashRadixTreeNodeNoOwner& other )
         {
             if(this != &other)
             {
@@ -273,16 +296,20 @@ private:
                 children = other.children;
             }
             return *this;
-        }
+        }*/
         
         FlashRadixTreeNodeNoOwner& operator=(FlashRadixTreeNodeNoOwner&& other) noexcept
         {
-            if(this != &other)
-            {
-                BaseType::operator=(std::move(other));
-                children = std::move(other.children);
-            }
+            auto tmp(std::forward<FlashRadixTreeNodeNoOwner>(other));
+            swap(*this, tmp);
             return *this;
+        }
+        
+        friend void swap(FlashRadixTreeNodeNoOwner& lhs, FlashRadixTreeNodeNoOwner& rhs)
+        {
+            using std::swap;
+            swap(lhs.children, rhs.children);
+            swap(static_cast<BaseType&>(lhs), static_cast<BaseType&>(rhs));
         }
     };
 public:
@@ -460,7 +487,7 @@ public:
     
     FlashRadixTree(const FlashRadixTree& ) = delete;
     FlashRadixTree(FlashRadixTree&& other) noexcept
-    : _nodeAllocator(std::move(other._nodeAllocator)), 
+    : _nodeAllocator(std::move(other._nodeAllocator)),
     _root(std::move(other._root)),
     _firstWord(other._firstWord),
     _size(other._size)
