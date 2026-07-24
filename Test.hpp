@@ -980,6 +980,60 @@ bool RunTests()
         std::cout << "Find action failed @ " << __LINE__ << " in " << __FILE__ << std::endl;
         return false;
     }
+
+    // Regression coverage for mutation ordering and empty-container operations.
+    {
+        FlashRadixTree<std::string, int, MatchMode::Exact> regressionTree;
+        if(regressionTree.rbegin() != regressionTree.rend() || regressionTree.erase("missing"))
+            return false;
+
+        regressionTree.insert("C", 1);
+        regressionTree.insert("A", 2);
+        regressionTree.insert("B", 3);
+        std::string keys;
+        for(const auto& node : regressionTree)
+            keys += node.getFullKey();
+        if(keys != "ABC")
+            return false;
+        keys.clear();
+        for(auto it = regressionTree.rbegin(); it != regressionTree.rend(); ++it)
+            keys += it->getFullKey();
+        if(keys != "CBA")
+            return false;
+
+        if(!regressionTree.erase("A") || regressionTree.size() != 2)
+            return false;
+        keys.clear();
+        for(const auto& node : regressionTree)
+            keys += node.getFullKey();
+        if(keys != "BC")
+            return false;
+
+        regressionTree.clear();
+        if(regressionTree.erase("missing"))
+            return false;
+
+        regressionTree.insert("A", 1);
+        regressionTree.insert("ABC", 2);
+        regressionTree.insert("ABD", 3);
+        regressionTree.insert("AB", 4);
+        if(!regressionTree.contains("AB") || regressionTree.size() != 4)
+            return false;
+    }
+
+    {
+        std::string a = "A";
+        std::string ab = "AB";
+        std::string abc = "ABC";
+        FlashRadixTree<std::string_view, int, MatchMode::Exact> regressionTree;
+        regressionTree.insert(a, 1);
+        regressionTree.insert(ab, 2);
+        if(!regressionTree.erase(a) || regressionTree.size() != 1 || regressionTree.empty())
+            return false;
+        regressionTree.insert(abc, 3);
+        if(regressionTree.contains(a) || regressionTree.size() != 2)
+            return false;
+    }
     
     
    

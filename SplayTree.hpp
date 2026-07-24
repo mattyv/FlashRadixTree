@@ -9,6 +9,10 @@
 #include <cstdlib>
 #include <memory>
 #include <algorithm>
+#include <concepts>
+#include <stdexcept>
+#include <type_traits>
+#include <utility>
 using namespace std;
 
 template <typename T>
@@ -215,25 +219,11 @@ private:
         {
             if(_tree != rhs._tree)
                 return false;
-            if(_isEnd == rhs._isEnd)
-                return true;
-            if(_node == nullptr && rhs._node == nullptr)
-                return true;
-            if(_node == nullptr || rhs._node == nullptr)
-                return false;
-            return *_node == *rhs._node;
+            return _isEnd == rhs._isEnd && _node == rhs._node;
         }
         constexpr bool operator!=(const Xiterator& rhs) const
         {
-            if(_tree != rhs._tree)
-                return true;
-            if(_isEnd != rhs._isEnd)
-                return true;
-            if(_node == nullptr && rhs._node == nullptr)
-                return false;
-            if(_node == nullptr || rhs._node == nullptr)
-                return true;
-            return *_node != *rhs._node;
+            return !(*this == rhs);
         }
         friend SplayTree;
     };
@@ -266,13 +256,13 @@ public:
     SplayTree& operator=(const SplayTree& ) = delete;
     
     //move constructor
-    SplayTree( SplayTree&& other) noexcept
+    SplayTree(SplayTree&& other) noexcept(std::is_nothrow_move_constructible_v<allocator_type>)
+        : _root(other._root),
+          _size(other._size),
+          _node_allocator(std::move(other._node_allocator))
     {
-        _root = other._root;
-        _size = other._size;
         other._root = nullptr;
         other._size = 0;
-        _node_allocator = std::move(other._node_allocator);
     }
     
     constexpr const allocator_type& get_allocator() const noexcept
@@ -281,7 +271,7 @@ public:
     }
     constexpr const_iterator root() const noexcept
     {
-        return iterator(_root, this);
+        return const_iterator(_root, this);
     }
     constexpr iterator root() noexcept
     {
@@ -435,7 +425,7 @@ public:
     
     const_iterator find_predecessor(const key_type& key) const
     {
-        _root = _find(key, _root);
+        _root = _splay(key, _root);
         if(_root == nullptr)
             return cend();
         return const_iterator(_root, this);
@@ -543,10 +533,12 @@ public:
     }
     
     //move assignment
-    SplayTree& operator=( SplayTree&& other) noexcept
+    SplayTree& operator=(SplayTree&& other)
     {
         if (this != &other)
         {
+            clear();
+            _node_allocator = std::move(other._node_allocator);
             _root = other._root;
             _size = other._size;
             other._root = nullptr;
@@ -580,7 +572,7 @@ private:
         
         // If the key is already in the tree, we return the splayed tree without inserting.
         if (new_node->first == root->first) {
-            delete new_node;
+            _destroy_node(new_node);
             return root;
         }
         //any bad alloc at this point have not made substantial changes so we're ok to let the go uncaught here
@@ -716,7 +708,12 @@ private:
     value_type* _New_Node(Args&&... args)
     {
         value_type* p_node = _node_allocator.allocate(1);
-        new (p_node) value_type(std::forward<Args>(args)...);
+        try {
+            new (p_node) value_type(std::forward<Args>(args)...);
+        } catch (...) {
+            _node_allocator.deallocate(p_node, 1);
+            throw;
+        }
         ++_size;
         return p_node;
     }
@@ -822,4 +819,3 @@ private:
     }
 };
 #endif /* SplayTree_h */
-
