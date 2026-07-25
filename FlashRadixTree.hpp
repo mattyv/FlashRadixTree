@@ -19,7 +19,6 @@
 #include "SplayTree.hpp"
 #endif
 #include <concepts>
-#include <functional>
 #include <sstream>
 #include <algorithm>
 #include <optional>
@@ -29,13 +28,27 @@
 
 
 
+template <typename T, typename Alloc>
+struct AllocatorDeleter
+{
+    [[no_unique_address]] Alloc allocator;
+
+    void operator()(T* ptr) noexcept
+    {
+        if(ptr == nullptr)
+            return;
+        std::allocator_traits<Alloc>::destroy(allocator, ptr);
+        std::allocator_traits<Alloc>::deallocate(allocator, ptr, 1);
+    }
+};
+
 template <typename T, typename Alloc, typename... Args>
-std::unique_ptr<T, std::function<void(T*)>> make_unique_alloc(Alloc alloc, Args&&... args)
+std::unique_ptr<T, AllocatorDeleter<T, Alloc>> make_unique_alloc(Alloc alloc, Args&&... args)
 {
     using AllocTraits = std::allocator_traits<Alloc>;
     using pointer = typename AllocTraits::pointer;
+    using UniquePtr = std::unique_ptr<T, AllocatorDeleter<T, Alloc>>;
 
-    // Allocate space for one object of type T
     pointer ptr = AllocTraits::allocate(alloc, 1);
 
     try {
@@ -45,13 +58,8 @@ std::unique_ptr<T, std::function<void(T*)>> make_unique_alloc(Alloc alloc, Args&
         throw;
     }
 
-    using DeleterType = std::function<void(T*)>;
     try {
-        DeleterType deleter = [alloc](T* ptr) mutable {
-            AllocTraits::destroy(alloc, ptr);
-            AllocTraits::deallocate(alloc, ptr, 1);
-        };
-        return std::unique_ptr<T, DeleterType>(ptr, std::move(deleter));
+        return UniquePtr(ptr, AllocatorDeleter<T, Alloc>{alloc});
     } catch (...) {
         AllocTraits::destroy(alloc, ptr);
         AllocTraits::deallocate(alloc, ptr, 1);
@@ -103,6 +111,13 @@ class FlashRadixTree {
     enum class Sentinal { END, REND, NONE };
 
 private:
+    class FlashRadixTreeNode;
+public:
+    using TreeNodeAllocator = typename std::allocator_traits<Allocator>::template rebind_alloc<FlashRadixTreeNode>;
+    using UniquePtrAlloc = std::unique_ptr<FlashRadixTreeNode, AllocatorDeleter<FlashRadixTreeNode, TreeNodeAllocator>>;
+private:
+    using KeyView = std::basic_string_view<typename Key::value_type, typename Key::traits_type>;
+
     template<class Parent>
     struct FlashRadixTreeNodeBase
     {
@@ -202,7 +217,7 @@ private:
     class FlashRadixTreeNode : public FlashRadixTreeNodeBase<FlashRadixTreeNode> {
         using BaseType = FlashRadixTreeNodeBase<FlashRadixTreeNode>;
     public:
-        using TreeNodePtr = std::unique_ptr<FlashRadixTreeNode, std::function<void(FlashRadixTreeNode*)>>;
+        using TreeNodePtr = UniquePtrAlloc;
 #ifdef USE_SPLAY_TREE
         using Children = SplayTree<typename Key::value_type, TreeNodePtr, Allocator>;
         Children children = Children(Allocator());
@@ -444,9 +459,6 @@ public:
     using const_reverse_iterator = XFlashRadixTreeIterator<IteratorDirection::REVERSE, IteratorConstness::CONST>;
     
     using size_type = size_t;
-    
-    using TreeNodeAllocator = typename std::allocator_traits<Allocator>::template rebind_alloc<FlashRadixTreeNode>;
-    using UniquePtrAlloc = std::unique_ptr<FlashRadixTreeNode, std::function<void(FlashRadixTreeNode*)>>;
 private:
     TreeNodeAllocator _nodeAllocator;
     UniquePtrAlloc _root;
@@ -685,7 +697,7 @@ private:
         {
             FlashRadixTreeNode* currentNode = _root.get();
             FlashRadixTreeNode* inserted = nullptr;
-            Key remaining = key;
+            KeyView remaining(key.data(), key.size());
             
             while (!remaining.empty()) {
                 const typename FlashRadixTreeNode::Children::iterator& it = currentNode->children.find(remaining[0]);
@@ -707,8 +719,8 @@ private:
                     
                     if (commonPrefixLength < edge.length()) {
                         // Split the edge
-                        const Key& commonPrefix = edge.substr(0, commonPrefixLength);
-                        const Key& suffixEdge = edge.substr(commonPrefixLength);
+                        const Key commonPrefix = edge.substr(0, commonPrefixLength);
+                        const Key suffixEdge = edge.substr(commonPrefixLength);
                         
                         
                         // Create a new node for the common prefix
@@ -745,10 +757,11 @@ private:
                     }
                     
                     // Update the remaining part of the key to insert
-                    remaining = remaining.substr(commonPrefixLength);
+                    remaining.remove_prefix(commonPrefixLength);
                 } else {
                     // No common prefix found, create a new edge for the remaining part of the key
-                    auto newNode = make_unique_alloc<FlashRadixTreeNode>(_nodeAllocator, remaining, std::forward<Value>(value), currentNode);
+                    const Key newPrefix(remaining);
+                    auto newNode = make_unique_alloc<FlashRadixTreeNode>(_nodeAllocator, newPrefix, std::forward<Value>(value), currentNode);
                     const typename Key::value_type newKey = remaining[0];
 #if defined( USE_SPLAY_TREE)
                     auto itNewNode = currentNode->children.insert(newKey, std::move(newNode));
@@ -761,7 +774,7 @@ private:
 
 #endif
                     // As we've inserted the rest of the key, we're done
-                    remaining = Key();
+                    remaining = KeyView();
                     currentNode = inserted;
                 }
             }
@@ -806,8 +819,7 @@ private:
         
         value_type_pointer currentNode = _root.get();
         auto keyPrefix = key[0];
-        Key remaining = key;
-        size_t seen = 0;
+        KeyView remaining(key.data(), key.size());
         while( currentNode != nullptr)
         {
 #if defined( USE_SPLAY_TREE)
@@ -819,23 +831,13 @@ private:
 #endif
             {
                 currentNode = it->second.get();
-                if(!remaining.starts_with(currentNode->prefix))
-                {
+                const KeyView prefix(currentNode->prefix.data(), currentNode->prefix.size());
+                if(!remaining.starts_with(prefix))
                     return nullptr;
-                }
-                else if(currentNode->isEndOfWord && remaining == currentNode->prefix)
-                {
-                    if(currentNode->deleted)
-                        return nullptr;
-                    else
-                        return currentNode;
-                }
-                else if( key.size() > (seen += currentNode->prefix.size()) )
-                {
-                    //we look for children below looking at the next possible prefix
-                    keyPrefix = key[seen];
-                    remaining = key.substr(seen);
-                }
+                remaining.remove_prefix(prefix.size());
+                if(remaining.empty())
+                    return currentNode->isEndOfWord && !currentNode->deleted ? currentNode : nullptr;
+                keyPrefix = remaining.front();
             }
             else
                 return nullptr; //assume doesn't exist
