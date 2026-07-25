@@ -8,6 +8,7 @@ If you have keys such as "go" "google" "goggles", "hell", "hello" "hollow" and y
 
 ## Performance Overview
 ### Apple M2 (ARM 64), Somoma 14.3.1 (23D60) CPU Cycles Comparison
+These historical graphs include the old unsafe `MatchMode::Prefix` shortcut and should not be treated as current release measurements.
 ![Find() performance Flash Radix Tree](Performance/Performance/tree_prefix_match_cycles_metrics_find().png)
 ![Find() performance map](Performance/Performance/map_cycles_metrics_find().png)
 ![Find() performance unordered_map](Performance/Performance/hash_map_cycles_metrics_find().png)
@@ -112,19 +113,7 @@ You can see its more compact and whats more it well structured for cases with co
 You'll also notice that each level of the tree the first letter is unique. We'll come back to this later.
 
 
-With some data sets you want to optimise for find speed which as mentioned unordered_map does well, all be it the loss of ordered iteration. 
-If you can pre-load the data structure ahead of time, and this may be an advantage you can work with. 
-In the case of our Radix tree this can give us an advantage. 
-
-### How to search fast then using this advantage? 
-The children of the tree will always have a unique first character, so we can assume that if we have a match of the first character and the node in question is 'End-of-word' with no children, then we have a match, and we can save the comparison on the remaining characters. Likewise if we find a node which is end of word with children, and the lengths of the key and prefix match we can also save a full comparison as this must be the key we're looking for. This is an advantage for most keys sizes, but especially in situations with very long keys.
-For this reason the FlashRadixTree has two match modes specified on construction, "Partial" and "Exact". Where partial assumes the case above, and Exact matches the entire key when required.
-
-Let’s run through 3 examples. 
-1. We're looking for the key "google" using prefix matching. First character is 'g', and we find a node with some children and the key is an end-of-word. We check the size of "google" to "go", they don't match so we continue... We deduce our next key will be 'o' after stripping off "go" and find a node with no children and the key is an end-of-word. We have our match with 3 actions: find 'g', size check, find 'o'.
-2. We're looking for the key "go" using prefix matching. First character is 'g', and we find a node with some children and the key is an end-of-word and the lengths match. We have our key with 2 actions: find 'g', and size check. 
-3. We're looking for the key "hello" using prefix matching. First character is 'h', and we find a node with some children and the key is not an end-of-word, so we continue... We deduce the next key is 'e' and we find "ell" which is a node with some children and is an end-of-word, but the key lengths of "ello" and "ell" don't match so we continue on to the last node "o". We have our key with 4 actions: find 'h', find 'e', size check, find 'o'.
-You can see that in many cases we make less comparisons than the key length (if you ignore slightly the cost of the find). And the longer the prefixes are the better the ratio of key length to comparison gets. Given the find on each lower child only searches for a single character, we also save the cost of repeated comparisons on the remaining portion of the key.  
+Lookup verifies the complete key. `MatchMode::Prefix` remains available for source compatibility but has the same safe lookup behavior as `MatchMode::Exact`.
 
 The non uniform nature of keys is an interesting case which this structure tries to focus on. In many cases you may find that some keys are more active than others. this is probably very true of a lot of other scenarios. Can we optimise for this. Well..? this is a ticky one...
 
@@ -155,19 +144,42 @@ For speed I recomend using value_type_pointer get(const Key& key) instead of ite
 
 The 'Key' type needs to be either std::basic_string or std::basic_string_view. You'll get an error if its not. You can replace they 'value_type' of the type as needed, but it needs to support less than, greater than, and equals operators.  
 
-I recomend using string_view unless you need to erase a lot. As erasing colapses tree nodes so its not possible to combine strig_views to form new string_views. So for the string_view variation it will 'mark as deleted', while string variation will actually erase. string_view will be a lot faster and avoids copying keys so use it if you can get away with it. 
+The `string_view` variation marks erased nodes as deleted because views cannot be concatenated during tree compression. Every referenced character buffer must outlive the tree.
+
+The project requires C++20. It is header-only:
+
+```cmake
+add_subdirectory(FlashRadixTree)
+target_link_libraries(your_target PRIVATE FlashRadixTree::FlashRadixTree)
+```
+
+To build both child-backend test suites:
+
+```sh
+cmake -S . -B build
+cmake --build build
+ctest --test-dir build --output-on-failure
+```
+
+Benchmarks are macOS-only and require the `M1-Cycles` submodule plus access to hardware performance counters:
+
+```sh
+git submodule update --init
+cmake -S . -B build -DFLASH_RADIX_TREE_BUILD_BENCHMARKS=ON
+cmake --build build --config Release
+```
 
 Example of creating a new object
 ```
 FlashRadixTree<std::string, int, MatchMode::Exact> rTreeExact;
-FlashRadixTree<std::string_view, int, MatchMode::Prefix> rTreePrefix;
+FlashRadixTree<std::string_view, int, MatchMode::Exact> rTreeView;
 
-auto itInsert = rTree.insert("AB", 1);
-auto valExpect = rTree.find("AB");
+auto itInsert = rTreeExact.insert("AB", 1);
+auto valExpect = rTreeExact.find("AB");
 std::stringstream ss;
-for( auto& it : rTree)
+for( auto& it : rTreeExact)
 {
     ss << it.prefix << "," << it.value << "," << it.getFullKey() << std::endl;
 }
-rTree.erase("AB");
+rTreeExact.erase("AB");
 ```

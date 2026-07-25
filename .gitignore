@@ -27,9 +27,12 @@
 *.lib
 
 # Build folders
-build/
+build*/
+CMakeFiles/
 Release/
 Debug/
+*.dSYM/
+.idea/
 
 # Executables
 *.exe

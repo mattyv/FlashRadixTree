@@ -10,7 +10,6 @@
 #include <memory>
 #include <algorithm>
 #include <concepts>
-#include <stdexcept>
 #include <type_traits>
 #include <utility>
 using namespace std;
@@ -302,38 +301,31 @@ public:
             return end();
         return iterator(_root, this);
     }
-   
-    //bit of a hack to take a pair but thats not what this class uses under the hood so we just convert.
-    //will be perfectly compatablere
-    std::pair<iterator, bool> insert(pair_type&& value) //untested
+
+    iterator insert(const key_type& key, const mapped_type& value) requires std::copy_constructible<mapped_type>
     {
-        throw std::runtime_error("not tested");
-        auto it = get(value.first);
-        if(it != nullptr)
-            return std::make_pair(it, false);
-        else
-        {
-            value_type val(std::forward<value_type>(value));
-            auto it = insert(std::move(val));
-            return std::make_pair(insert(value.first, value.second), true);
-        }
+        mapped_type copy(value);
+        return insert(key, std::move(copy));
+    }
+   
+    std::pair<iterator, bool> insert(pair_type&& value)
+    {
+        auto existing = find(value.first);
+        if(existing != end())
+            return {existing, false};
+        return {insert(value.first, std::move(value.second)), true};
+    }
+
+    std::pair<iterator, bool> insert(const pair_type& value) requires std::copy_constructible<mapped_type>
+    {
+        pair_type copy(value);
+        return insert(std::move(copy));
     }
     
     template<class... Args>
-    std::pair<iterator, bool> emplace(Args&&... args) //untested
+    std::pair<iterator, bool> emplace(Args&&... args)
     {
-        throw std::runtime_error("not tested");
-        value_type val(std::forward<Args>(args)...);
-        auto it = get(val.first);
-        if(it != nullptr)
-            return std::make_pair(it, false);
-        else
-        {
-            _root = _insert(_root, std::move(val));
-            if(_root == nullptr)
-                return std::make_pair(end() ,false);
-            return std::make_pair(it, true);
-        }
+        return insert(pair_type(std::forward<Args>(args)...));
     }
     
     const_iterator find(const key_type& key) const
@@ -393,52 +385,61 @@ public:
         return get(key) != nullptr;
     }
     
-    iterator operator[]( key_type& key) //untested
+    iterator operator[](const key_type& key)
     {
-        throw std::runtime_error("not tested");
-        auto it = get(key);
-        if(it == nullptr)
-            return insert(key, mapped_type());
-    }
-    
-    const_iterator operator[]( key_type& key) const //untested
-    {
-        throw std::runtime_error("not tested");
         auto it = find(key);
         if(it == end())
-            return end();
+            return insert(key, mapped_type());
         return it;
+    }
+    
+    const_iterator operator[](const key_type& key) const
+    {
+        return find(key);
     }
     
     iterator find_predecessor(const key_type& key)
     {
-        _root = _splay(key, _root);
-        if(_root == nullptr)
+        auto* node = _predecessor(key);
+        if(node == nullptr)
             return end();
+        _root = _splay(node->first, _root);
         return iterator(_root, this);
     }
     
     const_value_type_pointer get_predecessor(const key_type& key) const
     {
-        return _splay(key, _root);
+        auto* node = _predecessor(key);
+        if(node != nullptr)
+            _root = _splay(node->first, _root);
+        return node == nullptr ? nullptr : _root;
     }
     
     const_iterator find_predecessor(const key_type& key) const
     {
-        _root = _splay(key, _root);
-        if(_root == nullptr)
+        auto* node = _predecessor(key);
+        if(node == nullptr)
             return cend();
+        _root = _splay(node->first, _root);
         return const_iterator(_root, this);
     }
     
-    iterator lower_bound(key_type key)  //untested
+    iterator lower_bound(const key_type& key)
     {
-        throw std::runtime_error("not tested");
-        auto it = find_predecessor(key);
-        if(it == end())
-            return it;
-        else
-            return ++it;;
+        value_type* node = _root;
+        value_type* candidate = nullptr;
+        while(node != nullptr) {
+            if(!(node->first < key)) {
+                candidate = node;
+                node = node->children[LEFT];
+            } else {
+                node = node->children[RIGHT];
+            }
+        }
+        if(candidate == nullptr)
+            return end();
+        _root = _splay(candidate->first, _root);
+        return iterator(_root, this);
     }
     
     iterator erase(key_type key)
@@ -556,6 +557,21 @@ private:
     const_reverse_iterator _crendIt = const_reverse_iterator(nullptr, this);
     size_t _size = 0;
     allocator_type _node_allocator;
+
+    value_type* _predecessor(const key_type& key) const noexcept
+    {
+        value_type* node = _root;
+        value_type* candidate = nullptr;
+        while(node != nullptr) {
+            if(node->first > key) {
+                node = node->children[LEFT];
+            } else {
+                candidate = node;
+                node = node->children[RIGHT];
+            }
+        }
+        return candidate;
+    }
     
     template<typename... Args>
     value_type* _insert(value_type* root, Args&&... args)
@@ -787,34 +803,23 @@ private:
     }
     
     // Rotate the tree so that the next larger element becomes the root
-    value_type* _rotateToNextLarger() const  noexcept {
-        // If there's no right subtree, there's no next larger element
+    value_type* _rotateToNextLarger() const {
         if (!_root || !_root->children[RIGHT])
-            return _root;
-        
-        // The right child with no left child is the next larger element
-        if (!_root->children[RIGHT]->children[LEFT]) {
-            _root = _LL_Rotate(_root); // Perform the left rotation
-        } else { // The next larger element is in the left subtree of the right child
-            _root->children[RIGHT] = _RR_Rotate(_root->children[RIGHT]);
-            _root = _LL_Rotate(_root);
-        }
+            return nullptr;
+        auto* next = _root->children[RIGHT];
+        while(next->children[LEFT] != nullptr)
+            next = next->children[LEFT];
+        _root = _splay(next->first, _root);
         return _root;
     }
     
-    // Rotate the tree so that the next smaller element becomes the root
-    value_type* _rotateToNextSmaller() const noexcept {
-        // If there's no left subtree, there's no next smaller element
+    value_type* _rotateToNextSmaller() const {
         if (!_root || !_root->children[LEFT])
-            return _root;
-        
-        // The left child with no right child is the next smaller element
-        if (!_root->children[LEFT]->children[RIGHT]) {
-            _root = _RR_Rotate(_root); // Perform the right rotation
-        } else { // The next smaller element is in the right subtree of the left child
-            _root->children[LEFT] = _LL_Rotate(_root->children[LEFT]);
-            _root = _RR_Rotate(_root);
-        }
+            return nullptr;
+        auto* previous = _root->children[LEFT];
+        while(previous->children[RIGHT] != nullptr)
+            previous = previous->children[RIGHT];
+        _root = _splay(previous->first, _root);
         return _root;
     }
 };

@@ -203,6 +203,11 @@ bool runPerformance(int messageSize, const std::string& sampled_data_file)
         symbols.push_back(newLine);
     }
     file.close();
+
+    if(symbols.empty()) {
+        std::cerr << "No benchmark data read from " << sampled_data_file << std::endl;
+        return false;
+    }
     
     //find the count of top 10% of keys used to give an idea of the distribution
     std::unordered_map<std::string, unsigned int> counts;
@@ -240,6 +245,12 @@ bool runPerformance(int messageSize, const std::string& sampled_data_file)
     std::map<std::string, Data> map;
     SplayTree<std::string, Data> splay;
     setup_performance_counters();
+    const auto counterCheck = get_counters();
+    if(counterCheck.cycles == 1 && counterCheck.branches == 1 &&
+       counterCheck.missed_branches == 1 && counterCheck.instructions == 1) {
+        std::cerr << "Hardware performance counters are unavailable" << std::endl;
+        return false;
+    }
     unsigned int runNumbers = 10;
     
     performance_counters_holder hash_map_counters;
@@ -558,7 +569,7 @@ bool runPerformance(int messageSize, const std::string& sampled_data_file)
 
 int main(int argc, const char * argv[]) {
     
-    std::string sample_data_file = "/Users/matthew/Documents/Code/CPP/FlashRadixTree/FlashRadixTree/sample_data.txt";
+    std::string sample_data_file = "sample_data.txt";
     int messageMultiplier = 1;
     bool runUnitTests = true;
     //parse out the sample data file and message size multiplier both are optional.

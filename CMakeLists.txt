@@ -1,29 +1,51 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.16)
 
-# Set the project name and version
-project(MyProject VERSION 1.0)
+project(FlashRadixTree VERSION 0.1.0 LANGUAGES CXX)
 
-# Specify the C++ standard
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+add_library(FlashRadixTree INTERFACE)
+add_library(FlashRadixTree::FlashRadixTree ALIAS FlashRadixTree)
+target_compile_features(FlashRadixTree INTERFACE cxx_std_20)
+target_include_directories(FlashRadixTree INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:include>
+)
 
-# Set the build type if not specified
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
+set(FLASH_RADIX_TREE_BUILD_TESTS_DEFAULT OFF)
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+    set(FLASH_RADIX_TREE_BUILD_TESTS_DEFAULT ON)
+endif()
+option(FLASH_RADIX_TREE_BUILD_TESTS "Build FlashRadixTree tests" ${FLASH_RADIX_TREE_BUILD_TESTS_DEFAULT})
+if(FLASH_RADIX_TREE_BUILD_TESTS)
+    enable_testing()
+    add_executable(FlashRadixTreeTests tests.cpp)
+    target_link_libraries(FlashRadixTreeTests PRIVATE FlashRadixTree)
+    add_test(NAME FlashRadixTreeTests COMMAND FlashRadixTreeTests)
+
+    add_executable(FlashRadixTreeSplayTests tests.cpp)
+    target_link_libraries(FlashRadixTreeSplayTests PRIVATE FlashRadixTree)
+    target_compile_definitions(FlashRadixTreeSplayTests PRIVATE USE_SPLAY_TREE=1)
+    add_test(NAME FlashRadixTreeSplayTests COMMAND FlashRadixTreeSplayTests)
 endif()
 
-# Add the executable without USE_SPLAY_TREE defined
-add_executable(FlashRadixTree main.cpp)
-# Add another executable with USE_SPLAY_TREE defined
-add_executable(FlashRadixTreeWithSplay main.cpp) # Use the same main.cpp file
-target_compile_definitions(FlashRadixTreeWithSplay PRIVATE USE_SPLAY_TREE=1)
+option(FLASH_RADIX_TREE_BUILD_BENCHMARKS "Build Apple Silicon counter benchmarks" OFF)
+if(FLASH_RADIX_TREE_BUILD_BENCHMARKS)
+    if(NOT APPLE OR NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/M1-Cycles/m1cycles.h")
+        message(FATAL_ERROR "Benchmarks require macOS and the M1-Cycles submodule")
+    endif()
 
-# Set compiler flags for Release build (including -O3 optimization)
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2")
+    add_executable(FlashRadixTreeBenchmark main.cpp)
+    target_link_libraries(FlashRadixTreeBenchmark PRIVATE FlashRadixTree)
 
-# Include header files if needed
-#include_directories(${PROJECT_SOURCE_DIR}/M1-Cycles)
+    add_executable(FlashRadixTreeSplayBenchmark main.cpp)
+    target_link_libraries(FlashRadixTreeSplayBenchmark PRIVATE FlashRadixTree)
+    target_compile_definitions(FlashRadixTreeSplayBenchmark PRIVATE USE_SPLAY_TREE=1)
+endif()
 
-# Link libraries if needed
-# target_link_libraries(FlashRadixTree PRIVATE some_library)
-# target_link_libraries(FlashRadixTreeWithSplay PRIVATE some_library)
+include(GNUInstallDirs)
+install(TARGETS FlashRadixTree EXPORT FlashRadixTreeTargets)
+install(FILES FlashRadixTree.hpp SplayTree.hpp DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(EXPORT FlashRadixTreeTargets
+    FILE FlashRadixTreeConfig.cmake
+    NAMESPACE FlashRadixTree::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FlashRadixTree
+)

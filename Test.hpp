@@ -3,6 +3,7 @@
 #include <iostream>
 #include <unordered_map>
 #include "FlashRadixTree.hpp"
+#include "SplayTree.hpp"
 
 //custom allocator to limit construction to 1 element
 static int throwOnAllocCount = 1;
@@ -1010,7 +1011,7 @@ bool RunTests()
             return false;
 
         regressionTree.clear();
-        if(regressionTree.erase("missing"))
+        if(regressionTree.erase("missing") || serializer.serialize(regressionTree) != "")
             return false;
 
         regressionTree.insert("A", 1);
@@ -1032,6 +1033,89 @@ bool RunTests()
             return false;
         regressionTree.insert(abc, 3);
         if(regressionTree.contains(a) || regressionTree.size() != 2)
+            return false;
+
+        std::string key141 = "common/14/key/141";
+        std::string key142 = "common/14/key/142";
+        std::string key148 = "common/14/key/148";
+        std::string key149 = "common/14/key/149";
+        FlashRadixTree<std::string_view, int> relinkTree;
+        relinkTree.insert(key141, 1);
+        relinkTree.insert(key142, 2);
+        relinkTree.insert(key148, 3);
+        relinkTree.insert(key149, 4);
+        relinkTree.erase(key142);
+        relinkTree.erase(key148);
+        relinkTree.erase(key149);
+        relinkTree.insert(key149, 5);
+        std::string relinked;
+        for(const auto& node : relinkTree)
+            relinked += node.getFullKey();
+        if(relinked != key141 + key149)
+            return false;
+    }
+
+    {
+        FlashRadixTree<std::string, int> apiTree;
+        if(apiTree["A"]->value != 0 || apiTree.size() != 1)
+            return false;
+        auto [inserted, didInsert] = apiTree.insert({"B", 2});
+        if(!didInsert || inserted->value != 2)
+            return false;
+        auto [duplicate, didDuplicate] = apiTree.insert({"B", 3});
+        if(didDuplicate || duplicate->value != 2)
+            return false;
+        auto [emplaced, didEmplace] = apiTree.emplace("C", 4);
+        if(!didEmplace || emplaced->value != 4)
+            return false;
+        const int copiedValue = 5;
+        if(apiTree.insert("D", copiedValue)->value != copiedValue)
+            return false;
+
+        FlashRadixTree<std::string, int, MatchMode::Prefix> safePrefixTree;
+        safePrefixTree.insert("AA", 1);
+        if(safePrefixTree.contains("AZ"))
+            return false;
+
+        FlashRadixTree<std::wstring, int> wideTree;
+        wideTree.insert(L"wide", 1);
+        if(wideTree.begin()->getFullKey() != L"wide")
+            return false;
+    }
+
+    {
+        SplayTree<std::string, int> apiTree;
+        if(apiTree["B"]->second != 0 || apiTree.size() != 1)
+            return false;
+        auto [inserted, didInsert] = apiTree.insert({"D", 2});
+        if(!didInsert || inserted->second != 2)
+            return false;
+        auto [duplicate, didDuplicate] = apiTree.emplace("D", 3);
+        if(didDuplicate || duplicate->second != 2 || apiTree.size() != 2)
+            return false;
+        apiTree.emplace("A", 1);
+        apiTree.emplace("F", 3);
+        if(apiTree.lower_bound("C")->first != "D" ||
+           apiTree.find_predecessor("C")->first != "B" ||
+           apiTree.lower_bound("Z") != apiTree.end())
+            return false;
+        const auto& constTree = apiTree;
+        if(constTree["D"] == constTree.end() ||
+           constTree.find_predecessor("C")->first != "B")
+            return false;
+
+        SplayTree<std::string, int> iterationTree;
+        for(const auto& key : {"D", "B", "A", "C", "F", "E", "G"})
+            iterationTree.insert(key, 1);
+        std::string keys;
+        for(const auto& node : iterationTree)
+            keys += node.first;
+        if(keys != "ABCDEFG")
+            return false;
+        keys.clear();
+        for(auto it = iterationTree.rbegin(); it != iterationTree.rend(); ++it)
+            keys += it->first;
+        if(keys != "GFEDCBA")
             return false;
     }
     

@@ -1,39 +1,25 @@
-name: CMake Build
+name: CMake
 
 on:
   push:
-    branches:
-      - '*' # Run on any branch push
   pull_request:
-    branches:
-      - '*' # Run on any pull request
-  workflow_dispatch: # Add this line
+  workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
 
     steps:
-    - name: Checkout repository with submodules
-      uses: actions/checkout@v2
-      with:
-        submodules: 'recursive' # Fetches all submodules recursively
+    - uses: actions/checkout@v4
 
-    - name: Create Build Directory
-      run: mkdir build
-
-    - name: Configure CMake
-      run: cmake .. -DCMAKE_BUILD_TYPE=Release
-      working-directory: build
+    - name: Configure
+      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
     - name: Build
-      run: cmake --build .
-      working-directory: build
+      run: cmake --build build --parallel
 
-    - name: Run tests (Run the FlashRadixTree executable)
-      run: ./FlashRadixTree
-      working-directory: build
-
-    - name: Run tests (Run the FlashRadixTreeWithSplay executable)
-      run: ./FlashRadixTreeWithSplay
-      working-directory: build
+    - name: Test
+      run: ctest --test-dir build --output-on-failure
